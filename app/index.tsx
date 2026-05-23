@@ -19,7 +19,8 @@ const IMG_MOSQUES = require('../assets/images/mosque_aerial_city_view.png');
 type TileData = {
   href: string;
   imageSource: ImageSourcePropType;
-  iconName: string;
+  iconName?: string;
+  textOverlay?: string;
   title: string;
 };
 
@@ -63,7 +64,7 @@ const TILES: TileData[] = [
   {
     href: '/names',
     imageSource: IMG_NAMES,
-    iconName: 'sparkles-outline',
+    textOverlay: '99',
     title: '99 Names',
   },
   {
@@ -84,13 +85,15 @@ export default function HomeScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <Stack.Screen options={{ headerShown: false }} />
-      <HomeHeader
-        onSettingsPress={() => router.push('/settings')}
-        onThemeTogglePress={() => {}}
-        onNotificationsPress={() => {}}
-      />
+      <SafeAreaView edges={['top']}>
+        <HomeHeader
+          onSettingsPress={() => router.push('/settings')}
+          onThemeTogglePress={() => {}}
+          onNotificationsPress={() => {}}
+        />
+      </SafeAreaView>
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -115,13 +118,16 @@ export default function HomeScreen() {
                 href={item.href}
                 imageSource={item.imageSource}
                 iconName={item.iconName as React.ComponentProps<typeof GridTile>['iconName']}
+                textOverlay={item.textOverlay}
                 title={item.title}
               />
             )}
           />
         </View>
       </ScrollView>
-      <BannerAdPlaceholder />
-    </SafeAreaView>
+      <SafeAreaView edges={['bottom']} className="bg-surface-light">
+        <BannerAdPlaceholder />
+      </SafeAreaView>
+    </View>
   );
 }

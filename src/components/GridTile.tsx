@@ -7,10 +7,11 @@ type Props = {
   href: string;
   imageSource: ImageSourcePropType;
   iconName?: React.ComponentProps<typeof Ionicons>['name'];
+  textOverlay?: string;
   title: string;
 };
 
-export default function GridTile({ href, imageSource, iconName, title }: Props) {
+export default function GridTile({ href, imageSource, iconName, textOverlay, title }: Props) {
   return (
     <View className="flex-1">
       <Link href={href as never} asChild>
@@ -28,14 +29,16 @@ export default function GridTile({ href, imageSource, iconName, title }: Props) 
                 style={{ flex: 1 }}
               >
                 <View className="absolute inset-0 items-center justify-center">
-                  {iconName && (
+                  {textOverlay ? (
+                    <Text className="font-sans-bold text-3xl text-white">{textOverlay}</Text>
+                  ) : iconName ? (
                     <Ionicons name={iconName} size={32} color="white" />
-                  )}
+                  ) : null}
                 </View>
               </LinearGradient>
             </ImageBackground>
           </View>
-          <Text className="font-sans-semibold text-xs text-gray-900 mt-1.5" numberOfLines={1}>
+          <Text className="font-sans-semibold text-sm text-gray-900 text-center mt-1.5" numberOfLines={1}>
             {title}
           </Text>
         </Pressable>
