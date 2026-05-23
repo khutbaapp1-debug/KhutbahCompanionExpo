@@ -14,9 +14,10 @@ type Props = {
 
 export default function GridTile({ href, imageSource, iconName, textOverlay, title, subtitle }: Props) {
   return (
+    <View className="flex-1">
     <Link href={href as never} asChild>
       <Pressable
-        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, flex: 1 })}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
       >
         <View style={{ aspectRatio: 1 }} className="rounded-2xl overflow-hidden">
           <ImageBackground source={imageSource} resizeMode="cover" style={{ flex: 1 }}>
@@ -50,5 +51,6 @@ export default function GridTile({ href, imageSource, iconName, textOverlay, tit
         </View>
       </Pressable>
     </Link>
+    </View>
   );
 }
