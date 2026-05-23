@@ -37,7 +37,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Stack>
-        <Stack.Screen name="index" options={{ title: 'Home' }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="translation" options={{ title: 'Live Translation' }} />
         <Stack.Screen name="prayer-times" options={{ title: 'Prayer Times' }} />
         <Stack.Screen name="qibla" options={{ title: 'Qibla Compass' }} />
