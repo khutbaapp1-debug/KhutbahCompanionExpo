@@ -13,16 +13,14 @@ const IMG_QURAN = require('../assets/images/Open_Quran_with_calligraphy_c7ef6e94
 const IMG_DUAS = require('../assets/images/hands_in_dua_position.png');
 const IMG_TASBIH = require('../assets/images/Prayer_beads_tasbih_closeup_5696650d.png');
 const IMG_QIBLA = require('../assets/images/Kaaba_aerial_view_Makkah_b34ddcc4.png');
-const IMG_NAMES = require('../assets/images/islamic_calligraphy_allah_names.png');
+const IMG_NAMES = require('../assets/images/Islamic_geometric_pattern_teal_gold_8c3ad41f.png');
 const IMG_MOSQUES = require('../assets/images/mosque_aerial_city_view.png');
 
 type TileData = {
   href: string;
   imageSource: ImageSourcePropType;
-  iconName?: string;
-  textOverlay?: string;
+  iconName: string;
   title: string;
-  subtitle: string;
 };
 
 const TILES: TileData[] = [
@@ -31,63 +29,54 @@ const TILES: TileData[] = [
     imageSource: IMG_PRAYER_TIMES,
     iconName: 'time-outline',
     title: 'Prayer Times',
-    subtitle: 'Daily salah schedule',
   },
   {
     href: '/quran',
     imageSource: IMG_QURAN,
     iconName: 'book-outline',
     title: 'Quran',
-    subtitle: 'Read with translation',
   },
   {
     href: '/duas',
     imageSource: IMG_DUAS,
     iconName: 'heart-outline',
     title: 'Daily Duas',
-    subtitle: 'Supplications',
   },
   {
     href: '/hadith',
     imageSource: IMG_QURAN,
     iconName: 'star-outline',
     title: 'Daily Hadith',
-    subtitle: 'Prophetic traditions',
   },
   {
     href: '/tasbih',
     imageSource: IMG_TASBIH,
     iconName: 'apps-outline',
     title: 'Tasbih',
-    subtitle: 'Digital dhikr counter',
   },
   {
     href: '/qibla',
     imageSource: IMG_QIBLA,
     iconName: 'compass-outline',
-    title: 'Qibla',
-    subtitle: 'Direction to Kaaba',
+    title: 'Qibla Compass',
   },
   {
     href: '/names',
     imageSource: IMG_NAMES,
-    textOverlay: '99',
+    iconName: 'sparkles-outline',
     title: '99 Names',
-    subtitle: 'Asma ul-Husna',
   },
   {
     href: '/mosques',
     imageSource: IMG_MOSQUES,
     iconName: 'location-outline',
-    title: 'Mosques',
-    subtitle: 'Nearby masaajid',
+    title: 'Mosque Finder',
   },
   {
     href: '/salah-guide',
     imageSource: IMG_PRAYER_TIMES,
     iconName: 'body-outline',
-    title: 'Salah & Wudu',
-    subtitle: 'Step-by-step guide',
+    title: 'Salah Guide',
   },
 ];
 
@@ -102,14 +91,18 @@ export default function HomeScreen() {
         onThemeTogglePress={() => {}}
         onNotificationsPress={() => {}}
       />
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 48 }}>
-        <View className="mt-4">
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 16 }}
+      >
+        <View className="mt-3">
           <NextPrayerCard />
         </View>
-        <View className="mt-5 px-6">
+        <View className="mt-3 px-6">
           <FeaturedBanner />
         </View>
-        <View className="mt-5 px-6">
+        <View className="mt-3 px-6">
           <FlatList
             data={TILES}
             keyExtractor={(item) => item.href}
@@ -122,9 +115,7 @@ export default function HomeScreen() {
                 href={item.href}
                 imageSource={item.imageSource}
                 iconName={item.iconName as React.ComponentProps<typeof GridTile>['iconName']}
-                textOverlay={item.textOverlay}
                 title={item.title}
-                subtitle={item.subtitle}
               />
             )}
           />
