@@ -20,6 +20,7 @@ type TileData = {
   href: string;
   imageSource: ImageSourcePropType;
   iconName?: string;
+  iconLibrary?: 'mci' | 'ionicons' | 'custom-tasbih';
   textOverlay?: string;
   title: string;
 };
@@ -28,31 +29,31 @@ const TILES: TileData[] = [
   {
     href: '/prayer-times',
     imageSource: IMG_PRAYER_TIMES,
-    iconName: 'time-outline',
+    iconName: 'mosque',
     title: 'Prayer Times',
   },
   {
     href: '/quran',
     imageSource: IMG_QURAN,
-    iconName: 'book-outline',
+    iconName: 'book-open-variant',
     title: 'Quran',
   },
   {
     href: '/duas',
     imageSource: IMG_DUAS,
-    iconName: 'heart-outline',
+    iconName: 'hands-pray',
     title: 'Daily Duas',
   },
   {
     href: '/hadith',
     imageSource: IMG_QURAN,
-    iconName: 'star-outline',
+    iconName: 'book-open-page-variant',
     title: 'Daily Hadith',
   },
   {
     href: '/tasbih',
     imageSource: IMG_TASBIH,
-    iconName: 'apps-outline',
+    iconLibrary: 'custom-tasbih',
     title: 'Tasbih',
   },
   {
@@ -70,13 +71,13 @@ const TILES: TileData[] = [
   {
     href: '/mosques',
     imageSource: IMG_MOSQUES,
-    iconName: 'location-outline',
+    iconName: 'map-marker-radius',
     title: 'Mosque Finder',
   },
   {
     href: '/salah-guide',
     imageSource: IMG_PRAYER_TIMES,
-    iconName: 'body-outline',
+    iconName: 'human-handsup',
     title: 'Salah Guide',
   },
 ];
@@ -118,6 +119,7 @@ export default function HomeScreen() {
                 href={item.href}
                 imageSource={item.imageSource}
                 iconName={item.iconName as React.ComponentProps<typeof GridTile>['iconName']}
+                iconLibrary={item.iconLibrary}
                 textOverlay={item.textOverlay}
                 title={item.title}
               />

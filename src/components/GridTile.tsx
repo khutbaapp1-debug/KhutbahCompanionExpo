@@ -1,17 +1,51 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { ImageBackground, ImageSourcePropType, Pressable, Text, View } from 'react-native';
 
+import TasbihIcon from './icons/TasbihIcon';
+
 type Props = {
   href: string;
   imageSource: ImageSourcePropType;
-  iconName?: React.ComponentProps<typeof Ionicons>['name'];
+  iconName?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  iconLibrary?: 'mci' | 'ionicons' | 'custom-tasbih';
   textOverlay?: string;
   title: string;
 };
 
-export default function GridTile({ href, imageSource, iconName, textOverlay, title }: Props) {
+const ICON_SIZE = 44;
+
+export default function GridTile({
+  href,
+  imageSource,
+  iconName,
+  iconLibrary = 'mci',
+  textOverlay,
+  title,
+}: Props) {
+  function renderOverlay() {
+    if (textOverlay) {
+      return <Text className="font-sans-bold text-3xl text-white">{textOverlay}</Text>;
+    }
+    if (iconLibrary === 'custom-tasbih') {
+      return <TasbihIcon size={ICON_SIZE} color="white" />;
+    }
+    if (iconLibrary === 'ionicons' && iconName) {
+      return (
+        <Ionicons
+          name={iconName as React.ComponentProps<typeof Ionicons>['name']}
+          size={ICON_SIZE}
+          color="white"
+        />
+      );
+    }
+    if (iconName) {
+      return <MaterialCommunityIcons name={iconName} size={ICON_SIZE} color="white" />;
+    }
+    return null;
+  }
+
   return (
     <View className="flex-1">
       <Link href={href as never} asChild>
@@ -29,16 +63,15 @@ export default function GridTile({ href, imageSource, iconName, textOverlay, tit
                 style={{ flex: 1 }}
               >
                 <View className="absolute inset-0 items-center justify-center">
-                  {textOverlay ? (
-                    <Text className="font-sans-bold text-3xl text-white">{textOverlay}</Text>
-                  ) : iconName ? (
-                    <Ionicons name={iconName} size={32} color="white" />
-                  ) : null}
+                  {renderOverlay()}
                 </View>
               </LinearGradient>
             </ImageBackground>
           </View>
-          <Text className="font-sans-semibold text-sm text-gray-900 text-center mt-1.5" numberOfLines={1}>
+          <Text
+            className="font-sans-semibold text-sm text-gray-900 text-center mt-1.5"
+            numberOfLines={1}
+          >
             {title}
           </Text>
         </Pressable>
