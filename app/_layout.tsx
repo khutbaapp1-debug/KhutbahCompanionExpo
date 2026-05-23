@@ -48,8 +48,7 @@ export default function RootLayout() {
         <Stack.Screen name="tasbih" options={{ title: 'Tasbih Counter' }} />
         <Stack.Screen name="names" options={{ title: '99 Names of Allah' }} />
         <Stack.Screen name="mosques" options={{ title: 'Mosque Finder' }} />
-        <Stack.Screen name="salah-guide" options={{ title: 'Salah Guide' }} />
-        <Stack.Screen name="wudu-guide" options={{ title: 'Wudu Guide' }} />
+        <Stack.Screen name="salah-guide" options={{ title: 'Salah & Wudu Guide' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       </Stack>
     </SafeAreaProvider>
