@@ -3,7 +3,8 @@ import { ScrollView, Text, View } from 'react-native';
 
 // Temporary Week 1 navigation harness: a plain list of links to every other
 // screen so we can verify routing works. Week 2 replaces this entirely with
-// the feature grid UI.
+// the feature grid UI. This screen is also the NativeWind smoke test — it is
+// the only screen converted to className/fonts so far.
 const LINKS = [
   { href: '/translation', label: 'Live Translation' },
   { href: '/prayer-times', label: 'Prayer Times' },
@@ -21,17 +22,13 @@ const LINKS = [
 
 export default function HomeScreen() {
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <View className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ padding: 24, alignItems: 'center' }}>
-        <Text style={{ color: '#000', fontSize: 20, fontWeight: '600', marginBottom: 24 }}>
+        <Text className="mb-6 text-xl font-sans-semibold text-primary">
           Hello, this is Home
         </Text>
         {LINKS.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            style={{ color: '#0a7ea4', fontSize: 16, paddingVertical: 12 }}
-          >
+          <Link key={link.href} href={link.href} className="py-3 text-base font-sans">
             {link.label}
           </Link>
         ))}
