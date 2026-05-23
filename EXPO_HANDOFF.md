@@ -1097,6 +1097,22 @@ useEffect(() => {
 
 UMP consent (for EU users) — install `react-native-google-mobile-ads`'s `AdsConsent` and call `AdsConsent.requestInfoUpdate()` before initializing ads. The library handles the consent form UI.
 
+### ⚠️ Critical: AdMob banner + system nav bar interaction
+
+In the Capacitor version of this app, the owner discovered that AdMob's native banner view has internal padding/positioning that does NOT respect parent View padding or SafeAreaView insets in standard ways. Adding CSS padding around the banner did NOT push the actual ad pixels up — AdMob renders the ad where it wants regardless of parent layout. The Capacitor fix required writing a custom native plugin to patch `BannerExecutor.java`.
+
+In the Expo rebuild, the spec'd library is `react-native-google-mobile-ads`. Before merging this library in Week 10, the implementer MUST:
+
+1. Test on a real Android device with 3-button nav AND with gesture nav — not just an emulator
+2. If ad pixels are obscured by the nav bar, apply this fix:
+   - Read the bottom safe area inset with `useSafeAreaInsets()`
+   - Apply that inset as `paddingBottom` on the View CONTAINING the `<BannerAd>`, NOT on the `<BannerAd>` itself
+   - The BannerAd should still be `BannerAdSize.ANCHORED_ADAPTIVE_BANNER`
+3. If padding on the container still doesn't work, the fallback is to add `marginBottom` equal to the inset value on the `BannerAd` directly
+4. As a last resort: use the `android:fitsSystemWindows="true"` attribute via expo-build-properties config plugin
+
+DO NOT assume a SafeAreaView wrapping the BannerAd will work. It often does not for AdMob specifically.
+
 ---
 
 ## 10. Notifications
