@@ -1,85 +1,95 @@
 import { Stack, useRouter } from 'expo-router';
-import { FlatList, ScrollView, View } from 'react-native';
+import { FlatList, ImageSourcePropType, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BannerAdPlaceholder from '../src/components/BannerAdPlaceholder';
-import FeatureCard from '../src/components/FeatureCard';
+import FeaturedBanner from '../src/components/FeaturedBanner';
+import GridTile from '../src/components/GridTile';
 import HomeHeader from '../src/components/HomeHeader';
 import NextPrayerCard from '../src/components/NextPrayerCard';
 
-const TILES = [
-  {
-    href: '/translation',
-    title: 'Live Translation',
-    subtitle: 'Real-time Arabic to English',
-    iconName: 'mic-outline' as const,
-  },
+const IMG_PRAYER_TIMES = require('../assets/images/Mosque_at_dawn_prayer_time_1c06498c.png');
+const IMG_QURAN = require('../assets/images/Open_Quran_with_calligraphy_c7ef6e94.png');
+const IMG_DUAS = require('../assets/images/hands_in_dua_position.png');
+const IMG_TASBIH = require('../assets/images/Prayer_beads_tasbih_closeup_5696650d.png');
+const IMG_QIBLA = require('../assets/images/Kaaba_aerial_view_Makkah_b34ddcc4.png');
+const IMG_NAMES = require('../assets/images/islamic_calligraphy_allah_names.png');
+const IMG_MOSQUES = require('../assets/images/mosque_aerial_city_view.png');
+
+type TileData = {
+  href: string;
+  imageSource: ImageSourcePropType;
+  iconName?: string;
+  textOverlay?: string;
+  title: string;
+  subtitle: string;
+};
+
+const TILES: TileData[] = [
   {
     href: '/prayer-times',
+    imageSource: IMG_PRAYER_TIMES,
+    iconName: 'time-outline',
     title: 'Prayer Times',
     subtitle: 'Daily salah schedule',
-    iconName: 'time-outline' as const,
   },
   {
     href: '/quran',
+    imageSource: IMG_QURAN,
+    iconName: 'book-outline',
     title: 'Quran',
     subtitle: 'Read with translation',
-    iconName: 'book-outline' as const,
   },
   {
     href: '/duas',
+    imageSource: IMG_DUAS,
+    iconName: 'heart-outline',
     title: 'Daily Duas',
-    subtitle: 'Supplications & remembrance',
-    iconName: 'heart-outline' as const,
+    subtitle: 'Supplications',
   },
   {
     href: '/hadith',
+    imageSource: IMG_QURAN,
+    iconName: 'star-outline',
     title: 'Daily Hadith',
     subtitle: 'Prophetic traditions',
-    iconName: 'star-outline' as const,
   },
   {
     href: '/tasbih',
-    title: 'Tasbih Counter',
+    imageSource: IMG_TASBIH,
+    iconName: 'apps-outline',
+    title: 'Tasbih',
     subtitle: 'Digital dhikr counter',
-    iconName: 'apps-outline' as const,
   },
   {
     href: '/qibla',
-    title: 'Qibla Compass',
-    subtitle: 'Find the direction of prayer',
-    iconName: 'compass-outline' as const,
+    imageSource: IMG_QIBLA,
+    iconName: 'compass-outline',
+    title: 'Qibla',
+    subtitle: 'Direction to Kaaba',
   },
   {
     href: '/names',
+    imageSource: IMG_NAMES,
+    textOverlay: '99',
     title: '99 Names',
-    subtitle: 'Asma ul-Husna with meanings',
-    iconName: 'sparkles-outline' as const,
+    subtitle: 'Asma ul-Husna',
   },
   {
     href: '/mosques',
-    title: 'Mosque Finder',
+    imageSource: IMG_MOSQUES,
+    iconName: 'location-outline',
+    title: 'Mosques',
     subtitle: 'Nearby masaajid',
-    iconName: 'location-outline' as const,
   },
   {
     href: '/salah-guide',
+    imageSource: IMG_PRAYER_TIMES,
+    iconName: 'body-outline',
     title: 'Salah & Wudu',
-    subtitle: 'Step-by-step prayer guide',
-    iconName: 'body-outline' as const,
+    subtitle: 'Step-by-step guide',
   },
-  {
-    href: '/settings',
-    title: 'Settings',
-    subtitle: 'Preferences & notifications',
-    iconName: 'settings-outline' as const,
-  },
-] as const;
-
-type Tile = (typeof TILES)[number] | null;
-
-// Pad to even count so the 2-column grid has no orphaned column
-const GRID_DATA: Tile[] = TILES.length % 2 === 0 ? [...TILES] : [...TILES, null];
+];
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -92,30 +102,33 @@ export default function HomeScreen() {
         onThemeTogglePress={() => {}}
         onNotificationsPress={() => {}}
       />
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 16 }}>
-        <NextPrayerCard />
-        <FlatList
-          data={GRID_DATA}
-          keyExtractor={(item, index) => (item ? item.href : `spacer-${index}`)}
-          numColumns={2}
-          scrollEnabled={false}
-          contentContainerStyle={{ padding: 12 }}
-          columnWrapperStyle={{ gap: 8 }}
-          ItemSeparatorComponent={() => <View className="h-2" />}
-          renderItem={({ item }) => {
-            if (!item) return <View className="flex-1 p-1" />;
-            return (
-              <View className="flex-1 p-1">
-                <FeatureCard
-                  href={item.href}
-                  title={item.title}
-                  subtitle={item.subtitle}
-                  iconName={item.iconName}
-                />
-              </View>
-            );
-          }}
-        />
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 48 }}>
+        <View className="mt-4">
+          <NextPrayerCard />
+        </View>
+        <View className="mt-5 px-6">
+          <FeaturedBanner />
+        </View>
+        <View className="mt-5 px-6">
+          <FlatList
+            data={TILES}
+            keyExtractor={(item) => item.href}
+            numColumns={3}
+            scrollEnabled={false}
+            columnWrapperStyle={{ gap: 12 }}
+            ItemSeparatorComponent={() => <View className="h-3" />}
+            renderItem={({ item }) => (
+              <GridTile
+                href={item.href}
+                imageSource={item.imageSource}
+                iconName={item.iconName as React.ComponentProps<typeof GridTile>['iconName']}
+                textOverlay={item.textOverlay}
+                title={item.title}
+                subtitle={item.subtitle}
+              />
+            )}
+          />
+        </View>
       </ScrollView>
       <BannerAdPlaceholder />
     </SafeAreaView>
