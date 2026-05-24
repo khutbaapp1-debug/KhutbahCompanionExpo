@@ -40,7 +40,10 @@ function estimateVerseOffset(
   cardWidth: number,
 ): number {
   const lineHeight = fontSize * 2;
-  const charsPerLine = Math.floor((cardWidth * 0.85) / (fontSize * 0.6));
+  // Arabic text with tashkeel averages ~3.2 Unicode code points per visible glyph,
+  // so multiply raw glyph capacity by that ratio to get true chars-per-line.
+  const DIACRITIC_RATIO = 3.2;
+  const charsPerLine = Math.floor((cardWidth * 0.85) / (fontSize * 0.6)) * DIACRITIC_RATIO;
   let offset = 0;
   for (let i = 0; i < targetAyahNumber - 1; i++) {
     const ayah = ayahs[i];
@@ -219,7 +222,8 @@ export default function SurahReader() {
       const bismillahOffset = showBismillah ? fontSize * 0.9 + 24 : 0;
       const cardPadding = 36; // 16 top margin + 20 card padding
       const verseOffset = estimateVerseOffset(surah.ayahs, ayahNumber, fontSize, cardWidth);
-      pageScrollRef.current.scrollTo({ y: bismillahOffset + cardPadding + verseOffset, animated });
+      const totalOffset = bismillahOffset + cardPadding + verseOffset;
+      pageScrollRef.current.scrollTo({ y: totalOffset, animated });
     }
   }, [surah, surahNum, fontSize, cardWidth]);
 
