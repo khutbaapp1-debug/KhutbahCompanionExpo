@@ -4,7 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type AyahTranslation = {
   numberInSurah: number;
-  text: string;
+  transliteration: string;
+  translation: string;
 };
 
 // ─── Internal API response shape ─────────────────────────────────────────────
@@ -14,26 +15,31 @@ type ApiAyah = {
   text: string;
 };
 
+type ApiEdition = {
+  ayahs: ApiAyah[];
+};
+
 type ApiResponse = {
   code: number;
-  data: {
-    ayahs: ApiAyah[];
-  };
+  data: ApiEdition[];
 };
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Returns Saheeh International English translation for a surah.
+ * Returns transliteration + Saheeh International translation for a surah.
  *
- * Checks AsyncStorage first. On cache miss, fetches from api.alquran.cloud
- * and persists the result permanently (the Quran text doesn't change).
+ * Fetches both in one request using the multi-edition endpoint:
+ *   editions[0] = en.transliteration, editions[1] = en.sahih
+ *
+ * Caches permanently in AsyncStorage (quran text never changes).
+ * Cache key bumped to v2 because the shape changed from v1 (text only → transliteration + translation).
  * Returns an empty array on network or parse failure so Arabic still renders.
  */
 export async function getSurahTranslation(
   surahNumber: number,
 ): Promise<AyahTranslation[]> {
-  const cacheKey = `quran-translation-${surahNumber}`;
+  const cacheKey = `quran-translation-v2-${surahNumber}`;
 
   try {
     const cached = await AsyncStorage.getItem(cacheKey);
@@ -43,19 +49,23 @@ export async function getSurahTranslation(
   }
 
   try {
-    const url = `https://api.alquran.cloud/v1/surah/${surahNumber}/en.sahih`;
+    const url = `https://api.alquran.cloud/v1/surah/${surahNumber}/editions/en.transliteration,en.sahih`;
     const response = await fetch(url);
     const json = (await response.json()) as ApiResponse;
 
-    if (json.code !== 200) return [];
+    if (json.code !== 200 || !Array.isArray(json.data) || json.data.length < 2) return [];
 
-    const translations: AyahTranslation[] = json.data.ayahs.map((a) => ({
-      numberInSurah: a.numberInSurah,
-      text: a.text,
+    const translitEdition = json.data[0];
+    const translationEdition = json.data[1];
+
+    const result: AyahTranslation[] = translitEdition.ayahs.map((ayah, idx) => ({
+      numberInSurah: ayah.numberInSurah,
+      transliteration: ayah.text,
+      translation: translationEdition.ayahs[idx]?.text ?? '',
     }));
 
-    AsyncStorage.setItem(cacheKey, JSON.stringify(translations));
-    return translations;
+    void AsyncStorage.setItem(cacheKey, JSON.stringify(result));
+    return result;
   } catch {
     return [];
   }

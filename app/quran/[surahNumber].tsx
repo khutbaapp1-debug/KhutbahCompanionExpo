@@ -2,9 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   PanResponder,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -13,7 +15,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ReciterDropdown from '../../src/components/quran/ReciterDropdown';
-import VerseNumber from '../../src/components/quran/VerseNumber';
 import { getSurah } from '../../src/lib/quran';
 import type { Ayah, Surah } from '../../src/lib/quran';
 import { getAyahAudioUrl } from '../../src/lib/quran-audio';
@@ -39,8 +40,10 @@ export default function SurahReader() {
   const [showTranslation, setShowTranslation] = useState(false);
   const [reciterId, setReciterId] = useState<ReciterId>(DEFAULT_RECITER);
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+  const [loadingAyah, setLoadingAyah] = useState<number | null>(null);
   const [bookmarkedAyah, setBookmarkedAyah] = useState<number | null>(null);
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
+  const [activeVerse, setActiveVerse] = useState<number | null>(null);
 
   const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
@@ -57,10 +60,12 @@ export default function SurahReader() {
     }
   }, [surahNum]);
 
+  // Fetch transliteration+translation when Detailed view is active OR EN toggle is on
   useEffect(() => {
-    if (!showTranslation || translations.length > 0) return;
+    if (viewMode !== 'detailed' && !showTranslation) return;
+    if (translations.length > 0) return;
     getSurahTranslation(surahNum).then(setTranslations);
-  }, [showTranslation, surahNum, translations.length]);
+  }, [viewMode, showTranslation, surahNum, translations.length]);
 
   useEffect(() => {
     getBookmark().then((bm) => {
@@ -94,6 +99,7 @@ export default function SurahReader() {
       soundRef.current = null;
     }
     setPlayingAyah(null);
+    setLoadingAyah(null);
   }, []);
 
   const handlePlayAyah = useCallback(
@@ -103,6 +109,7 @@ export default function SurahReader() {
         return;
       }
       await stopAndUnload();
+      setLoadingAyah(ayahNumber);
       try {
         const { Audio } = await import('expo-av');
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
@@ -113,13 +120,16 @@ export default function SurahReader() {
           (status) => {
             if (status.isLoaded && status.didJustFinish) {
               setPlayingAyah(null);
+              setLoadingAyah(null);
               soundRef.current = null;
             }
           },
         );
         soundRef.current = sound;
+        setLoadingAyah(null);
         setPlayingAyah(ayahNumber);
       } catch {
+        setLoadingAyah(null);
         setPlayingAyah(null);
         Alert.alert(
           'Audio Unavailable',
@@ -135,13 +145,7 @@ export default function SurahReader() {
       if (bookmarkedAyah === ayahNumber) {
         Alert.alert('Remove Bookmark', 'Remove bookmark from this verse?', [
           { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Remove',
-            style: 'destructive',
-            onPress: () => {
-              setBookmarkedAyah(null);
-            },
-          },
+          { text: 'Remove', style: 'destructive', onPress: () => setBookmarkedAyah(null) },
         ]);
       } else {
         setBookmarkedAyah(ayahNumber);
@@ -153,6 +157,15 @@ export default function SurahReader() {
       }
     },
     [bookmarkedAyah, surahNum, surah],
+  );
+
+  // Page view: tap verse marker → play + show active verse panel
+  const handleVerseMarkerPress = useCallback(
+    (ayahNumber: number) => {
+      void handlePlayAyah(ayahNumber);
+      setActiveVerse(ayahNumber);
+    },
+    [handlePlayAyah],
   );
 
   const handleViewableItemsChanged = useCallback(
@@ -182,10 +195,14 @@ export default function SurahReader() {
 
   const showBasmalah = surahNum !== 1 && surahNum !== 9;
   const basmalah = getSurah(1).ayahs[0].text;
+  // Defensive: strip Bismillah from verse 1 text if the data includes it as a prefix
+  const firstAyahRaw = surah.ayahs[0].text;
+  const startsWithBismillah = showBasmalah && firstAyahRaw.startsWith(basmalah.slice(0, 10));
+  const firstAyahText = startsWithBismillah ? firstAyahRaw.slice(basmalah.length).trim() : firstAyahRaw;
 
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }} {...panResponder.panHandlers}>
-      {/* Custom header */}
+      {/* ── Fixed header ── */}
       <View
         style={{
           paddingTop: insets.top,
@@ -219,7 +236,6 @@ export default function SurahReader() {
             {surah.englishName}
           </Text>
 
-          {/* Font size controls */}
           <TouchableOpacity
             onPress={() => setFontSizeIdx((i) => Math.max(0, i - 1))}
             style={{ paddingHorizontal: 6, paddingVertical: 4 }}
@@ -251,7 +267,6 @@ export default function SurahReader() {
             </Text>
           </TouchableOpacity>
 
-          {/* Prev / Next arrows */}
           <TouchableOpacity
             onPress={() => surahNum > 1 && router.replace(`/quran/${surahNum - 1}`)}
             style={{ padding: 4 }}
@@ -278,7 +293,7 @@ export default function SurahReader() {
 
         <ReciterDropdown selectedId={reciterId} onSelect={setReciterId} />
 
-        {/* View mode + translation toggle */}
+        {/* View mode toggle + EN toggle (EN applies to Page view; Detailed always shows translation) */}
         <View
           style={{
             flexDirection: 'row',
@@ -324,29 +339,31 @@ export default function SurahReader() {
 
           <View style={{ flex: 1 }} />
 
-          <TouchableOpacity
-            onPress={() => setShowTranslation((v) => !v)}
-            style={{
-              paddingHorizontal: 14,
-              paddingVertical: 6,
-              borderRadius: 8,
-              backgroundColor: showTranslation ? '#0F766E' : '#F3F4F6',
-            }}
-          >
-            <Text
+          {viewMode === 'page' && (
+            <TouchableOpacity
+              onPress={() => setShowTranslation((v) => !v)}
               style={{
-                fontFamily: 'Inter_600SemiBold',
-                fontSize: 13,
-                color: showTranslation ? 'white' : '#6B7280',
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 8,
+                backgroundColor: showTranslation ? '#0F766E' : '#F3F4F6',
               }}
             >
-              EN
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 13,
+                  color: showTranslation ? 'white' : '#6B7280',
+                }}
+              >
+                EN
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      {/* Surah banner */}
+      {/* ── Surah banner ── */}
       <View
         style={{
           backgroundColor: '#0F766E',
@@ -368,207 +385,326 @@ export default function SurahReader() {
         >
           {surah.englishName} · {surah.numberOfAyahs} verses · {surah.revelationType}
         </Text>
-        {showBasmalah && (
-          <Text
-            style={{
-              fontFamily: 'KFGQPCHafs',
-              fontSize: 18,
-              color: 'rgba(255,255,255,0.9)',
-              marginTop: 12,
-            }}
-          >
-            {basmalah}
-          </Text>
-        )}
       </View>
 
-      {/* Verse list */}
-      <FlatList
-        ref={listRef}
-        data={surah.ayahs}
-        keyExtractor={(ayah) => String(ayah.numberInSurah)}
-        onViewableItemsChanged={handleViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig.current}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-        onScrollToIndexFailed={() => {}}
-        renderItem={({ item: ayah }) => {
-          const translation = translations.find((t) => t.numberInSurah === ayah.numberInSurah);
-          const isPlaying = playingAyah === ayah.numberInSurah;
-          const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
+      {/* ── Page view: flowing Mushaf ── */}
+      {viewMode === 'page' ? (
+        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+          {/* Bismillah header above the parchment (not shown for surah 1 or 9) */}
+          {showBasmalah && (
+            <Text
+              style={{
+                fontFamily: 'KFGQPCHafs',
+                fontSize: fontSize * 0.9,
+                color: '#0F766E',
+                textAlign: 'center',
+                marginHorizontal: 16,
+                marginTop: 16,
+                marginBottom: 8,
+              }}
+            >
+              {basmalah}
+            </Text>
+          )}
 
-          if (viewMode === 'page') {
+          {/* Parchment card */}
+          <View
+            style={{
+              backgroundColor: '#F5F0E8',
+              borderRadius: 12,
+              margin: 16,
+              marginTop: showBasmalah ? 0 : 16,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+          >
+            {/* One continuous Text block — all ayahs inline with ornamental verse markers */}
+            <Text
+              style={{
+                writingDirection: 'rtl',
+                textAlign: 'justify',
+                fontFamily: 'KFGQPCHafs',
+                fontSize,
+                lineHeight: fontSize * 2,
+                color: '#1a1a1a',
+              }}
+            >
+              {surah.ayahs.map((ayah) => {
+                const isPlaying = playingAyah === ayah.numberInSurah;
+                const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
+                const textContent =
+                  ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
+                return (
+                  <Text key={ayah.numberInSurah}>
+                    <Text style={{ fontFamily: 'KFGQPCHafs', fontSize }}>{textContent}{' '}</Text>
+                    <Text
+                      onPress={() => handleVerseMarkerPress(ayah.numberInSurah)}
+                      onLongPress={() => handleBookmarkAyah(ayah.numberInSurah)}
+                      style={{
+                        fontFamily: 'Inter_600SemiBold',
+                        fontSize: fontSize * 0.55,
+                        color: isPlaying ? '#0D9488' : isBookmarked ? '#D97706' : '#0F766E',
+                      }}
+                    >
+                      {'﴿'}{ayah.numberInSurah}{'﴾'}{' '}
+                    </Text>
+                  </Text>
+                );
+              })}
+            </Text>
+          </View>
+
+          {/* Active verse panel — shown when a verse marker is tapped */}
+          {activeVerse !== null && ((): React.ReactElement | null => {
+            const t = translations.find((x) => x.numberInSurah === activeVerse);
+            return (
+              <View
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: 16,
+                  marginHorizontal: 16,
+                  marginBottom: 16,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: '#F3F4F6',
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text
+                    style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: '#111827' }}
+                  >
+                    {surah.englishName} : {activeVerse}
+                  </Text>
+                  <TouchableOpacity onPress={() => setActiveVerse(null)} style={{ padding: 4 }}>
+                    <Ionicons name="close" size={18} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+                {showTranslation && t?.translation ? (
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 13,
+                      color: '#374151',
+                      marginTop: 8,
+                      lineHeight: 20,
+                    }}
+                  >
+                    {t.translation}
+                  </Text>
+                ) : !showTranslation ? (
+                  <TouchableOpacity
+                    onPress={() => setShowTranslation(true)}
+                    style={{
+                      alignSelf: 'flex-start',
+                      marginTop: 8,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor: '#F3F4F6',
+                    }}
+                  >
+                    <Text
+                      style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: '#6B7280' }}
+                    >
+                      EN
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            );
+          })()}
+        </ScrollView>
+      ) : (
+        /* ── Detailed view: card per ayah ── */
+        <FlatList
+          ref={listRef}
+          data={surah.ayahs}
+          keyExtractor={(ayah) => String(ayah.numberInSurah)}
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig.current}
+          contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 24 }}
+          onScrollToIndexFailed={() => {}}
+          renderItem={({ item: ayah }) => {
+            const t = translations.find((x) => x.numberInSurah === ayah.numberInSurah);
+            const isPlaying = playingAyah === ayah.numberInSurah;
+            const isLoading = loadingAyah === ayah.numberInSurah;
+            const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
+
             return (
               <View
                 style={{
                   flexDirection: 'row',
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderBottomWidth: 1,
-                  borderBottomColor: '#F9FAFB',
-                  backgroundColor: isPlaying ? '#F0FDFA' : isBookmarked ? '#FFFBEB' : 'white',
+                  marginHorizontal: 16,
+                  marginBottom: 12,
+                  borderRadius: 16,
+                  backgroundColor: 'white',
+                  borderWidth: 1,
+                  borderColor: isBookmarked ? '#0F766E' : '#F3F4F6',
+                  padding: 16,
                 }}
               >
-                <View style={{ marginTop: 6, marginRight: 12 }}>
-                  <VerseNumber
-                    number={ayah.numberInSurah}
-                    onPress={() => void handlePlayAyah(ayah.numberInSurah)}
-                    onLongPress={() => handleBookmarkAyah(ayah.numberInSurah)}
-                    isBookmarked={isBookmarked}
-                    isPlaying={isPlaying}
-                  />
-                </View>
+                {/* Left column */}
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
                       fontFamily: 'KFGQPCHafs',
                       fontSize,
-                      color: '#111827',
                       textAlign: 'right',
                       writingDirection: 'rtl',
-                      lineHeight: fontSize * 1.9,
+                      lineHeight: fontSize * 1.8,
+                      color: '#111827',
+                      marginBottom: 12,
                     }}
                   >
                     {ayah.text}
                   </Text>
-                  {showTranslation && translation && (
+
+                  {!!t?.transliteration && (
                     <Text
                       style={{
                         fontFamily: 'Inter_400Regular',
                         fontSize: 13,
-                        color: '#4B5563',
-                        marginTop: 6,
+                        color: '#6B7280',
+                        fontStyle: 'italic',
+                        marginBottom: 8,
                         lineHeight: 20,
-                        paddingTop: 6,
-                        borderTopWidth: 1,
-                        borderTopColor: '#F3F4F6',
                       }}
                     >
-                      {translation.text}
+                      {t.transliteration}
                     </Text>
                   )}
+
+                  {!!t?.translation && (
+                    <Text
+                      style={{
+                        fontFamily: 'Inter_400Regular',
+                        fontSize: 15,
+                        color: '#111827',
+                        marginBottom: 14,
+                        lineHeight: 22,
+                      }}
+                    >
+                      {t.translation}
+                    </Text>
+                  )}
+
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                    {/* Play button */}
+                    <TouchableOpacity
+                      onPress={() => void handlePlayAyah(ayah.numberInSurah)}
+                      disabled={isLoading}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: isPlaying ? '#0F766E' : '#D1D5DB',
+                        backgroundColor: isPlaying ? '#0F766E' : 'white',
+                        marginRight: 8,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {isLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color="#6B7280"
+                          style={{ marginRight: 6 }}
+                        />
+                      ) : (
+                        <Ionicons
+                          name={isPlaying ? 'pause' : 'play'}
+                          size={14}
+                          color={isPlaying ? 'white' : '#374151'}
+                          style={{ marginRight: 6 }}
+                        />
+                      )}
+                      <Text
+                        style={{
+                          fontFamily: 'Inter_500Medium',
+                          fontSize: 13,
+                          color: isPlaying ? 'white' : '#374151',
+                        }}
+                      >
+                        {isLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play Recitation'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Bookmark button */}
+                    <TouchableOpacity
+                      onPress={() => handleBookmarkAyah(ayah.numberInSurah)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: isBookmarked ? '#0F766E' : '#D1D5DB',
+                        backgroundColor: isBookmarked ? '#0F766E' : 'white',
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Ionicons
+                        name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
+                        size={14}
+                        color={isBookmarked ? 'white' : '#374151'}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text
+                        style={{
+                          fontFamily: 'Inter_500Medium',
+                          fontSize: 13,
+                          color: isBookmarked ? 'white' : '#374151',
+                        }}
+                      >
+                        {isBookmarked ? 'Bookmarked' : 'Bookmark'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Right column — verse number badge */}
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: '#0F766E',
+                    backgroundColor: isBookmarked ? '#0F766E' : 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    alignSelf: 'flex-start',
+                    marginLeft: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_700Bold',
+                      fontSize: 11,
+                      color: isBookmarked ? 'white' : '#0F766E',
+                    }}
+                  >
+                    {ayah.numberInSurah}
+                  </Text>
                 </View>
               </View>
             );
-          }
-
-          // Detailed card view
-          return (
-            <View
-              style={{
-                marginHorizontal: 12,
-                marginVertical: 6,
-                borderRadius: 12,
-                backgroundColor: isPlaying ? '#F0FDFA' : isBookmarked ? '#FFFBEB' : '#F9FAFB',
-                borderWidth: 1,
-                borderColor: isPlaying ? '#0D9488' : isBookmarked ? '#FCD34D' : '#F3F4F6',
-                padding: 16,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: 'KFGQPCHafs',
-                  fontSize,
-                  color: '#111827',
-                  textAlign: 'right',
-                  writingDirection: 'rtl',
-                  lineHeight: fontSize * 1.9,
-                }}
-              >
-                {ayah.text}
-              </Text>
-              {showTranslation && translation && (
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 13,
-                    color: '#4B5563',
-                    marginTop: 8,
-                    lineHeight: 20,
-                    paddingTop: 8,
-                    borderTopWidth: 1,
-                    borderTopColor: '#E5E7EB',
-                  }}
-                >
-                  {translation.text}
-                </Text>
-              )}
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: 12,
-                }}
-              >
-                <VerseNumber
-                  number={ayah.numberInSurah}
-                  onPress={() => void handlePlayAyah(ayah.numberInSurah)}
-                  onLongPress={() => handleBookmarkAyah(ayah.numberInSurah)}
-                  isBookmarked={isBookmarked}
-                  isPlaying={isPlaying}
-                />
-                <View style={{ flexDirection: 'row' }}>
-                  <TouchableOpacity
-                    onPress={() => void handlePlayAyah(ayah.numberInSurah)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 8,
-                      backgroundColor: isPlaying ? '#0F766E' : '#E5E7EB',
-                      marginRight: 8,
-                    }}
-                  >
-                    <Ionicons
-                      name={isPlaying ? 'pause' : 'play'}
-                      size={14}
-                      color={isPlaying ? 'white' : '#374151'}
-                    />
-                    <Text
-                      style={{
-                        fontFamily: 'Inter_500Medium',
-                        fontSize: 12,
-                        color: isPlaying ? 'white' : '#374151',
-                        marginLeft: 4,
-                      }}
-                    >
-                      {isPlaying ? 'Pause' : 'Play'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleBookmarkAyah(ayah.numberInSurah)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 8,
-                      backgroundColor: isBookmarked ? '#FBBF24' : '#E5E7EB',
-                    }}
-                  >
-                    <Ionicons
-                      name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
-                      size={14}
-                      color={isBookmarked ? 'white' : '#374151'}
-                    />
-                    <Text
-                      style={{
-                        fontFamily: 'Inter_500Medium',
-                        fontSize: 12,
-                        color: isBookmarked ? 'white' : '#374151',
-                        marginLeft: 4,
-                      }}
-                    >
-                      Save
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          );
-        }}
-      />
+          }}
+        />
+      )}
     </View>
   );
 }
