@@ -42,3 +42,24 @@ export function getLastPosition(): Promise<Position | null> {
 export async function setLastPosition(surahNumber: number, ayahNumber: number): Promise<void> {
   await writePosition(LAST_POSITION_KEY, surahNumber, ayahNumber);
 }
+
+// ─── Last surah (lightweight key for the list screen) ─────────────────────────
+
+const LAST_SURAH_KEY = 'quran-last-surah';
+
+export async function getLastSurah(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(LAST_SURAH_KEY);
+    return raw ? parseInt(raw, 10) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setLastSurah(surahNumber: number): Promise<void> {
+  try {
+    await AsyncStorage.setItem(LAST_SURAH_KEY, String(surahNumber));
+  } catch {
+    // ignore
+  }
+}

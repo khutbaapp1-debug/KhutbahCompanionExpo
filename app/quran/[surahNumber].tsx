@@ -22,7 +22,7 @@ import { getSurah } from '../../src/lib/quran';
 import type { Ayah, Surah } from '../../src/lib/quran';
 import { getAyahAudioUrl } from '../../src/lib/quran-audio';
 import type { ReciterId } from '../../src/lib/quran-audio';
-import { getBookmark, getLastPosition, setBookmark, setLastPosition } from '../../src/lib/quran-bookmark';
+import { getBookmark, getLastPosition, setBookmark, setLastPosition, setLastSurah } from '../../src/lib/quran-bookmark';
 import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
 
@@ -47,6 +47,7 @@ export default function SurahReader() {
   const [bookmarkedAyah, setBookmarkedAyah] = useState<number | null>(null);
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
 
   const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
@@ -58,6 +59,7 @@ export default function SurahReader() {
   useEffect(() => {
     try {
       setSurah(getSurah(surahNum));
+      void setLastSurah(surahNum);
     } catch {
       router.back();
     }
@@ -76,9 +78,12 @@ export default function SurahReader() {
     });
     getLastPosition().then((pos) => {
       if (pos?.surahNumber === surahNum) {
+        setShowResumeBanner(true);
+        const bannerTimer = setTimeout(() => setShowResumeBanner(false), 4000);
         setTimeout(() => {
           listRef.current?.scrollToIndex({ index: pos.ayahNumber - 1, animated: false });
         }, 400);
+        return () => clearTimeout(bannerTimer);
       }
     });
   }, [surahNum]);
@@ -394,6 +399,27 @@ export default function SurahReader() {
           {surah.englishName} · {surah.numberOfAyahs} verses · {surah.revelationType}
         </Text>
       </View>
+
+      {/* ── Resume banner ── */}
+      {showResumeBanner && (
+        <View
+          style={{
+            backgroundColor: '#0F766E',
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: 'white' }}>
+            Resuming from last position
+          </Text>
+          <TouchableOpacity onPress={() => setShowResumeBanner(false)}>
+            <Ionicons name="close" size={16} color="white" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* ── Page view: flowing Mushaf ── */}
       {viewMode === 'page' ? (

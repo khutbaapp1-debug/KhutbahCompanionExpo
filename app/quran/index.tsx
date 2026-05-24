@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import QuickTourModal from '../../src/components/quran/QuickTourModal';
 import { getSurahList } from '../../src/lib/quran';
+import { getLastSurah } from '../../src/lib/quran-bookmark';
 
 const TOUR_KEY = 'quran-tour-seen';
 
@@ -20,6 +21,14 @@ export default function QuranListScreen() {
   useEffect(() => {
     AsyncStorage.getItem(TOUR_KEY).then((seen) => {
       if (!seen) setTourVisible(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    getLastSurah().then((surahNumber) => {
+      if (surahNumber) {
+        router.push(`/quran/${surahNumber}`);
+      }
     });
   }, []);
 
