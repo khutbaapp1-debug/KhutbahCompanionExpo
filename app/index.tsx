@@ -15,12 +15,19 @@ const IMG_TASBIH = require('../assets/images/Prayer_beads_tasbih_closeup_5696650
 const IMG_QIBLA = require('../assets/images/Kaaba_aerial_view_Makkah_b34ddcc4.png');
 const IMG_NAMES = require('../assets/images/Islamic_geometric_pattern_teal_gold_8c3ad41f.png');
 const IMG_MOSQUES = require('../assets/images/mosque_aerial_city_view.png');
+const IMG_HADITH = require('../assets/images/hadith_books_row.png');
 
 type TileData = {
   href: string;
   imageSource: ImageSourcePropType;
   iconName?: string;
-  iconLibrary?: 'mci' | 'ionicons' | 'custom-tasbih';
+  iconLibrary?:
+    | 'mci'
+    | 'ionicons'
+    | 'custom-tasbih'
+    | 'custom-prayer-times'
+    | 'custom-dua'
+    | 'custom-salah';
   textOverlay?: string;
   title: string;
 };
@@ -29,7 +36,7 @@ const TILES: TileData[] = [
   {
     href: '/prayer-times',
     imageSource: IMG_PRAYER_TIMES,
-    iconName: 'mosque',
+    iconLibrary: 'custom-prayer-times',
     title: 'Prayer Times',
   },
   {
@@ -41,12 +48,12 @@ const TILES: TileData[] = [
   {
     href: '/duas',
     imageSource: IMG_DUAS,
-    iconName: 'hands-pray',
+    iconLibrary: 'custom-dua',
     title: 'Daily Duas',
   },
   {
     href: '/hadith',
-    imageSource: IMG_QURAN,
+    imageSource: IMG_HADITH,
     iconName: 'book-open-page-variant',
     title: 'Daily Hadith',
   },
@@ -77,7 +84,7 @@ const TILES: TileData[] = [
   {
     href: '/salah-guide',
     imageSource: IMG_PRAYER_TIMES,
-    iconName: 'human-handsup',
+    iconLibrary: 'custom-salah',
     title: 'Salah Guide',
   },
 ];

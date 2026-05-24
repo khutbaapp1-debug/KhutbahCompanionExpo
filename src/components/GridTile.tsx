@@ -3,13 +3,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { ImageBackground, ImageSourcePropType, Pressable, Text, View } from 'react-native';
 
+import DuaIcon from './icons/DuaIcon';
+import PrayerMatIcon from './icons/PrayerMatIcon';
+import PrayerTimesIcon from './icons/PrayerTimesIcon';
 import TasbihIcon from './icons/TasbihIcon';
 
 type Props = {
   href: string;
   imageSource: ImageSourcePropType;
   iconName?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-  iconLibrary?: 'mci' | 'ionicons' | 'custom-tasbih';
+  iconLibrary?:
+    | 'mci'
+    | 'ionicons'
+    | 'custom-tasbih'
+    | 'custom-prayer-times'
+    | 'custom-dua'
+    | 'custom-salah';
   textOverlay?: string;
   title: string;
 };
@@ -30,6 +39,15 @@ export default function GridTile({
     }
     if (iconLibrary === 'custom-tasbih') {
       return <TasbihIcon size={ICON_SIZE} color="white" />;
+    }
+    if (iconLibrary === 'custom-prayer-times') {
+      return <PrayerTimesIcon size={ICON_SIZE} color="white" />;
+    }
+    if (iconLibrary === 'custom-dua') {
+      return <DuaIcon size={ICON_SIZE} color="white" />;
+    }
+    if (iconLibrary === 'custom-salah') {
+      return <PrayerMatIcon size={ICON_SIZE} color="white" />;
     }
     if (iconLibrary === 'ionicons' && iconName) {
       return (
