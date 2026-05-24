@@ -31,7 +31,7 @@ export default function QuranListScreen() {
 
     getLastSurah().then((surahNumber) => {
       if (surahNumber && surahNumber >= 1 && surahNumber <= 114) {
-        router.push(`/quran/${surahNumber}`);
+        router.replace(`/quran/${surahNumber}`);
       }
     });
   }, []);

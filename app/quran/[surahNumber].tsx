@@ -248,7 +248,13 @@ export default function SurahReader() {
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     console.log('[scrollToVerse] viewMode:', viewMode, 'listRef:', !!listRef.current, 'ayahNumber:', ayahNumber);
     if (listRef.current) {
-      listRef.current.scrollToIndex({ index: ayahNumber - 1, animated, viewPosition: 0 });
+      setTimeout(() => {
+        listRef.current?.scrollToIndex({
+          index: ayahNumber - 1,
+          animated,
+          viewPosition: 0,
+        });
+      }, 150);
     } else if (pageScrollRef.current && surah) {
       if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
         if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
@@ -444,49 +450,46 @@ export default function SurahReader() {
 
           <View style={{ flex: 1 }} />
 
-          {viewMode === 'page' && (
-            <TouchableOpacity
-              onPress={() => setShowTranslation((v) => !v)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 6,
-                borderRadius: 8,
-                backgroundColor: showTranslation ? '#0F766E' : '#F3F4F6',
-              }}
-            >
-              <Text
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {viewMode === 'page' && bookmarkedAyah === null && (
+              <TouchableOpacity
+                onPress={() => setShowTranslation((v) => !v)}
                 style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 6,
+                  backgroundColor: showTranslation ? '#0F766E' : '#F3F4F6',
+                }}
+              >
+                <Text style={{
                   fontFamily: 'Inter_600SemiBold',
                   fontSize: 13,
                   color: showTranslation ? 'white' : '#6B7280',
+                }}>EN</Text>
+              </TouchableOpacity>
+            )}
+            {bookmarkedAyah !== null && (
+              <TouchableOpacity
+                onPress={() => scrollToVerse(bookmarkedAyah, true)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#C0392B',
+                  borderRadius: 6,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  gap: 4,
                 }}
               >
-                EN
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {bookmarkedAyah !== null && (
-            <TouchableOpacity
-              onPress={() => scrollToVerse(bookmarkedAyah, true)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: '#C0392B',
-                borderRadius: 6,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                gap: 4,
-              }}
-            >
-              <Text style={{ fontFamily: 'KFGQPCHafs', fontSize: 14, color: 'white' }}>
-                {'۝'}
-              </Text>
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: 'white' }}>
-                Bookmark {bookmarkedAyah}
-              </Text>
-            </TouchableOpacity>
-          )}
+                <Text style={{ fontFamily: 'KFGQPCHafs', fontSize: 14, color: 'white' }}>
+                  {'۝'}
+                </Text>
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: 'white' }}>
+                  Bookmark {bookmarkedAyah}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -701,7 +704,10 @@ export default function SurahReader() {
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig.current}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 24 }}
-          onScrollToIndexFailed={() => {}}
+          onScrollToIndexFailed={(info) => {
+            const offset = (info.averageItemLength ?? 200) * info.index;
+            listRef.current?.scrollToOffset({ offset, animated: true });
+          }}
           renderItem={({ item: ayah }) => {
             const t = translations.find((x) => x.numberInSurah === ayah.numberInSurah);
             const isPlaying = playingAyah === ayah.numberInSurah;
