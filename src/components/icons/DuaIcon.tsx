@@ -1,57 +1,58 @@
-import { G, Path, Rect, Svg } from 'react-native-svg';
+import { Circle, Path, Svg } from 'react-native-svg';
 
 type Props = {
   size?: number;
   color?: string;
 };
 
-// Two open hands raised, palms facing the viewer, fingers pointing
-// up-and-outward, a small gap in the middle and a slight outward tilt (V).
-// Each hand: palm + 3 fingers + thumb + wrist cuff.
-// viewBox 0 0 24 24, stroke-based.
+// Two raised hands in dua, each drawn as a SINGLE FILLED silhouette (palm +
+// 4 fingers traced as one outline, like a hand traced on paper). Filled
+// silhouettes read as hands at 44px; the previous outlined-stroke version
+// looked like parallel lines ("fries packets"). No wrist cuffs.
+// viewBox 0 0 24 24.
 //
-// NOTE: simplified from 4 fingers to 3 per hand — at 44px, 1.5-unit strokes
-// (~2.75px) are wider than the gaps between 4 fingers, so they merge into a
-// blob. 3 fanned fingers keep a clear "open hand" read. Thumbs kept as short
-// angled strokes (they read as thumbs, not spikes) to sell the hand silhouette.
+// Approach: full 4-finger trace (not the simplified mitten) — the notches
+// between fingers are deep (tips ~y4, valleys ~y9.5), so the fingers stay
+// distinct even as a small filled shape.
 export default function DuaIcon({ size = 44, color = 'white' }: Props) {
-  const stroke = {
-    stroke: color,
-    strokeWidth: 1.5,
-    fill: 'none' as const,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-  };
-
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* LEFT HAND — tilted slightly left for the V */}
-      <G rotation={-7} originX={6.5} originY={13}>
-        {/* Palm */}
-        <Rect x={4} y={9} width={5} height={6} rx={1} {...stroke} />
-        {/* 3 fingers fanning up-and-out */}
-        <Path d="M 5 9 L 4.5 6" {...stroke} />
-        <Path d="M 6.5 9 L 6.5 4.5" {...stroke} />
-        <Path d="M 8 9 L 8.3 5.5" {...stroke} />
-        {/* Thumb on the inner (right) side */}
-        <Path d="M 9 11 Q 9.7 9.8 9.8 9" {...stroke} />
-        {/* Wrist cuff */}
-        <Rect x={4.5} y={15} width={4} height={2} rx={0.5} {...stroke} />
-      </G>
+      {/* LEFT HAND — single filled outline */}
+      <Path
+        d="M 2.5 16
+           L 2.5 10
+           L 2.7 5.8 Q 3.3 5.0 3.9 5.8
+           L 4.1 9 Q 4.5 9.5 4.9 9
+           L 5.0 4.8 Q 5.6 4.0 6.2 4.8
+           L 6.4 9 Q 6.8 9.5 7.2 9
+           L 7.3 4.3 Q 7.9 3.5 8.5 4.3
+           L 8.7 9 Q 9.1 9.5 9.5 9
+           L 9.6 5.3 Q 10.1 4.6 10.7 5.3
+           L 10.5 9.5
+           L 10 16 Z"
+        fill={color}
+      />
 
-      {/* RIGHT HAND — mirror, tilted slightly right */}
-      <G rotation={7} originX={17.5} originY={13}>
-        {/* Palm */}
-        <Rect x={15} y={9} width={5} height={6} rx={1} {...stroke} />
-        {/* 3 fingers fanning up-and-out */}
-        <Path d="M 19 9 L 19.5 6" {...stroke} />
-        <Path d="M 17.5 9 L 17.5 4.5" {...stroke} />
-        <Path d="M 16 9 L 15.7 5.5" {...stroke} />
-        {/* Thumb on the inner (left) side */}
-        <Path d="M 15 11 Q 14.3 9.8 14.2 9" {...stroke} />
-        {/* Wrist cuff */}
-        <Rect x={15.5} y={15} width={4} height={2} rx={0.5} {...stroke} />
-      </G>
+      {/* RIGHT HAND — mirror of left around x=12 */}
+      <Path
+        d="M 21.5 16
+           L 21.5 10
+           L 21.3 5.8 Q 20.7 5.0 20.1 5.8
+           L 19.9 9 Q 19.5 9.5 19.1 9
+           L 19.0 4.8 Q 18.4 4.0 17.8 4.8
+           L 17.6 9 Q 17.2 9.5 16.8 9
+           L 16.7 4.3 Q 16.1 3.5 15.5 4.3
+           L 15.3 9 Q 14.9 9.5 14.5 9
+           L 14.4 5.3 Q 13.9 4.6 13.3 5.3
+           L 13.5 9.5
+           L 14 16 Z"
+        fill={color}
+      />
+
+      {/* Supplication dots rising above the hands */}
+      <Circle cx={8} cy={2} r={0.55} fill={color} />
+      <Circle cx={12} cy={1.5} r={0.55} fill={color} />
+      <Circle cx={16} cy={2} r={0.55} fill={color} />
     </Svg>
   );
 }

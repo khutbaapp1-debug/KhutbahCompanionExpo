@@ -22,15 +22,9 @@ export default function PrayerMatIcon({ size = 44, color = 'white' }: Props) {
         fill="none"
         strokeLinejoin="round"
       />
-      {/* Mihrab arch — complete niche from floor up to a point and back down */}
-      <Path
-        d="M 8 14 L 8 8 Q 12 4 16 8 L 16 14"
-        stroke={color}
-        strokeWidth={1.2}
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      {/* Mihrab niche — FILLED closed shape (Z) so it reads as a niche, not
+          two floating legs. White fill on the teal tile reads instantly. */}
+      <Path d="M 8 14 L 8 8 Q 12 4 16 8 L 16 14 Z" fill={color} />
       {/* Bottom fringe line */}
       <Path d="M 6 19.5 L 18 19.5" stroke={color} strokeWidth={1} strokeLinecap="round" />
     </Svg>
