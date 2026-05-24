@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ import { getSurahList } from '../../src/lib/quran';
 import { getLastSurah } from '../../src/lib/quran-bookmark';
 
 const TOUR_KEY = 'quran-tour-seen';
+let _sessionRestored = false;
 
 export default function QuranListScreen() {
   const insets = useSafeAreaInsets();
@@ -24,11 +25,9 @@ export default function QuranListScreen() {
     });
   }, []);
 
-  const hasRestoredRef = useRef(false);
-
   useEffect(() => {
-    if (hasRestoredRef.current) return;
-    hasRestoredRef.current = true;
+    if (_sessionRestored) return;
+    _sessionRestored = true;
 
     getLastSurah().then((surahNumber) => {
       if (surahNumber && surahNumber >= 1 && surahNumber <= 114) {
