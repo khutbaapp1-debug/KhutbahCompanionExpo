@@ -8,7 +8,10 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Khutbah Companion uses your location to calculate accurate prayer times for your area."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +27,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Khutbah Companion uses your location to calculate accurate prayer times for your area."
+        }
+      ]
     ]
   }
 }
