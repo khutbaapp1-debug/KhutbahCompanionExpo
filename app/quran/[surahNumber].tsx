@@ -32,14 +32,6 @@ type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unk
 const DEFAULT_RECITER: ReciterId = 'ar.alafasy';
 const FONT_SIZES: number[] = [20, 24, 28, 32];
 
-const ARABIC_INDIC = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-function toArabicIndic(n: number): string {
-  return String(n)
-    .split('')
-    .map((d) => ARABIC_INDIC[parseInt(d)] ?? d)
-    .join('');
-}
-
 export default function SurahReader() {
   const { surahNumber: surahParam } = useLocalSearchParams<{ surahNumber: string }>();
   const surahNum = parseInt(surahParam ?? '1', 10);
@@ -459,7 +451,9 @@ export default function SurahReader() {
                   ? '○'
                   : isPlaying
                   ? '⏸'
-                  : `۝${toArabicIndic(ayah.numberInSurah)}`;
+                  : isBookmarked
+                  ? '۞'
+                  : '۝';
                 const markerColor = isLoading
                   ? '#9CA3AF'
                   : isPlaying
