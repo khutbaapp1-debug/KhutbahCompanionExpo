@@ -1,4 +1,3 @@
-import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -24,10 +23,10 @@ import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
 
 type ViewMode = 'page' | 'detailed';
+type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unknown> };
 
 const DEFAULT_RECITER: ReciterId = 'ar.alafasy';
 const FONT_SIZES: number[] = [20, 24, 28, 32];
-const BASMALAH = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَـٰنِ ٱلرَّحِيمِ';
 
 export default function SurahReader() {
   const { surahNumber: surahParam } = useLocalSearchParams<{ surahNumber: string }>();
@@ -43,7 +42,7 @@ export default function SurahReader() {
   const [bookmarkedAyah, setBookmarkedAyah] = useState<number | null>(null);
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
 
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
@@ -105,6 +104,7 @@ export default function SurahReader() {
       }
       await stopAndUnload();
       try {
+        const { Audio } = await import('expo-av');
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
         const url = getAyahAudioUrl(surahNum, ayahNumber, reciterId);
         const { sound } = await Audio.Sound.createAsync(
@@ -121,6 +121,10 @@ export default function SurahReader() {
         setPlayingAyah(ayahNumber);
       } catch {
         setPlayingAyah(null);
+        Alert.alert(
+          'Audio Unavailable',
+          'Audio requires a development build. Streaming will work once the app is built natively.',
+        );
       }
     },
     [playingAyah, surahNum, reciterId, stopAndUnload],
@@ -177,6 +181,7 @@ export default function SurahReader() {
   if (!surah) return null;
 
   const showBasmalah = surahNum !== 1 && surahNum !== 9;
+  const basmalah = getSurah(1).ayahs[0].text;
 
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }} {...panResponder.panHandlers}>
@@ -372,7 +377,7 @@ export default function SurahReader() {
               marginTop: 12,
             }}
           >
-            {BASMALAH}
+            {basmalah}
           </Text>
         )}
       </View>
