@@ -51,6 +51,8 @@ export default function SurahReader() {
 
   const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
+  const pageScrollRef = useRef<ScrollView>(null);
+  const verseOffsetsRef = useRef<number[]>([]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAyahRef = useRef(1);
@@ -85,13 +87,7 @@ export default function SurahReader() {
         bannerTimerRef.current = setTimeout(() => setShowResumeBanner(false), 4000);
         // Switch to Detailed view so the FlatList is mounted before scrolling
         setViewMode('detailed');
-        setTimeout(() => {
-          listRef.current?.scrollToIndex({
-            index: pos.ayahNumber - 1,
-            animated: false,
-            viewPosition: 0,
-          });
-        }, 600);
+        setTimeout(() => scrollToVerse(pos.ayahNumber, false), 600);
       }
     });
   }, [surahNum]);
@@ -191,6 +187,21 @@ export default function SurahReader() {
     },
     [handlePlayAyah],
   );
+
+  // Scroll to a verse in either view mode.
+  // Uses listRef.current as runtime check for Detailed view (FlatList mounted).
+  // Falls back to pageScrollRef + stored offsets for Page view.
+  // Stable ref — no state deps, safe in timeouts and effects.
+  const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
+    if (listRef.current) {
+      listRef.current.scrollToIndex({ index: ayahNumber - 1, animated, viewPosition: 0 });
+    } else {
+      const offset = verseOffsetsRef.current[ayahNumber - 1];
+      if (pageScrollRef.current && offset !== undefined) {
+        pageScrollRef.current.scrollTo({ y: offset, animated });
+      }
+    }
+  }, []);
 
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -435,7 +446,7 @@ export default function SurahReader() {
 
       {/* ── Page view: flowing Mushaf ── */}
       {viewMode === 'page' ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+        <ScrollView ref={pageScrollRef} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
           {/* Bismillah header above the parchment (not shown for surah 1 or 9) */}
           {showBasmalah && (
             <Text
@@ -765,6 +776,60 @@ export default function SurahReader() {
             );
           }}
         />
+      )}
+
+      {/* ── Jump-to-bookmark floating button ── */}
+      {bookmarkedAyah !== null && (
+        <TouchableOpacity
+          onPress={() => {
+            if (viewMode !== 'detailed') {
+              setViewMode('detailed');
+              setTimeout(() => scrollToVerse(bookmarkedAyah, true), 300);
+            } else {
+              scrollToVerse(bookmarkedAyah, true);
+            }
+          }}
+          onLongPress={() =>
+            Alert.alert('Jump to Bookmark', `Tap to jump to verse ${bookmarkedAyah}`)
+          }
+          style={{
+            position: 'absolute',
+            bottom: insets.bottom + 80,
+            right: 16,
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            backgroundColor: '#0F766E',
+            alignItems: 'center',
+            justifyContent: 'center',
+            elevation: 4,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: 'KFGQPCHafs',
+              fontSize: 18,
+              color: 'white',
+              lineHeight: 22,
+            }}
+          >
+            ۝
+          </Text>
+          <Text
+            style={{
+              fontFamily: 'Inter_600SemiBold',
+              fontSize: 10,
+              color: 'white',
+              lineHeight: 12,
+            }}
+          >
+            {bookmarkedAyah}
+          </Text>
+        </TouchableOpacity>
       )}
     </View>
   );
