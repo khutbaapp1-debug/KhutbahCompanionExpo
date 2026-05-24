@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { Link, router, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -57,12 +58,6 @@ function buildPills(breakdown: RakatBreakdown): Pill[] {
     pills.push({ key: 'witr', label: `${breakdown.witr} Witr`, isFard: false });
   }
   return pills;
-}
-
-function formatCoordinates(coords: Coordinates): string {
-  const latDir = coords.latitude >= 0 ? 'N' : 'S';
-  const lngDir = coords.longitude >= 0 ? 'E' : 'W';
-  return `${Math.abs(coords.latitude).toFixed(2)}°${latDir}, ${Math.abs(coords.longitude).toFixed(2)}°${lngDir}`;
 }
 
 function RakatPill({ label, isFard }: { label: string; isFard: boolean }) {
@@ -127,13 +122,40 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
     };
   }, []);
 
+  // Reverse-geocode the coordinates to a human-readable place name. null while
+  // loading; falls back to a generic label (never raw coordinates) on failure.
+  const { latitude, longitude } = coordinates;
+  const [locationName, setLocationName] = useState<string | null>(null);
+  useEffect(() => {
+    let isMounted = true;
+    setLocationName(null);
+    (async () => {
+      try {
+        const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        const name =
+          place?.city ??
+          place?.district ??
+          place?.subregion ??
+          place?.region ??
+          place?.country ??
+          'Unknown location';
+        if (isMounted) setLocationName(name);
+      } catch {
+        if (isMounted) setLocationName('Your location');
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [latitude, longitude]);
+
   const rakat = RAKAT_DATA[madhab];
 
   return (
     <ScrollView className="flex-1 bg-white" contentContainerStyle={{ paddingBottom: 24 }}>
       {/* Location label */}
       <Text className="px-4 py-2 text-sm text-gray-500 font-sans">
-        Currently showing prayer times for {formatCoordinates(coordinates)}
+        {locationName === null ? 'Locating…' : `Prayer times for ${locationName}`}
       </Text>
 
       {/* Next prayer highlight card */}
