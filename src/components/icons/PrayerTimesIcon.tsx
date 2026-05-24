@@ -5,25 +5,18 @@ type Props = {
   color?: string;
 };
 
-// Mosque silhouette with a circular clock face in the body.
-// viewBox 0 0 24 24, stroke-based outline.
+// Prayer Times = mosque (left half) + clock (right half), side by side.
+// Two distinct elements read more clearly at 44px than a clock-in-mosque.
+// viewBox 0 0 24 24, stroke-based.
 export default function PrayerTimesIcon({ size = 44, color = 'white' }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Rectangular base */}
-      <Rect
-        x={3}
-        y={14}
-        width={18}
-        height={7}
-        stroke={color}
-        strokeWidth={1.5}
-        fill="none"
-        strokeLinejoin="round"
-      />
-      {/* Onion dome — bulges out then tapers to a point at the top */}
+      {/* LEFT HALF — mosque */}
+      {/* Base */}
+      <Rect x={1} y={14} width={10} height={8} stroke={color} strokeWidth={1.5} fill="none" strokeLinejoin="round" />
+      {/* Onion dome */}
       <Path
-        d="M 9 14 C 8 10 11 9 12 7.5 C 13 9 16 10 15 14"
+        d="M 4 14 C 3 11 5 10 6 8.5 C 7 10 9 11 8 14"
         stroke={color}
         strokeWidth={1.5}
         fill="none"
@@ -31,21 +24,22 @@ export default function PrayerTimesIcon({ size = 44, color = 'white' }: Props) {
         strokeLinecap="round"
       />
       {/* Left minaret */}
-      <Path d="M 4 14 L 4 6.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-      <Circle cx={4} cy={6} r={0.8} fill={color} />
+      <Path d="M 2 14 L 2 9" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      <Circle cx={2} cy={8.5} r={0.6} fill={color} />
       {/* Right minaret */}
-      <Path d="M 20 14 L 20 6.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-      <Circle cx={20} cy={6} r={0.8} fill={color} />
-      {/* Clock face */}
-      <Circle cx={12} cy={15} r={2.5} stroke={color} strokeWidth={1} fill="none" />
-      {/* Clock hands ~10:10 */}
-      <Path d="M 12 15 L 13.5 14.1" stroke={color} strokeWidth={0.9} strokeLinecap="round" />
-      <Path d="M 12 15 L 10.9 14.35" stroke={color} strokeWidth={0.9} strokeLinecap="round" />
-      {/* Arched door at base */}
-      <Path
-        d="M 11 21 L 11 19 Q 11 18 12 18 Q 13 18 13 19 L 13 21 Z"
-        fill={color}
-      />
+      <Path d="M 10 14 L 10 9" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      <Circle cx={10} cy={8.5} r={0.6} fill={color} />
+      {/* Door arch at center bottom */}
+      <Path d="M 5 22 L 5 20 Q 5 19 6 19 Q 7 19 7 20 L 7 22 Z" fill={color} />
+
+      {/* RIGHT HALF — clock */}
+      <Circle cx={18} cy={12} r={5} stroke={color} strokeWidth={1.5} fill="none" />
+      {/* Minute hand */}
+      <Path d="M 18 12 L 20.5 10.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      {/* Hour hand */}
+      <Path d="M 18 12 L 16.5 11" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      {/* Center dot */}
+      <Circle cx={18} cy={12} r={0.7} fill={color} />
     </Svg>
   );
 }

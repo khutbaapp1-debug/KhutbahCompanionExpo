@@ -12,7 +12,7 @@ export default function NextPrayerCard({
   countdown = '00:00:00',
 }: Props) {
   return (
-    <View className="bg-primary rounded-2xl p-3 mx-4 mt-4">
+    <View className="bg-primary rounded-2xl p-3">
       <View className="flex-row items-center justify-between mb-1">
         <Text className="text-white font-sans text-sm opacity-80">Next Prayer</Text>
         <Text className="text-white font-sans-semibold text-base">{prayerName}</Text>

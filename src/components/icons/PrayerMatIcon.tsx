@@ -22,9 +22,9 @@ export default function PrayerMatIcon({ size = 44, color = 'white' }: Props) {
         fill="none"
         strokeLinejoin="round"
       />
-      {/* Mihrab arch inside the top — pointed niche peaking at (12, 6) */}
+      {/* Mihrab arch — complete niche from floor up to a point and back down */}
       <Path
-        d="M 8 11 L 8 8 Q 12 4 16 8 L 16 11"
+        d="M 8 14 L 8 8 Q 12 4 16 8 L 16 14"
         stroke={color}
         strokeWidth={1.2}
         fill="none"

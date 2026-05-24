@@ -107,7 +107,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 16 }}
       >
-        <View className="mt-3">
+        <View className="mt-2 px-6">
           <NextPrayerCard />
         </View>
         <View className="mt-3 px-6">
