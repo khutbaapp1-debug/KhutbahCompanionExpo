@@ -1,5 +1,8 @@
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -104,6 +107,13 @@ export default function SurahReader() {
 
   const handlePlayAyah = useCallback(
     async (ayahNumber: number) => {
+      if (IS_EXPO_GO) {
+        Alert.alert(
+          'Audio not available in Expo Go',
+          'Audio playback requires a development build and will work once the app is built natively.',
+        );
+        return;
+      }
       if (playingAyah === ayahNumber) {
         await stopAndUnload();
         return;
@@ -111,7 +121,8 @@ export default function SurahReader() {
       await stopAndUnload();
       setLoadingAyah(ayahNumber);
       try {
-        const { Audio } = await import('expo-av');
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { Audio } = require('expo-av') as typeof import('expo-av');
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
         const url = getAyahAudioUrl(surahNum, ayahNumber, reciterId);
         const { sound } = await Audio.Sound.createAsync(
@@ -131,10 +142,7 @@ export default function SurahReader() {
       } catch {
         setLoadingAyah(null);
         setPlayingAyah(null);
-        Alert.alert(
-          'Audio Unavailable',
-          'Audio requires a development build. Streaming will work once the app is built natively.',
-        );
+        Alert.alert('Audio Unavailable', 'Could not load audio for this verse.');
       }
     },
     [playingAyah, surahNum, reciterId, stopAndUnload],
@@ -435,9 +443,24 @@ export default function SurahReader() {
             >
               {surah.ayahs.map((ayah) => {
                 const isPlaying = playingAyah === ayah.numberInSurah;
+                const isLoading = loadingAyah === ayah.numberInSurah;
                 const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
                 const textContent =
                   ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
+                const markerContent = isLoading
+                  ? '○'
+                  : isPlaying
+                  ? '⏸'
+                  : isBookmarked
+                  ? '🔖'
+                  : `﴿${ayah.numberInSurah}﴾`;
+                const markerColor = isLoading
+                  ? '#9CA3AF'
+                  : isPlaying
+                  ? '#0D9488'
+                  : isBookmarked
+                  ? '#D97706'
+                  : '#0F766E';
                 return (
                   <Text key={ayah.numberInSurah}>
                     <Text style={{ fontFamily: 'KFGQPCHafs', fontSize }}>{textContent}{' '}</Text>
@@ -445,12 +468,12 @@ export default function SurahReader() {
                       onPress={() => handleVerseMarkerPress(ayah.numberInSurah)}
                       onLongPress={() => handleBookmarkAyah(ayah.numberInSurah)}
                       style={{
-                        fontFamily: 'Inter_600SemiBold',
-                        fontSize: fontSize * 0.55,
-                        color: isPlaying ? '#0D9488' : isBookmarked ? '#D97706' : '#0F766E',
+                        fontFamily: isBookmarked ? undefined : 'Inter_600SemiBold',
+                        fontSize: isBookmarked ? fontSize * 0.65 : fontSize * 0.55,
+                        color: markerColor,
                       }}
                     >
-                      {'﴿'}{ayah.numberInSurah}{'﴾'}{' '}
+                      {markerContent}{' '}
                     </Text>
                   </Text>
                 );
