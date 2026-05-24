@@ -32,6 +32,14 @@ type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unk
 const DEFAULT_RECITER: ReciterId = 'ar.alafasy';
 const FONT_SIZES: number[] = [20, 24, 28, 32];
 
+const ARABIC_INDIC = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+function toArabicIndic(n: number): string {
+  return String(n)
+    .split('')
+    .map((d) => ARABIC_INDIC[parseInt(d)] ?? d)
+    .join('');
+}
+
 export default function SurahReader() {
   const { surahNumber: surahParam } = useLocalSearchParams<{ surahNumber: string }>();
   const surahNum = parseInt(surahParam ?? '1', 10);
@@ -451,15 +459,13 @@ export default function SurahReader() {
                   ? '○'
                   : isPlaying
                   ? '⏸'
-                  : isBookmarked
-                  ? '🔖'
-                  : `﴿${ayah.numberInSurah}﴾`;
+                  : `۝${toArabicIndic(ayah.numberInSurah)}`;
                 const markerColor = isLoading
                   ? '#9CA3AF'
                   : isPlaying
                   ? '#0D9488'
                   : isBookmarked
-                  ? '#D97706'
+                  ? '#C9A84C'
                   : '#0F766E';
                 return (
                   <Text key={ayah.numberInSurah}>
@@ -468,8 +474,8 @@ export default function SurahReader() {
                       onPress={() => handleVerseMarkerPress(ayah.numberInSurah)}
                       onLongPress={() => handleBookmarkAyah(ayah.numberInSurah)}
                       style={{
-                        fontFamily: isBookmarked ? undefined : 'Inter_600SemiBold',
-                        fontSize: isBookmarked ? fontSize * 0.65 : fontSize * 0.55,
+                        fontFamily: 'KFGQPCHafs',
+                        fontSize: fontSize * 0.85,
                         color: markerColor,
                       }}
                     >
