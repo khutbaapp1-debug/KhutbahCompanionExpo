@@ -44,7 +44,7 @@ export default function GridTile({
       return <PrayerTimesIcon size={ICON_SIZE} color="white" />;
     }
     if (iconLibrary === 'custom-dua') {
-      return <DuaIcon size={ICON_SIZE} color="white" />;
+      return <DuaIcon size={64} color="white" />;
     }
     if (iconLibrary === 'custom-salah') {
       return <PrayerMatIcon size={ICON_SIZE} color="white" />;
