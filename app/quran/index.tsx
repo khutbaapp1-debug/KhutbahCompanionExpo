@@ -10,7 +10,6 @@ import { getSurahList } from '../../src/lib/quran';
 import { getLastSurah } from '../../src/lib/quran-bookmark';
 
 const TOUR_KEY = 'quran-tour-seen';
-let _sessionRestored = false;
 
 export default function QuranListScreen() {
   const insets = useSafeAreaInsets();
@@ -26,13 +25,14 @@ export default function QuranListScreen() {
   }, []);
 
   useEffect(() => {
-    if (_sessionRestored) return;
-    _sessionRestored = true;
-
-    getLastSurah().then((surahNumber) => {
-      if (surahNumber && surahNumber >= 1 && surahNumber <= 114) {
-        router.replace(`/quran/${surahNumber}`);
-      }
+    const NAV_KEY = 'quran-last-auto-nav';
+    getLastSurah().then(async (surahNumber) => {
+      if (!surahNumber || surahNumber < 1 || surahNumber > 114) return;
+      const lastNav = await AsyncStorage.getItem(NAV_KEY);
+      const elapsed = Date.now() - (lastNav ? parseInt(lastNav, 10) : 0);
+      if (elapsed < 2000) return; // just navigated away — don't loop
+      await AsyncStorage.setItem(NAV_KEY, String(Date.now()));
+      router.replace(`/quran/${surahNumber}`);
     });
   }, []);
 

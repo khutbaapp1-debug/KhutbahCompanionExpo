@@ -23,7 +23,7 @@ import { getSurah } from '../../src/lib/quran';
 import type { Ayah, Surah } from '../../src/lib/quran';
 import { getAyahAudioUrl } from '../../src/lib/quran-audio';
 import type { ReciterId } from '../../src/lib/quran-audio';
-import { getBookmark, getLastPosition, getQuranFontSize, getQuranViewMode, setBookmark, setLastPosition, setLastSurah, setQuranFontSize, setQuranViewMode } from '../../src/lib/quran-bookmark';
+import { getBookmark, getQuranFontSize, getQuranViewMode, setBookmark, setLastPosition, setLastSurah, setQuranFontSize, setQuranViewMode } from '../../src/lib/quran-bookmark';
 import type { Bookmark } from '../../src/lib/quran-bookmark';
 import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
@@ -71,7 +71,6 @@ export default function SurahReader() {
   const [bookmarkedAyah, setBookmarkedAyah] = useState<number | null>(null);
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
-  const [showResumeBanner, setShowResumeBanner] = useState(false);
   const [bookmarkScrollY, setBookmarkScrollY] = useState<number | undefined>(undefined);
   const [bookmarkFontSizeIdx, setBookmarkFontSizeIdx] = useState<number | undefined>(undefined);
 
@@ -79,9 +78,7 @@ export default function SurahReader() {
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
   const pageScrollYRef = useRef(0);
-  const verseOffsetsRef = useRef<number[]>([]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAyahRef = useRef(1);
   const fontSizeLoadedRef = useRef(false);
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
@@ -133,23 +130,12 @@ export default function SurahReader() {
         setBookmarkFontSizeIdx(bm.fontSizeIdx);
       }
     });
-    getLastPosition().then((pos) => {
-      if (pos?.surahNumber === surahNum) {
-        setShowResumeBanner(true);
-        if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-        bannerTimerRef.current = setTimeout(() => setShowResumeBanner(false), 4000);
-        // Switch to Detailed view so the FlatList is mounted before scrolling
-        setViewMode('detailed');
-        setTimeout(() => scrollToVerse(pos.ayahNumber, false), 600);
-      }
-    });
   }, [surahNum]);
 
   useEffect(
     () => () => {
       void soundRef.current?.unloadAsync();
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
       void setLastPosition(surahNum, currentAyahRef.current);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,7 +232,6 @@ export default function SurahReader() {
   // Detailed: uses listRef (FlatList).
   // Page: uses stored exact scrollY if jumping to the bookmarked verse; otherwise estimates.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
-    console.log('[scrollToVerse] viewMode:', viewMode, 'listRef:', !!listRef.current, 'ayahNumber:', ayahNumber);
     if (listRef.current) {
       setTimeout(() => {
         listRef.current?.scrollToIndex({
@@ -254,7 +239,7 @@ export default function SurahReader() {
           animated,
           viewPosition: 0,
         });
-      }, 150);
+      }, 400);
     } else if (pageScrollRef.current && surah) {
       if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
         if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
@@ -517,26 +502,7 @@ export default function SurahReader() {
         </Text>
       </View>
 
-      {/* ── Resume banner ── */}
-      {showResumeBanner && (
-        <View
-          style={{
-            backgroundColor: '#0F766E',
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: 'white' }}>
-            Resuming from last position
-          </Text>
-          <TouchableOpacity onPress={() => setShowResumeBanner(false)}>
-            <Ionicons name="close" size={16} color="white" />
-          </TouchableOpacity>
-        </View>
-      )}
+
 
       {/* ── Page view: flowing Mushaf ── */}
       {viewMode === 'page' ? (
@@ -704,6 +670,11 @@ export default function SurahReader() {
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig.current}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 24 }}
+          getItemLayout={(_data, index) => ({
+            length: 250,
+            offset: 250 * index,
+            index,
+          })}
           onScrollToIndexFailed={(info) => {
             const offset = (info.averageItemLength ?? 200) * info.index;
             listRef.current?.scrollToOffset({ offset, animated: true });
