@@ -2,6 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Position = { surahNumber: number; ayahNumber: number };
 
+export type Bookmark = {
+  surahNumber: number;
+  ayahNumber: number;
+  scrollY?: number;
+  fontSizeIdx?: number;
+};
+
 const BOOKMARK_KEY = 'quran-bookmark';
 const LAST_POSITION_KEY = 'quran-last-position';
 
@@ -21,16 +28,52 @@ async function writePosition(key: string, surahNumber: number, ayahNumber: numbe
 
 // ─── User bookmark (manually set) ────────────────────────────────────────────
 
-export function getBookmark(): Promise<Position | null> {
-  return readPosition(BOOKMARK_KEY);
+export async function getBookmark(): Promise<Bookmark | null> {
+  try {
+    const raw = await AsyncStorage.getItem(BOOKMARK_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as Bookmark;
+  } catch {
+    return null;
+  }
 }
 
-export async function setBookmark(surahNumber: number, ayahNumber: number): Promise<void> {
-  await writePosition(BOOKMARK_KEY, surahNumber, ayahNumber);
+export async function setBookmark(
+  surahNumber: number,
+  ayahNumber: number,
+  scrollY?: number,
+  fontSizeIdx?: number,
+): Promise<void> {
+  await AsyncStorage.setItem(
+    BOOKMARK_KEY,
+    JSON.stringify({ surahNumber, ayahNumber, scrollY, fontSizeIdx }),
+  );
 }
 
 export async function clearBookmark(): Promise<void> {
   await AsyncStorage.removeItem(BOOKMARK_KEY);
+}
+
+// ─── Font size preference ─────────────────────────────────────────────────────
+
+const FONT_SIZE_IDX_KEY = 'quran-font-size-idx';
+
+export async function getQuranFontSize(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(FONT_SIZE_IDX_KEY);
+    const idx = raw ? parseInt(raw, 10) : 1;
+    return isNaN(idx) ? 1 : Math.min(Math.max(idx, 0), 3);
+  } catch {
+    return 1;
+  }
+}
+
+export async function setQuranFontSize(idx: number): Promise<void> {
+  try {
+    await AsyncStorage.setItem(FONT_SIZE_IDX_KEY, String(idx));
+  } catch {
+    // ignore
+  }
 }
 
 // ─── Last position (automatically updated as user reads) ──────────────────────

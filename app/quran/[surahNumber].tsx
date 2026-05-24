@@ -23,7 +23,8 @@ import { getSurah } from '../../src/lib/quran';
 import type { Ayah, Surah } from '../../src/lib/quran';
 import { getAyahAudioUrl } from '../../src/lib/quran-audio';
 import type { ReciterId } from '../../src/lib/quran-audio';
-import { getBookmark, getLastPosition, setBookmark, setLastPosition, setLastSurah } from '../../src/lib/quran-bookmark';
+import { getBookmark, getLastPosition, getQuranFontSize, setBookmark, setLastPosition, setLastSurah, setQuranFontSize } from '../../src/lib/quran-bookmark';
+import type { Bookmark } from '../../src/lib/quran-bookmark';
 import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
 
@@ -71,14 +72,18 @@ export default function SurahReader() {
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
   const [showResumeBanner, setShowResumeBanner] = useState(false);
+  const [bookmarkScrollY, setBookmarkScrollY] = useState<number | undefined>(undefined);
+  const [bookmarkFontSizeIdx, setBookmarkFontSizeIdx] = useState<number | undefined>(undefined);
 
   const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
+  const pageScrollYRef = useRef(0);
   const verseOffsetsRef = useRef<number[]>([]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAyahRef = useRef(1);
+  const fontSizeLoadedRef = useRef(false);
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
 
   const fontSize = FONT_SIZES[fontSizeIdx] ?? 24;
@@ -93,6 +98,20 @@ export default function SurahReader() {
     }
   }, [surahNum]);
 
+  // Load persisted font size once on mount
+  useEffect(() => {
+    getQuranFontSize().then((idx) => {
+      fontSizeLoadedRef.current = true;
+      setFontSizeIdx(idx);
+    });
+  }, []);
+
+  // Persist font size whenever it changes (skip until loaded to avoid overwriting with default)
+  useEffect(() => {
+    if (!fontSizeLoadedRef.current) return;
+    void setQuranFontSize(fontSizeIdx);
+  }, [fontSizeIdx]);
+
   // Fetch transliteration+translation when Detailed view is active OR EN toggle is on
   useEffect(() => {
     if (viewMode !== 'detailed' && !showTranslation) return;
@@ -101,8 +120,12 @@ export default function SurahReader() {
   }, [viewMode, showTranslation, surahNum, translations.length]);
 
   useEffect(() => {
-    getBookmark().then((bm) => {
-      if (bm?.surahNumber === surahNum) setBookmarkedAyah(bm.ayahNumber);
+    getBookmark().then((bm: Bookmark | null) => {
+      if (bm?.surahNumber === surahNum) {
+        setBookmarkedAyah(bm.ayahNumber);
+        setBookmarkScrollY(bm.scrollY);
+        setBookmarkFontSizeIdx(bm.fontSizeIdx);
+      }
     });
     getLastPosition().then((pos) => {
       if (pos?.surahNumber === surahNum) {
@@ -193,14 +216,15 @@ export default function SurahReader() {
         ]);
       } else {
         setBookmarkedAyah(ayahNumber);
-        void setBookmark(surahNum, ayahNumber);
+        const scrollY = viewMode === 'page' ? pageScrollYRef.current : undefined;
+        void setBookmark(surahNum, ayahNumber, scrollY, fontSizeIdx);
         Alert.alert(
           'Bookmark Saved',
           `Verse ${ayahNumber} of ${surah?.englishName ?? 'this surah'} bookmarked.`,
         );
       }
     },
-    [bookmarkedAyah, surahNum, surah],
+    [bookmarkedAyah, surahNum, surah, viewMode, fontSizeIdx],
   );
 
   // Page view: tap verse marker → play + show active verse panel
@@ -213,19 +237,30 @@ export default function SurahReader() {
   );
 
   // Scroll to a verse in either view mode.
-  // Detailed: uses listRef (FlatList). Page: estimates y offset mathematically.
+  // Detailed: uses listRef (FlatList).
+  // Page: uses stored exact scrollY if jumping to the bookmarked verse; otherwise estimates.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (listRef.current) {
       listRef.current.scrollToIndex({ index: ayahNumber - 1, animated, viewPosition: 0 });
     } else if (pageScrollRef.current && surah) {
-      const showBismillah = surahNum !== 1 && surahNum !== 9;
-      const bismillahOffset = showBismillah ? fontSize * 0.9 + 24 : 0;
-      const cardPadding = 36; // 16 top margin + 20 card padding
-      const verseOffset = estimateVerseOffset(surah.ayahs, ayahNumber, fontSize, cardWidth);
-      const totalOffset = bismillahOffset + cardPadding + verseOffset;
-      pageScrollRef.current.scrollTo({ y: totalOffset, animated });
+      if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
+        if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
+          setFontSizeIdx(bookmarkFontSizeIdx);
+          setTimeout(() => {
+            pageScrollRef.current?.scrollTo({ y: bookmarkScrollY, animated });
+          }, 350);
+        } else {
+          pageScrollRef.current.scrollTo({ y: bookmarkScrollY, animated });
+        }
+      } else {
+        const showBismillah = surahNum !== 1 && surahNum !== 9;
+        const bismillahOffset = showBismillah ? fontSize * 0.9 + 24 : 0;
+        const cardPadding = 36;
+        const verseOffset = estimateVerseOffset(surah.ayahs, ayahNumber, fontSize, cardWidth);
+        pageScrollRef.current.scrollTo({ y: bismillahOffset + cardPadding + verseOffset, animated });
+      }
     }
-  }, [surah, surahNum, fontSize, cardWidth]);
+  }, [surah, surahNum, fontSize, cardWidth, bookmarkedAyah, bookmarkScrollY, bookmarkFontSizeIdx]);
 
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -470,7 +505,12 @@ export default function SurahReader() {
 
       {/* ── Page view: flowing Mushaf ── */}
       {viewMode === 'page' ? (
-        <ScrollView ref={pageScrollRef} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+        <ScrollView
+          ref={pageScrollRef}
+          onScroll={(e) => { pageScrollYRef.current = e.nativeEvent.contentOffset.y; }}
+          scrollEventThrottle={100}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        >
           {/* Bismillah header above the parchment (not shown for surah 1 or 9) */}
           {showBasmalah && (
             <Text
