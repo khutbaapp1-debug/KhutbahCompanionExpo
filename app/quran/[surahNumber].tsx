@@ -246,6 +246,7 @@ export default function SurahReader() {
   // Detailed: uses listRef (FlatList).
   // Page: uses stored exact scrollY if jumping to the bookmarked verse; otherwise estimates.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
+    console.log('[scrollToVerse] viewMode:', viewMode, 'listRef:', !!listRef.current, 'ayahNumber:', ayahNumber);
     if (listRef.current) {
       listRef.current.scrollToIndex({ index: ayahNumber - 1, animated, viewPosition: 0 });
     } else if (pageScrollRef.current && surah) {
@@ -320,6 +321,9 @@ export default function SurahReader() {
             paddingVertical: 8,
           }}
         >
+          <TouchableOpacity onPress={() => router.replace('/')} style={{ padding: 6 }}>
+            <Ionicons name="home-outline" size={20} color="#0F766E" />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 6 }}>
             <Ionicons name="chevron-back" size={24} color="#0F766E" />
           </TouchableOpacity>
