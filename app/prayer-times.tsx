@@ -1,11 +1,63 @@
-import { Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Link, router, Stack } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import LocationGate from '../src/components/LocationGate';
 import PrayerListRow from '../src/components/PrayerListRow';
+import {
+  ARABIC_NAMES,
+  PRAYER_DESCRIPTIONS,
+  RAKAT_DATA,
+  type RakatBreakdown,
+} from '../src/data/rakat';
 import { useNextPrayer } from '../src/hooks/useNextPrayer';
+import {
+  DEFAULT_PRAYER_SETTINGS,
+  getPrayerSettings,
+  type MadhabKey,
+} from '../src/lib/prayer-settings';
 import { formatTime12Hour } from '../src/lib/prayer-times';
 import type { Coordinates } from '../src/lib/prayer-times';
+
+type PrayerKey = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
+
+// Display order + English labels for the rakat breakdown cards.
+const PRAYER_ORDER: { key: PrayerKey; english: string }[] = [
+  { key: 'fajr', english: 'Fajr' },
+  { key: 'dhuhr', english: 'Dhuhr' },
+  { key: 'asr', english: 'Asr' },
+  { key: 'maghrib', english: 'Maghrib' },
+  { key: 'isha', english: 'Isha' },
+];
+
+type Pill = { key: string; label: string; isFard: boolean };
+
+// Pills in canonical order, skipping any segment that is undefined or 0.
+function buildPills(breakdown: RakatBreakdown): Pill[] {
+  const pills: Pill[] = [];
+  if (breakdown.sunnahBefore) {
+    pills.push({
+      key: 'sunnahBefore',
+      label: `${breakdown.sunnahBefore} Sunnah before`,
+      isFard: false,
+    });
+  }
+  if (breakdown.fard) {
+    pills.push({ key: 'fard', label: `${breakdown.fard} Fard`, isFard: true });
+  }
+  if (breakdown.sunnahAfter) {
+    pills.push({
+      key: 'sunnahAfter',
+      label: `${breakdown.sunnahAfter} Sunnah after`,
+      isFard: false,
+    });
+  }
+  if (breakdown.witr) {
+    pills.push({ key: 'witr', label: `${breakdown.witr} Witr`, isFard: false });
+  }
+  return pills;
+}
 
 function formatCoordinates(coords: Coordinates): string {
   const latDir = coords.latitude >= 0 ? 'N' : 'S';
@@ -13,9 +65,69 @@ function formatCoordinates(coords: Coordinates): string {
   return `${Math.abs(coords.latitude).toFixed(2)}°${latDir}, ${Math.abs(coords.longitude).toFixed(2)}°${lngDir}`;
 }
 
+function RakatPill({ label, isFard }: { label: string; isFard: boolean }) {
+  return (
+    <View className={`px-2.5 py-1 rounded-full ${isFard ? 'bg-primary' : 'bg-gray-200'}`}>
+      <Text
+        className={`text-xs font-sans-medium ${isFard ? 'text-white' : 'text-gray-700'}`}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function RakatCard({
+  prayerKey,
+  english,
+  breakdown,
+}: {
+  prayerKey: PrayerKey;
+  english: string;
+  breakdown: RakatBreakdown;
+}) {
+  const pills = buildPills(breakdown);
+
+  return (
+    <View className="bg-gray-50 rounded-2xl p-4 mx-4 mt-3">
+      <View className="flex-row items-start justify-between">
+        <View className="pr-3">
+          <Text className="font-sans-bold text-lg text-gray-900">{english}</Text>
+          <Text
+            className="font-arabic text-2xl text-primary mt-1"
+            style={{ writingDirection: 'rtl' }}
+          >
+            {ARABIC_NAMES[prayerKey]}
+          </Text>
+        </View>
+        <View className="flex-1 flex-row flex-wrap gap-1.5 justify-end">
+          {pills.map((pill) => (
+            <RakatPill key={pill.key} label={pill.label} isFard={pill.isFard} />
+          ))}
+        </View>
+      </View>
+      <Text className="text-sm text-gray-600 mt-2">{PRAYER_DESCRIPTIONS[prayerKey]}</Text>
+    </View>
+  );
+}
+
 function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
   const { nextPrayerName, nextPrayerTime, countdown, todaysPrayers, isPast } =
     useNextPrayer(coordinates);
+
+  // The rakat breakdown follows the madhab from settings (default Hanafi).
+  const [madhab, setMadhab] = useState<MadhabKey>(DEFAULT_PRAYER_SETTINGS.madhab);
+  useEffect(() => {
+    let isMounted = true;
+    getPrayerSettings().then((settings) => {
+      if (isMounted) setMadhab(settings.madhab);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const rakat = RAKAT_DATA[madhab];
 
   return (
     <ScrollView className="flex-1 bg-white" contentContainerStyle={{ paddingBottom: 24 }}>
@@ -40,8 +152,11 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
         </View>
       </View>
 
-      {/* Today's prayers list */}
-      <View className="mx-4 mt-4 rounded-2xl overflow-hidden border border-gray-100">
+      {/* Today's prayers */}
+      <Text className="font-sans-semibold text-lg text-gray-900 mt-6 mx-4">
+        Today's Prayers
+      </Text>
+      <View className="mx-4 mt-2 rounded-2xl overflow-hidden border border-gray-100">
         {todaysPrayers.map((prayer) => (
           <PrayerListRow
             key={prayer.name}
@@ -53,14 +168,20 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
         ))}
       </View>
 
-      {/* Settings link */}
-      <Link href="/settings" asChild>
-        <Pressable className="py-4 mt-2">
-          <Text className="text-primary text-center underline font-sans-medium">
-            ⚙️ Adjust calculation method, madhab, high latitude rule
-          </Text>
-        </Pressable>
-      </Link>
+      {/* Rakat breakdown */}
+      <Text className="font-sans-semibold text-lg text-gray-900 mt-6 mx-4">
+        Rakat Breakdown
+      </Text>
+      <Text className="text-xs text-gray-500 mx-4 mt-1">
+        Following {madhab} tradition. Change in{' '}
+        <Link href="/settings" asChild>
+          <Text className="text-primary underline">settings</Text>
+        </Link>
+        .
+      </Text>
+      {PRAYER_ORDER.map(({ key, english }) => (
+        <RakatCard key={key} prayerKey={key} english={english} breakdown={rakat[key]} />
+      ))}
     </ScrollView>
   );
 }
@@ -68,6 +189,16 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
 export default function PrayerTimesScreen() {
   return (
     <View className="flex-1 bg-white">
+      <Stack.Screen
+        options={{
+          title: 'Prayer Times',
+          headerRight: () => (
+            <Pressable onPress={() => router.push('/settings')} hitSlop={12}>
+              <Ionicons name="settings-outline" size={24} color="#0F766E" />
+            </Pressable>
+          ),
+        }}
+      />
       <LocationGate>
         {(coordinates) => <PrayerTimesContent coordinates={coordinates} />}
       </LocationGate>

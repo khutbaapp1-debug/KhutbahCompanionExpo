@@ -33,7 +33,7 @@ const STORAGE_KEY = 'prayer-settings-v1';
 
 export const DEFAULT_PRAYER_SETTINGS: PrayerSettings = {
   calculationMethod: 'MWL',
-  madhab: 'Standard',
+  madhab: 'Hanafi',
   highLatitudeRule: 'MiddleOfTheNight',
 };
 
