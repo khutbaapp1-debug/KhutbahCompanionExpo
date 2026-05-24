@@ -461,6 +461,20 @@ export default function SurahReader() {
               </Text>
             </TouchableOpacity>
           )}
+
+          {bookmarkedAyah !== null && (
+            <TouchableOpacity
+              onPress={() => scrollToVerse(bookmarkedAyah, true)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 }}
+            >
+              <Text style={{ fontFamily: 'KFGQPCHafs', fontSize: 20, color: '#C0392B' }}>
+                {'۝'}
+              </Text>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#C0392B' }}>
+                {bookmarkedAyah}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -848,61 +862,6 @@ export default function SurahReader() {
         />
       )}
 
-      {/* ── Bookmark banner ── */}
-      {bookmarkedAyah !== null && (
-        <TouchableOpacity
-          onPress={() => scrollToVerse(bookmarkedAyah, true)}
-          activeOpacity={0.8}
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: '#C0392B',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            paddingBottom: insets.bottom + 10,
-            borderTopWidth: 2,
-            borderTopColor: 'rgba(0,0,0,0.15)',
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontFamily: 'KFGQPCHafs', fontSize: 16, color: 'white' }}>
-                {'۝'}
-              </Text>
-            </View>
-            <View>
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: 'white' }}>
-                Bookmarked verse {bookmarkedAyah}
-              </Text>
-              <Text
-                style={{
-                  fontFamily: 'Inter_400Regular',
-                  fontSize: 11,
-                  color: 'rgba(255,255,255,0.8)',
-                  marginTop: 1,
-                }}
-              >
-                Tap to jump to your bookmark
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-down-circle-outline" size={24} color="white" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
