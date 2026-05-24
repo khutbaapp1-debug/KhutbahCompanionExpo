@@ -78,6 +78,7 @@ export default function SurahReader() {
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
   const pageScrollYRef = useRef(0);
+  const detailedScrollYRef = useRef(0);
   const itemHeightsRef = useRef<Record<number, number>>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAyahRef = useRef(1);
@@ -209,8 +210,12 @@ export default function SurahReader() {
         ]);
       } else {
         setBookmarkedAyah(ayahNumber);
-        const scrollY = viewMode === 'page' ? pageScrollYRef.current : undefined;
-        void setBookmark(surahNum, ayahNumber, scrollY, fontSizeIdx);
+        void setBookmark(
+          surahNum,
+          ayahNumber,
+          viewMode === 'page' ? pageScrollYRef.current : detailedScrollYRef.current,
+          fontSizeIdx,
+        );
         Alert.alert(
           'Bookmark Saved',
           `Verse ${ayahNumber} of ${surah?.englishName ?? 'this surah'} bookmarked.`,
@@ -233,14 +238,18 @@ export default function SurahReader() {
   // Detailed: uses listRef (FlatList).
   // Page: uses stored exact scrollY if jumping to the bookmarked verse; otherwise estimates.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
-    if (listRef.current) {
-      setTimeout(() => {
-        let offset = 8; // contentContainerStyle paddingVertical
+    if (viewMode === 'detailed' && listRef.current) {
+      if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
+        listRef.current.scrollToOffset({ offset: bookmarkScrollY, animated });
+      } else {
+        let offset = 8;
         for (let i = 1; i < ayahNumber; i++) {
-          offset += (itemHeightsRef.current[i] ?? 250) + 12; // height + marginBottom
+          offset += (itemHeightsRef.current[i] ?? 250) + 12;
         }
-        listRef.current?.scrollToOffset({ offset, animated });
-      }, 400);
+        setTimeout(() => {
+          listRef.current?.scrollToOffset({ offset, animated });
+        }, 400);
+      }
     } else if (pageScrollRef.current && surah) {
       if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
         if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
@@ -259,7 +268,7 @@ export default function SurahReader() {
         pageScrollRef.current.scrollTo({ y: bismillahOffset + cardPadding + verseOffset, animated });
       }
     }
-  }, [surah, surahNum, fontSize, cardWidth, bookmarkedAyah, bookmarkScrollY, bookmarkFontSizeIdx]);
+  }, [viewMode, surah, surahNum, fontSize, cardWidth, bookmarkedAyah, bookmarkScrollY, bookmarkFontSizeIdx, fontSizeIdx]);
 
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -315,9 +324,6 @@ export default function SurahReader() {
         >
           <TouchableOpacity onPress={() => router.replace('/')} style={{ padding: 6 }}>
             <Ionicons name="home-outline" size={20} color="#0F766E" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/quran')} style={{ padding: 6 }}>
-            <Ionicons name="chevron-back" size={24} color="#0F766E" />
           </TouchableOpacity>
 
           <Text
@@ -670,6 +676,8 @@ export default function SurahReader() {
           keyExtractor={(ayah) => String(ayah.numberInSurah)}
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig.current}
+          onScroll={(e) => { detailedScrollYRef.current = e.nativeEvent.contentOffset.y; }}
+          scrollEventThrottle={16}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 24 }}
           onScrollToIndexFailed={(info) => {
             const offset = (info.averageItemLength ?? 200) * info.index;
