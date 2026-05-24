@@ -490,14 +490,14 @@ export default function SurahReader() {
                   : isPlaying
                   ? '⏸'
                   : isBookmarked
-                  ? '۞'
-                  : '۝';
+                  ? `۞ ${ayah.numberInSurah}`
+                  : `۝ ${ayah.numberInSurah}`;
                 const markerColor = isLoading
                   ? '#9CA3AF'
                   : isPlaying
                   ? '#0D9488'
                   : isBookmarked
-                  ? '#C9A84C'
+                  ? '#C0392B'
                   : '#0F766E';
                 return (
                   <Text key={ayah.numberInSurah}>
@@ -507,7 +507,7 @@ export default function SurahReader() {
                       onLongPress={() => handleBookmarkAyah(ayah.numberInSurah)}
                       style={{
                         fontFamily: 'KFGQPCHafs',
-                        fontSize: fontSize * 0.85,
+                        fontSize: isBookmarked ? fontSize * 1.0 : fontSize * 0.85,
                         color: markerColor,
                       }}
                     >
