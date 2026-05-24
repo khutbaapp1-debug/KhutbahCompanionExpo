@@ -42,7 +42,7 @@ function estimateVerseOffset(
   const lineHeight = fontSize * 2;
   // Arabic text with tashkeel averages ~3.2 Unicode code points per visible glyph,
   // so multiply raw glyph capacity by that ratio to get true chars-per-line.
-  const DIACRITIC_RATIO = 3.2;
+  const DIACRITIC_RATIO = 4.8;
   const charsPerLine = Math.floor((cardWidth * 0.85) / (fontSize * 0.6)) * DIACRITIC_RATIO;
   let offset = 0;
   for (let i = 0; i < targetAyahNumber - 1; i++) {
