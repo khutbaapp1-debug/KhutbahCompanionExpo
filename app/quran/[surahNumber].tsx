@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   PanResponder,
   ScrollView,
@@ -31,6 +32,25 @@ type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unk
 
 const DEFAULT_RECITER: ReciterId = 'ar.alafasy';
 const FONT_SIZES: number[] = [20, 24, 28, 32];
+
+function estimateVerseOffset(
+  ayahs: Ayah[],
+  targetAyahNumber: number,
+  fontSize: number,
+  cardWidth: number,
+): number {
+  const lineHeight = fontSize * 2;
+  const charsPerLine = Math.floor((cardWidth * 0.85) / (fontSize * 0.6));
+  let offset = 0;
+  for (let i = 0; i < targetAyahNumber - 1; i++) {
+    const ayah = ayahs[i];
+    if (!ayah) break;
+    const lines = Math.ceil(ayah.text.length / Math.max(charsPerLine, 1));
+    offset += lines * lineHeight;
+    offset += lineHeight * 0.55; // verse marker row
+  }
+  return offset;
+}
 
 export default function SurahReader() {
   const { surahNumber: surahParam } = useLocalSearchParams<{ surahNumber: string }>();
@@ -59,6 +79,7 @@ export default function SurahReader() {
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
 
   const fontSize = FONT_SIZES[fontSizeIdx] ?? 24;
+  const cardWidth = Dimensions.get('window').width - 32;
 
   useEffect(() => {
     try {
@@ -189,19 +210,18 @@ export default function SurahReader() {
   );
 
   // Scroll to a verse in either view mode.
-  // Uses listRef.current as runtime check for Detailed view (FlatList mounted).
-  // Falls back to pageScrollRef + stored offsets for Page view.
-  // Stable ref — no state deps, safe in timeouts and effects.
+  // Detailed: uses listRef (FlatList). Page: estimates y offset mathematically.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (listRef.current) {
       listRef.current.scrollToIndex({ index: ayahNumber - 1, animated, viewPosition: 0 });
-    } else {
-      const offset = verseOffsetsRef.current[ayahNumber - 1];
-      if (pageScrollRef.current && offset !== undefined) {
-        pageScrollRef.current.scrollTo({ y: offset, animated });
-      }
+    } else if (pageScrollRef.current && surah) {
+      const showBismillah = surahNum !== 1 && surahNum !== 9;
+      const bismillahOffset = showBismillah ? fontSize * 0.9 + 24 : 0;
+      const cardPadding = 36; // 16 top margin + 20 card padding
+      const verseOffset = estimateVerseOffset(surah.ayahs, ayahNumber, fontSize, cardWidth);
+      pageScrollRef.current.scrollTo({ y: bismillahOffset + cardPadding + verseOffset, animated });
     }
-  }, []);
+  }, [surah, surahNum, fontSize, cardWidth]);
 
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -781,14 +801,7 @@ export default function SurahReader() {
       {/* ── Jump-to-bookmark floating button ── */}
       {bookmarkedAyah !== null && (
         <TouchableOpacity
-          onPress={() => {
-            if (viewMode !== 'detailed') {
-              setViewMode('detailed');
-              setTimeout(() => scrollToVerse(bookmarkedAyah, true), 300);
-            } else {
-              scrollToVerse(bookmarkedAyah, true);
-            }
-          }}
+          onPress={() => scrollToVerse(bookmarkedAyah, true)}
           onLongPress={() =>
             Alert.alert('Jump to Bookmark', `Tap to jump to verse ${bookmarkedAyah}`)
           }
