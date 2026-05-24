@@ -465,13 +465,21 @@ export default function SurahReader() {
           {bookmarkedAyah !== null && (
             <TouchableOpacity
               onPress={() => scrollToVerse(bookmarkedAyah, true)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#C0392B',
+                borderRadius: 6,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                gap: 4,
+              }}
             >
-              <Text style={{ fontFamily: 'KFGQPCHafs', fontSize: 20, color: '#C0392B' }}>
+              <Text style={{ fontFamily: 'KFGQPCHafs', fontSize: 14, color: 'white' }}>
                 {'۝'}
               </Text>
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#C0392B' }}>
-                {bookmarkedAyah}
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: 'white' }}>
+                Bookmark {bookmarkedAyah}
               </Text>
             </TouchableOpacity>
           )}
