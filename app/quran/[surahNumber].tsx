@@ -23,7 +23,7 @@ import { getSurah } from '../../src/lib/quran';
 import type { Ayah, Surah } from '../../src/lib/quran';
 import { getAyahAudioUrl } from '../../src/lib/quran-audio';
 import type { ReciterId } from '../../src/lib/quran-audio';
-import { getBookmark, getLastPosition, getQuranFontSize, setBookmark, setLastPosition, setLastSurah, setQuranFontSize } from '../../src/lib/quran-bookmark';
+import { getBookmark, getLastPosition, getQuranFontSize, getQuranViewMode, setBookmark, setLastPosition, setLastSurah, setQuranFontSize, setQuranViewMode } from '../../src/lib/quran-bookmark';
 import type { Bookmark } from '../../src/lib/quran-bookmark';
 import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
@@ -98,12 +98,13 @@ export default function SurahReader() {
     }
   }, [surahNum]);
 
-  // Load persisted font size once on mount
+  // Load persisted font size and view mode once on mount
   useEffect(() => {
     getQuranFontSize().then((idx) => {
       fontSizeLoadedRef.current = true;
       setFontSizeIdx(idx);
     });
+    getQuranViewMode().then(setViewMode);
   }, []);
 
   // Persist font size whenever it changes (skip until loaded to avoid overwriting with default)
@@ -111,6 +112,11 @@ export default function SurahReader() {
     if (!fontSizeLoadedRef.current) return;
     void setQuranFontSize(fontSizeIdx);
   }, [fontSizeIdx]);
+
+  // Persist view mode whenever it changes
+  useEffect(() => {
+    void setQuranViewMode(viewMode);
+  }, [viewMode]);
 
   // Fetch transliteration+translation when Detailed view is active OR EN toggle is on
   useEffect(() => {
@@ -842,50 +848,59 @@ export default function SurahReader() {
         />
       )}
 
-      {/* ── Jump-to-bookmark floating button ── */}
+      {/* ── Bookmark banner ── */}
       {bookmarkedAyah !== null && (
         <TouchableOpacity
           onPress={() => scrollToVerse(bookmarkedAyah, true)}
-          onLongPress={() =>
-            Alert.alert('Jump to Bookmark', `Tap to jump to verse ${bookmarkedAyah}`)
-          }
+          activeOpacity={0.8}
           style={{
             position: 'absolute',
-            bottom: insets.bottom + 80,
-            right: 16,
-            width: 52,
-            height: 52,
-            borderRadius: 26,
-            backgroundColor: '#0F766E',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: '#C0392B',
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
-            elevation: 4,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 4,
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            paddingBottom: insets.bottom + 10,
+            borderTopWidth: 2,
+            borderTopColor: 'rgba(0,0,0,0.15)',
           }}
         >
-          <Text
-            style={{
-              fontFamily: 'KFGQPCHafs',
-              fontSize: 18,
-              color: 'white',
-              lineHeight: 22,
-            }}
-          >
-            ۝
-          </Text>
-          <Text
-            style={{
-              fontFamily: 'Inter_600SemiBold',
-              fontSize: 10,
-              color: 'white',
-              lineHeight: 12,
-            }}
-          >
-            {bookmarkedAyah}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ fontFamily: 'KFGQPCHafs', fontSize: 16, color: 'white' }}>
+                {'۝'}
+              </Text>
+            </View>
+            <View>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: 'white' }}>
+                Bookmarked verse {bookmarkedAyah}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: 'Inter_400Regular',
+                  fontSize: 11,
+                  color: 'rgba(255,255,255,0.8)',
+                  marginTop: 1,
+                }}
+              >
+                Tap to jump to your bookmark
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-down-circle-outline" size={24} color="white" />
         </TouchableOpacity>
       )}
     </View>

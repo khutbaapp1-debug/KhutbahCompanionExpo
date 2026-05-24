@@ -106,3 +106,22 @@ export async function setLastSurah(surahNumber: number): Promise<void> {
     // ignore
   }
 }
+
+// ─── View mode preference ─────────────────────────────────────────────────────
+
+export async function getQuranViewMode(): Promise<'page' | 'detailed'> {
+  try {
+    const raw = await AsyncStorage.getItem('quran-view-mode');
+    return raw === 'detailed' ? 'detailed' : 'page';
+  } catch {
+    return 'page';
+  }
+}
+
+export async function setQuranViewMode(mode: 'page' | 'detailed'): Promise<void> {
+  try {
+    await AsyncStorage.setItem('quran-view-mode', mode);
+  } catch {
+    // ignore
+  }
+}
