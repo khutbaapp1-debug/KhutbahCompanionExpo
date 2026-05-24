@@ -44,7 +44,7 @@ export default function RootLayout() {
         <Stack.Screen name="prayer-times" options={{ title: 'Prayer Times' }} />
         <Stack.Screen name="qibla" options={{ title: 'Qibla Compass' }} />
         <Stack.Screen name="quran/index" options={{ title: 'Quran' }} />
-        <Stack.Screen name="quran/[surahNumber]" options={{ title: 'Surah' }} />
+        <Stack.Screen name="quran/[surahNumber]" options={{ headerShown: false }} />
         <Stack.Screen name="duas" options={{ title: 'Daily Duas' }} />
         <Stack.Screen name="hadith" options={{ title: 'Daily Hadith' }} />
         <Stack.Screen name="tasbih" options={{ title: 'Tasbih Counter' }} />
