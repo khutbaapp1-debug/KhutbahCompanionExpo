@@ -32,9 +32,11 @@ module.exports = {
         'sans-medium': ['Inter_500Medium'],
         'sans-semibold': ['Inter_600SemiBold'],
         'sans-bold': ['Inter_700Bold'],
-        // Arabic text — Noto Naskh Arabic.
+        // Arabic text — Noto Naskh Arabic (general UI Arabic).
         arabic: ['NotoNaskhArabic_400Regular'],
         'arabic-bold': ['NotoNaskhArabic_700Bold'],
+        // Quran text — KFGQPC Uthmanic Hafs.
+        quran: ['KFGQPCHafs'],
       },
     },
   },

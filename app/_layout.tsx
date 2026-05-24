@@ -28,6 +28,8 @@ export default function RootLayout() {
     Inter_700Bold,
     NotoNaskhArabic_400Regular,
     NotoNaskhArabic_700Bold,
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    KFGQPCHafs: require('../assets/fonts/KFGQPCHafs.otf'),
   });
 
   if (!fontsLoaded) {
