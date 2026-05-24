@@ -52,6 +52,8 @@ export default function SurahReader() {
   const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentAyahRef = useRef(1);
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
 
   const fontSize = FONT_SIZES[fontSizeIdx] ?? 24;
@@ -79,11 +81,17 @@ export default function SurahReader() {
     getLastPosition().then((pos) => {
       if (pos?.surahNumber === surahNum) {
         setShowResumeBanner(true);
-        const bannerTimer = setTimeout(() => setShowResumeBanner(false), 4000);
+        if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+        bannerTimerRef.current = setTimeout(() => setShowResumeBanner(false), 4000);
+        // Switch to Detailed view so the FlatList is mounted before scrolling
+        setViewMode('detailed');
         setTimeout(() => {
-          listRef.current?.scrollToIndex({ index: pos.ayahNumber - 1, animated: false });
-        }, 400);
-        return () => clearTimeout(bannerTimer);
+          listRef.current?.scrollToIndex({
+            index: pos.ayahNumber - 1,
+            animated: false,
+            viewPosition: 0,
+          });
+        }, 600);
       }
     });
   }, [surahNum]);
@@ -92,7 +100,10 @@ export default function SurahReader() {
     () => () => {
       void soundRef.current?.unloadAsync();
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      void setLastPosition(surahNum, currentAyahRef.current);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
@@ -185,6 +196,7 @@ export default function SurahReader() {
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       if (!viewableItems.length) return;
       const firstAyah = viewableItems[0].item as Ayah;
+      currentAyahRef.current = firstAyah.numberInSurah;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         void setLastPosition(surahNum, firstAyah.numberInSurah);
