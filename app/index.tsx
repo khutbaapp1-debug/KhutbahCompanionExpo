@@ -7,6 +7,7 @@ import FeaturedBanner from '../src/components/FeaturedBanner';
 import GridTile from '../src/components/GridTile';
 import HomeHeader from '../src/components/HomeHeader';
 import NextPrayerCard from '../src/components/NextPrayerCard';
+import { useNextPrayer } from '../src/hooks/useNextPrayer';
 
 const IMG_PRAYER_TIMES = require('../assets/images/Mosque_at_dawn_prayer_time_1c06498c.png');
 const IMG_QURAN = require('../assets/images/Open_Quran_with_calligraphy_c7ef6e94.png');
@@ -91,6 +92,7 @@ const TILES: TileData[] = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { nextPrayerName, nextPrayerTime, countdown } = useNextPrayer();
 
   return (
     <View className="flex-1 bg-white">
@@ -108,7 +110,11 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: 16 }}
       >
         <View className="mt-2 px-6">
-          <NextPrayerCard />
+          <NextPrayerCard
+            prayerName={nextPrayerName ?? '—'}
+            prayerTime={nextPrayerTime ?? '—:—'}
+            countdown={countdown ?? '00:00:00'}
+          />
         </View>
         <View className="mt-3 px-6">
           <FeaturedBanner />
