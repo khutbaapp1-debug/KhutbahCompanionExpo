@@ -78,6 +78,7 @@ export default function SurahReader() {
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
   const pageScrollYRef = useRef(0);
+  const itemHeightsRef = useRef<Record<number, number>>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAyahRef = useRef(1);
   const fontSizeLoadedRef = useRef(false);
@@ -234,11 +235,11 @@ export default function SurahReader() {
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (listRef.current) {
       setTimeout(() => {
-        listRef.current?.scrollToIndex({
-          index: ayahNumber - 1,
-          animated,
-          viewPosition: 0,
-        });
+        let offset = 8; // contentContainerStyle paddingVertical
+        for (let i = 1; i < ayahNumber; i++) {
+          offset += (itemHeightsRef.current[i] ?? 250) + 12; // height + marginBottom
+        }
+        listRef.current?.scrollToOffset({ offset, animated });
       }, 400);
     } else if (pageScrollRef.current && surah) {
       if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
@@ -315,7 +316,7 @@ export default function SurahReader() {
           <TouchableOpacity onPress={() => router.replace('/')} style={{ padding: 6 }}>
             <Ionicons name="home-outline" size={20} color="#0F766E" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.back()} style={{ padding: 6 }}>
+          <TouchableOpacity onPress={() => router.push('/quran')} style={{ padding: 6 }}>
             <Ionicons name="chevron-back" size={24} color="#0F766E" />
           </TouchableOpacity>
 
@@ -670,11 +671,6 @@ export default function SurahReader() {
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig.current}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 24 }}
-          getItemLayout={(_data, index) => ({
-            length: 250,
-            offset: 250 * index,
-            index,
-          })}
           onScrollToIndexFailed={(info) => {
             const offset = (info.averageItemLength ?? 200) * info.index;
             listRef.current?.scrollToOffset({ offset, animated: true });
@@ -687,6 +683,9 @@ export default function SurahReader() {
 
             return (
               <View
+                onLayout={(e) => {
+                  itemHeightsRef.current[ayah.numberInSurah] = e.nativeEvent.layout.height;
+                }}
                 style={{
                   flexDirection: 'row',
                   marginHorizontal: 16,
