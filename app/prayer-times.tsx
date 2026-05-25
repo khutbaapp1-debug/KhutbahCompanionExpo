@@ -115,7 +115,7 @@ function PrayerCard({
 
   return (
     <View
-      className={`flex-row items-center px-4 py-3 rounded-2xl mx-4 ${
+      className={`flex-row items-center px-4 py-4 rounded-2xl mx-4 ${
         isNext
           ? 'bg-primary'
           : `bg-white border border-gray-100${isPast ? ' opacity-50' : ' shadow-sm'}`
@@ -123,12 +123,12 @@ function PrayerCard({
       style={!isNext && !isPast ? { elevation: 1 } : undefined}
     >
       {/* Left: time-of-day icon circle */}
-      <View style={{ width: 40 }} className="items-center">
+      <View style={{ width: 44 }} className="items-center">
         <View
           className={`items-center justify-center rounded-full ${
             isNext ? 'bg-white/20' : 'bg-primary-container'
           }`}
-          style={{ width: 36, height: 36 }}
+          style={{ width: 44, height: 44 }}
         >
           <Ionicons name={icon} size={18} color={isNext ? '#FFFFFF' : '#0F766E'} />
         </View>
@@ -241,8 +241,8 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
         </View>
       </View>
 
-      {/* Per-prayer cards fill the space below the next-prayer card evenly */}
-      <View className="flex-1 justify-evenly mt-3">
+      {/* Per-prayer cards: taller, grouped at the top with a fixed 10dp gap */}
+      <View className="flex-1 justify-start gap-2.5 mt-3">
         {todaysPrayers.map((prayer) => {
           const key = KEY_BY_ENGLISH[prayer.name];
           const isNext = prayer.name === nextPrayerName && !isPast(prayer.name);
