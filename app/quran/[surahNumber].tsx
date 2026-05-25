@@ -64,7 +64,6 @@ export default function SurahReader() {
   const [surah, setSurah] = useState<Surah | null>(null);
   const [translations, setTranslations] = useState<AyahTranslation[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('page');
-  const [showTranslation, setShowTranslation] = useState(false);
   const [reciterId, setReciterId] = useState<ReciterId>(DEFAULT_RECITER);
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
   const [loadingAyah, setLoadingAyah] = useState<number | null>(null);
@@ -116,12 +115,12 @@ export default function SurahReader() {
     void setQuranViewMode(viewMode);
   }, [viewMode]);
 
-  // Fetch transliteration+translation when Detailed view is active OR EN toggle is on
+  // Fetch transliteration+translation when Detailed view is active
   useEffect(() => {
-    if (viewMode !== 'detailed' && !showTranslation) return;
+    if (viewMode !== 'detailed') return;
     if (translations.length > 0) return;
     getSurahTranslation(surahNum).then(setTranslations);
-  }, [viewMode, showTranslation, surahNum, translations.length]);
+  }, [viewMode, surahNum, translations.length]);
 
   useEffect(() => {
     getBookmark().then((bm: Bookmark | null) => {
@@ -439,23 +438,6 @@ export default function SurahReader() {
           <View style={{ flex: 1 }} />
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {viewMode === 'page' && bookmarkedAyah === null && (
-              <TouchableOpacity
-                onPress={() => setShowTranslation((v) => !v)}
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 6,
-                  backgroundColor: showTranslation ? '#0F766E' : '#F3F4F6',
-                }}
-              >
-                <Text style={{
-                  fontFamily: 'Inter_600SemiBold',
-                  fontSize: 13,
-                  color: showTranslation ? 'white' : '#6B7280',
-                }}>EN</Text>
-              </TouchableOpacity>
-            )}
             {bookmarkedAyah !== null && (
               <TouchableOpacity
                 onPress={() => scrollToVerse(bookmarkedAyah, true)}
@@ -599,70 +581,36 @@ export default function SurahReader() {
           </View>
 
           {/* Active verse panel — shown when a verse marker is tapped */}
-          {activeVerse !== null && ((): React.ReactElement | null => {
-            const t = translations.find((x) => x.numberInSurah === activeVerse);
-            return (
+          {activeVerse !== null && (
+            <View
+              style={{
+                backgroundColor: 'white',
+                borderRadius: 16,
+                marginHorizontal: 16,
+                marginBottom: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: '#F3F4F6',
+              }}
+            >
               <View
                 style={{
-                  backgroundColor: 'white',
-                  borderRadius: 16,
-                  marginHorizontal: 16,
-                  marginBottom: 16,
-                  padding: 16,
-                  borderWidth: 1,
-                  borderColor: '#F3F4F6',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                 }}
               >
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                <Text
+                  style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: '#111827' }}
                 >
-                  <Text
-                    style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: '#111827' }}
-                  >
-                    {surah.englishName} : {activeVerse}
-                  </Text>
-                  <TouchableOpacity onPress={() => setActiveVerse(null)} style={{ padding: 4 }}>
-                    <Ionicons name="close" size={18} color="#6B7280" />
-                  </TouchableOpacity>
-                </View>
-                {showTranslation && t?.translation ? (
-                  <Text
-                    style={{
-                      fontFamily: 'Inter_400Regular',
-                      fontSize: 13,
-                      color: '#374151',
-                      marginTop: 8,
-                      lineHeight: 20,
-                    }}
-                  >
-                    {t.translation}
-                  </Text>
-                ) : !showTranslation ? (
-                  <TouchableOpacity
-                    onPress={() => setShowTranslation(true)}
-                    style={{
-                      alignSelf: 'flex-start',
-                      marginTop: 8,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 8,
-                      backgroundColor: '#F3F4F6',
-                    }}
-                  >
-                    <Text
-                      style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: '#6B7280' }}
-                    >
-                      EN
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
+                  {surah.englishName} : {activeVerse}
+                </Text>
+                <TouchableOpacity onPress={() => setActiveVerse(null)} style={{ padding: 4 }}>
+                  <Ionicons name="close" size={18} color="#6B7280" />
+                </TouchableOpacity>
               </View>
-            );
-          })()}
+            </View>
+          )}
         </ScrollView>
       ) : (
         /* ── Detailed view: card per ayah ── */
