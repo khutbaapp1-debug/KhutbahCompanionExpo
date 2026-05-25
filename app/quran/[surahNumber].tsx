@@ -72,9 +72,12 @@ export default function SurahReader() {
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
   const [bookmarkScrollY, setBookmarkScrollY] = useState<number | undefined>(undefined);
   const [bookmarkFontSizeIdx, setBookmarkFontSizeIdx] = useState<number | undefined>(undefined);
+  // Detailed-view scroll requested before the FlatList has laid out (deferred to onLayout).
+  const [pendingScrollAyah, setPendingScrollAyah] = useState<number | null>(null);
 
   const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
+  const flatListReadyRef = useRef(false);
   const pageScrollRef = useRef<ScrollView>(null);
   const pageScrollYRef = useRef(0);
   const itemHeightsRef = useRef<Record<number, number>>({});
@@ -238,13 +241,11 @@ export default function SurahReader() {
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (viewMode === 'detailed' && listRef.current) {
       // Index-based scroll stays correct no matter when the bookmark was saved.
-      setTimeout(() => {
-        listRef.current?.scrollToIndex({
-          index: ayahNumber - 1,
-          animated: true,
-          viewPosition: 0.3,
-        });
-      }, 800);
+      listRef.current.scrollToIndex({
+        index: ayahNumber - 1,
+        animated: true,
+        viewPosition: 0.3,
+      });
     } else if (pageScrollRef.current && surah) {
       if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
         if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
@@ -440,7 +441,13 @@ export default function SurahReader() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             {bookmarkedAyah !== null && (
               <TouchableOpacity
-                onPress={() => scrollToVerse(bookmarkedAyah, true)}
+                onPress={() => {
+                  if (listRef.current && flatListReadyRef.current) {
+                    scrollToVerse(bookmarkedAyah, true);
+                  } else {
+                    setPendingScrollAyah(bookmarkedAyah);
+                  }
+                }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -616,6 +623,17 @@ export default function SurahReader() {
         /* ── Detailed view: card per ayah ── */
         <FlatList
           ref={listRef}
+          onLayout={() => {
+            flatListReadyRef.current = true;
+            if (pendingScrollAyah !== null) {
+              listRef.current?.scrollToIndex({
+                index: pendingScrollAyah - 1,
+                animated: false,
+                viewPosition: 0,
+              });
+              setPendingScrollAyah(null);
+            }
+          }}
           data={surah.ayahs}
           keyExtractor={(ayah) => String(ayah.numberInSurah)}
           onViewableItemsChanged={handleViewableItemsChanged}

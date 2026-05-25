@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import QuickTourModal from '../../src/components/quran/QuickTourModal';
 import { getSurahList } from '../../src/lib/quran';
-import { getLastSurah } from '../../src/lib/quran-bookmark';
+import { getBookmark } from '../../src/lib/quran-bookmark';
 
 const TOUR_KEY = 'quran-tour-seen';
 
@@ -18,6 +18,7 @@ export default function QuranListScreen() {
   const [lastSurah, setLastSurah] = useState<
     ReturnType<typeof getSurahList>[number] | null
   >(null);
+  const [bookmarkedAyah, setBookmarkedAyah] = useState<number | null>(null);
 
   const surahs = useMemo(() => getSurahList(), []);
 
@@ -27,12 +28,15 @@ export default function QuranListScreen() {
     });
   }, []);
 
-  // Load the last-read surah so the Continue Reading card can offer to resume.
+  // Load the bookmarked surah/verse so Continue Reading can offer to resume.
   useEffect(() => {
-    getLastSurah().then((num) => {
-      if (!num) return;
-      const found = getSurahList().find((s) => s.number === num);
-      if (found) setLastSurah(found);
+    getBookmark().then((bm) => {
+      if (!bm) return;
+      const found = getSurahList().find((s) => s.number === bm.surahNumber);
+      if (found) {
+        setLastSurah(found);
+        setBookmarkedAyah(bm.ayahNumber);
+      }
     });
   }, []);
 
@@ -160,7 +164,7 @@ export default function QuranListScreen() {
                     marginTop: 1,
                   }}
                 >
-                  {lastSurah.englishNameTranslation} · {lastSurah.numberOfAyahs} verses
+                  {lastSurah.englishNameTranslation} · Bookmarked verse {bookmarkedAyah}
                 </Text>
               </View>
             </View>
