@@ -15,6 +15,9 @@ export default function QuranListScreen() {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [tourVisible, setTourVisible] = useState(false);
+  const [lastSurah, setLastSurah] = useState<
+    ReturnType<typeof getSurahList>[number] | null
+  >(null);
 
   const surahs = useMemo(() => getSurahList(), []);
 
@@ -24,15 +27,12 @@ export default function QuranListScreen() {
     });
   }, []);
 
+  // Load the last-read surah so the Continue Reading card can offer to resume.
   useEffect(() => {
-    const NAV_KEY = 'quran-last-auto-nav';
-    getLastSurah().then(async (surahNumber) => {
-      if (!surahNumber || surahNumber < 1 || surahNumber > 114) return;
-      const lastNav = await AsyncStorage.getItem(NAV_KEY);
-      const elapsed = Date.now() - (lastNav ? parseInt(lastNav, 10) : 0);
-      if (elapsed < 2000) return; // just navigated away — don't loop
-      await AsyncStorage.setItem(NAV_KEY, String(Date.now()));
-      router.replace(`/quran/${surahNumber}`);
+    getLastSurah().then((num) => {
+      if (!num) return;
+      const found = getSurahList().find((s) => s.number === num);
+      if (found) setLastSurah(found);
     });
   }, []);
 
@@ -108,6 +108,74 @@ export default function QuranListScreen() {
             )}
           </View>
         </View>
+
+        {lastSurah && (
+          <TouchableOpacity
+            onPress={() => router.push(`/quran/${lastSurah.number}`)}
+            style={{
+              backgroundColor: '#0F766E',
+              marginHorizontal: 16,
+              marginTop: 12,
+              marginBottom: 4,
+              borderRadius: 12,
+              padding: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 13, color: 'white' }}>
+                  {lastSurah.number}
+                </Text>
+              </View>
+              <View>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_400Regular',
+                    fontSize: 11,
+                    color: 'rgba(255,255,255,0.8)',
+                  }}
+                >
+                  Continue Reading
+                </Text>
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: 'white' }}>
+                  {lastSurah.englishName}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_400Regular',
+                    fontSize: 11,
+                    color: 'rgba(255,255,255,0.8)',
+                    marginTop: 1,
+                  }}
+                >
+                  {lastSurah.englishNameTranslation} · {lastSurah.numberOfAyahs} verses
+                </Text>
+              </View>
+            </View>
+            <View style={{ alignItems: 'flex-end', gap: 4 }}>
+              <Text style={{ fontFamily: 'KFGQPCHafs', fontSize: 16, color: 'white' }}>
+                {lastSurah.name}
+              </Text>
+              <Ionicons
+                name="chevron-forward-circle-outline"
+                size={20}
+                color="rgba(255,255,255,0.8)"
+              />
+            </View>
+          </TouchableOpacity>
+        )}
 
         <FlatList
           data={filtered}
