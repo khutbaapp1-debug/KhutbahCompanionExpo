@@ -1,9 +1,644 @@
-import { Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack } from 'expo-router';
+import { useRef, useState } from 'react';
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import PagerView from 'react-native-pager-view';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { prayerFlows, PrayerType, PrayerFlowCard } from '../src/data/prayer-flows';
+import { wuduSteps } from '../src/data/wudu-steps';
+
+type MainTab = 'wudu' | 'how-to-pray' | 'prayers';
+type PrayerTab = PrayerType;
+
+const MAIN_TABS: { id: MainTab; label: string }[] = [
+  { id: 'wudu', label: 'Wudu' },
+  { id: 'how-to-pray', label: 'How to Pray' },
+  { id: 'prayers', label: 'Prayers' },
+];
+
+const PRAYER_TABS: { id: PrayerTab; label: string; sub: string }[] = [
+  { id: '2rakat', label: 'Fajr', sub: '2 rakat' },
+  { id: '4rakat', label: 'Dhuhr / Asr / Isha', sub: '4 rakat' },
+  { id: 'maghrib', label: 'Maghrib', sub: '3 rakat' },
+  { id: 'witr', label: 'Witr', sub: '3 rakat' },
+];
+
+// ─── Wudu tab ─────────────────────────────────────────────────────────────────
+
+function WuduTab() {
+  const insets = useSafeAreaInsets();
+  const [stepIdx, setStepIdx] = useState(0);
+  const pagerRef = useRef<PagerView>(null);
+
+  const step = wuduSteps[stepIdx];
+  const total = wuduSteps.length;
+
+  const goTo = (idx: number) => {
+    const clamped = Math.max(0, Math.min(idx, total - 1));
+    setStepIdx(clamped);
+    pagerRef.current?.setPage(clamped);
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <PagerView
+        ref={pagerRef}
+        style={{ flex: 1 }}
+        initialPage={0}
+        onPageSelected={(e) => setStepIdx(e.nativeEvent.position)}
+      >
+        {wuduSteps.map((s) => (
+          <ScrollView
+            key={s.number}
+            contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 80 }}
+          >
+            {/* Step number badge */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: '#0F766E',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text
+                  style={{ fontFamily: 'Inter_700Bold', fontSize: 14, color: 'white' }}
+                >
+                  {s.number}
+                </Text>
+              </View>
+              <Text
+                style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: '#111827', flex: 1 }}
+              >
+                {s.title}
+              </Text>
+            </View>
+
+            {/* Description */}
+            <Text
+              style={{
+                fontFamily: 'Inter_400Regular',
+                fontSize: 15,
+                color: '#374151',
+                lineHeight: 24,
+                marginBottom: 16,
+              }}
+            >
+              {s.description}
+            </Text>
+
+            {/* Note */}
+            {s.note && (
+              <View
+                style={{
+                  backgroundColor: '#FFFBEB',
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 16,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#F59E0B',
+                }}
+              >
+                <Text
+                  style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: '#92400E', lineHeight: 20 }}
+                >
+                  {s.note}
+                </Text>
+              </View>
+            )}
+
+            {/* Recitations */}
+            {s.recitations?.map((r, ri) => (
+              <View
+                key={ri}
+                style={{
+                  backgroundColor: '#F0FDFA',
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: '#99F6E4',
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'Inter_500Medium',
+                    fontSize: 11,
+                    color: '#0F766E',
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {r.name}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'KFGQPCHafs',
+                    fontSize: 22,
+                    color: '#111827',
+                    lineHeight: 44,
+                    textAlign: 'right',
+                    marginBottom: 8,
+                  }}
+                >
+                  {r.arabic}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_400Regular',
+                    fontSize: 13,
+                    color: '#6B7280',
+                    fontStyle: 'italic',
+                    marginBottom: 6,
+                  }}
+                >
+                  {r.transliteration}
+                </Text>
+                <Text
+                  style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: '#374151', lineHeight: 20 }}
+                >
+                  {r.meaning}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        ))}
+      </PagerView>
+
+      {/* Navigation footer */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: insets.bottom + 8,
+          left: 0,
+          right: 0,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => goTo(stepIdx - 1)}
+          disabled={stepIdx === 0}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            opacity: stepIdx === 0 ? 0.3 : 1,
+            backgroundColor: 'white',
+            borderRadius: 8,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            borderWidth: 1,
+            borderColor: '#E5E7EB',
+          }}
+        >
+          <Ionicons name="chevron-back" size={16} color="#374151" />
+          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#374151' }}>Prev</Text>
+        </TouchableOpacity>
+
+        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#6B7280' }}>
+          {stepIdx + 1} / {total}
+        </Text>
+
+        <TouchableOpacity
+          onPress={() => goTo(stepIdx + 1)}
+          disabled={stepIdx === total - 1}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            opacity: stepIdx === total - 1 ? 0.3 : 1,
+            backgroundColor: '#0F766E',
+            borderRadius: 8,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+          }}
+        >
+          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: 'white' }}>Next</Text>
+          <Ionicons name="chevron-forward" size={16} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ─── How to Pray tab ──────────────────────────────────────────────────────────
+
+function HowToPrayTab() {
+  const insets = useSafeAreaInsets();
+  return (
+    <ScrollView
+      contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 20 }}
+    >
+      <Text
+        style={{
+          fontFamily: 'Inter_600SemiBold',
+          fontSize: 18,
+          color: '#111827',
+          marginBottom: 12,
+        }}
+      >
+        Structure of Salah
+      </Text>
+
+      {[
+        {
+          title: 'The Five Daily Prayers',
+          body: 'Muslims are obligated to pray five times per day: Fajr (dawn), Dhuhr (midday), Asr (afternoon), Maghrib (after sunset), and Isha (night).',
+        },
+        {
+          title: 'Rakat',
+          body: 'Each prayer consists of units called rakat. Fajr is 2 rakat, Dhuhr and Asr are 4 rakat each, Maghrib is 3 rakat, and Isha is 4 rakat. Witr is an optional night prayer of 3 rakat.',
+        },
+        {
+          title: 'Prerequisites',
+          body: "Before praying, you must: (1) be in a state of ritual purity — perform wudu if you haven't already; (2) ensure your body, clothes, and prayer area are clean; (3) face the qibla (direction of the Kaaba in Makkah); (4) cover your awrah.",
+        },
+        {
+          title: 'What invalidates your prayer',
+          body: 'The following break the prayer and require you to start again: speaking (other than prayer words), eating or drinking, excessive movement, breaking wudu (passing wind, etc.), or laughing aloud.',
+        },
+        {
+          title: 'Congregation (Jama\'ah)',
+          body: "Praying in congregation carries a reward 27 times that of praying alone. When praying behind an imam, follow the imam's movements — do not start a position before the imam.",
+        },
+      ].map((item, i) => (
+        <View
+          key={i}
+          style={{
+            marginBottom: 16,
+            backgroundColor: '#F9FAFB',
+            borderRadius: 12,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: '#E5E7EB',
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: 'Inter_600SemiBold',
+              fontSize: 15,
+              color: '#0F766E',
+              marginBottom: 6,
+            }}
+          >
+            {item.title}
+          </Text>
+          <Text
+            style={{
+              fontFamily: 'Inter_400Regular',
+              fontSize: 14,
+              color: '#374151',
+              lineHeight: 22,
+            }}
+          >
+            {item.body}
+          </Text>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+// ─── Prayers tab ──────────────────────────────────────────────────────────────
+
+function PrayersTab() {
+  const insets = useSafeAreaInsets();
+  const [prayerType, setPrayerType] = useState<PrayerTab>('2rakat');
+  const [cardIdx, setCardIdx] = useState(0);
+  const pagerRef = useRef<PagerView>(null);
+
+  const cards: PrayerFlowCard[] = prayerFlows[prayerType];
+
+  const switchPrayer = (type: PrayerTab) => {
+    setPrayerType(type);
+    setCardIdx(0);
+    pagerRef.current?.setPage(0);
+  };
+
+  const goTo = (idx: number) => {
+    const clamped = Math.max(0, Math.min(idx, cards.length - 1));
+    setCardIdx(clamped);
+    pagerRef.current?.setPage(clamped);
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Prayer type selector */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexGrow: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8 }}
+      >
+        {PRAYER_TABS.map((pt) => (
+          <TouchableOpacity
+            key={pt.id}
+            onPress={() => switchPrayer(pt.id)}
+            style={{
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 10,
+              backgroundColor: prayerType === pt.id ? '#0F766E' : '#F3F4F6',
+              alignItems: 'center',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Inter_600SemiBold',
+                fontSize: 13,
+                color: prayerType === pt.id ? 'white' : '#374151',
+              }}
+            >
+              {pt.label}
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Inter_400Regular',
+                fontSize: 11,
+                color: prayerType === pt.id ? '#99F6E4' : '#9CA3AF',
+                marginTop: 1,
+              }}
+            >
+              {pt.sub}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Step cards pager */}
+      <PagerView
+        ref={pagerRef}
+        style={{ flex: 1 }}
+        initialPage={0}
+        key={prayerType}
+        onPageSelected={(e) => setCardIdx(e.nativeEvent.position)}
+      >
+        {cards.map((card) => (
+          <ScrollView
+            key={card.number}
+            contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 80 }}
+          >
+            {/* Card header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 10,
+                marginBottom: 14,
+              }}
+            >
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: '#0F766E',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: 2,
+                }}
+              >
+                <Text
+                  style={{ fontFamily: 'Inter_700Bold', fontSize: 12, color: 'white' }}
+                >
+                  {card.number}
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 16,
+                  color: '#111827',
+                  flex: 1,
+                  lineHeight: 24,
+                }}
+              >
+                {card.title}
+              </Text>
+            </View>
+
+            {/* Description */}
+            <Text
+              style={{
+                fontFamily: 'Inter_400Regular',
+                fontSize: 14,
+                color: '#374151',
+                lineHeight: 22,
+                marginBottom: 14,
+              }}
+            >
+              {card.description}
+            </Text>
+
+            {/* Note */}
+            {card.note && (
+              <View
+                style={{
+                  backgroundColor: '#FFFBEB',
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 14,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#F59E0B',
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'Inter_400Regular',
+                    fontSize: 13,
+                    color: '#92400E',
+                    lineHeight: 20,
+                  }}
+                >
+                  {card.note}
+                </Text>
+              </View>
+            )}
+
+            {/* Recitations */}
+            {card.recitations?.map((r, ri) => (
+              <View
+                key={ri}
+                style={{
+                  backgroundColor: '#F0FDFA',
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: '#99F6E4',
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'Inter_500Medium',
+                    fontSize: 11,
+                    color: '#0F766E',
+                    marginBottom: 4,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {r.label ?? r.name}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'KFGQPCHafs',
+                    fontSize: 22,
+                    color: '#111827',
+                    lineHeight: 44,
+                    textAlign: 'right',
+                    marginBottom: 8,
+                  }}
+                >
+                  {r.arabic}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_400Regular',
+                    fontSize: 13,
+                    color: '#6B7280',
+                    fontStyle: 'italic',
+                    marginBottom: 6,
+                  }}
+                >
+                  {r.transliteration}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_400Regular',
+                    fontSize: 13,
+                    color: '#374151',
+                    lineHeight: 20,
+                  }}
+                >
+                  {r.meaning}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        ))}
+      </PagerView>
+
+      {/* Navigation footer */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: insets.bottom + 8,
+          left: 0,
+          right: 0,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => goTo(cardIdx - 1)}
+          disabled={cardIdx === 0}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            opacity: cardIdx === 0 ? 0.3 : 1,
+            backgroundColor: 'white',
+            borderRadius: 8,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            borderWidth: 1,
+            borderColor: '#E5E7EB',
+          }}
+        >
+          <Ionicons name="chevron-back" size={16} color="#374151" />
+          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#374151' }}>Prev</Text>
+        </TouchableOpacity>
+
+        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#6B7280' }}>
+          {cardIdx + 1} / {cards.length}
+        </Text>
+
+        <TouchableOpacity
+          onPress={() => goTo(cardIdx + 1)}
+          disabled={cardIdx === cards.length - 1}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            opacity: cardIdx === cards.length - 1 ? 0.3 : 1,
+            backgroundColor: '#0F766E',
+            borderRadius: 8,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+          }}
+        >
+          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: 'white' }}>Next</Text>
+          <Ionicons name="chevron-forward" size={16} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ─── Root screen ──────────────────────────────────────────────────────────────
 
 export default function SalahGuideScreen() {
+  const [activeTab, setActiveTab] = useState<MainTab>('wudu');
+
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
-      <Text style={{ color: '#000', fontSize: 18 }}>Hello, this is Salah Guide</Text>
-    </View>
+    <>
+      <Stack.Screen options={{ title: 'Salah & Wudu Guide' }} />
+      <View style={{ flex: 1, backgroundColor: 'white' }}>
+        {/* Tab bar */}
+        <View
+          style={{
+            flexDirection: 'row',
+            borderBottomWidth: 1,
+            borderBottomColor: '#E5E7EB',
+          }}
+        >
+          {MAIN_TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                alignItems: 'center',
+                borderBottomWidth: 2,
+                borderBottomColor: activeTab === tab.id ? '#0F766E' : 'transparent',
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: activeTab === tab.id ? 'Inter_600SemiBold' : 'Inter_400Regular',
+                  fontSize: 14,
+                  color: activeTab === tab.id ? '#0F766E' : '#6B7280',
+                }}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Tab content */}
+        {activeTab === 'wudu' && <WuduTab />}
+        {activeTab === 'how-to-pray' && <HowToPrayTab />}
+        {activeTab === 'prayers' && <PrayersTab />}
+      </View>
+    </>
   );
 }
