@@ -66,7 +66,8 @@ function RakatPill({ label, isFard }: { label: string; isFard: boolean }) {
   );
 }
 
-// One compact row per prayer: name (+ NEXT badge) · rakat bubbles · time.
+// Compact prayer card: name (+ NEXT badge) and rakat bubbles on row 1,
+// time centered on row 2.
 function PrayerCard({
   english,
   time,
@@ -88,40 +89,37 @@ function PrayerCard({
         isNext ? 'bg-primary/5 border-primary' : 'border-gray-100'
       } ${isPast ? 'opacity-60' : ''}`}
     >
+      {/* Row 1: name + NEXT badge + rakat bubbles */}
       <View className="flex-row items-center">
-        {/* Name + NEXT badge */}
-        <View style={{ flex: 0.35 }}>
-          <Text
-            className={`font-sans-semibold text-base ${
-              isNext ? 'text-primary' : 'text-gray-900'
-            }`}
-          >
-            {english}
-          </Text>
-          {isNext ? (
-            <View className="self-start mt-0.5 rounded-full bg-primary px-1.5 py-0.5">
-              <Text className="text-white font-sans-semibold text-[10px]">NEXT</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Rakat bubbles */}
-        <View className="flex-row flex-wrap justify-center gap-1" style={{ flex: 1 }}>
+        <Text
+          className={`font-sans-semibold text-base mr-2 ${
+            isNext ? 'text-primary' : 'text-gray-900'
+          }`}
+          style={{ flexShrink: 0 }}
+        >
+          {english}
+        </Text>
+        {isNext ? (
+          <View className="mr-2 rounded-full bg-primary px-1.5 py-0.5">
+            <Text className="text-white font-sans-semibold text-[10px]">NEXT</Text>
+          </View>
+        ) : null}
+        <View className="flex-row flex-wrap gap-1" style={{ flex: 1 }}>
           {pills.map((pill) => (
             <RakatPill key={pill.key} label={pill.label} isFard={pill.isFard} />
           ))}
         </View>
-
-        {/* Time */}
-        <Text
-          className={`text-sm ${
-            isNext ? 'font-sans-bold text-primary' : 'font-sans-medium text-gray-600'
-          }`}
-          style={{ flex: 0.3, textAlign: 'right' }}
-        >
-          {time}
-        </Text>
       </View>
+
+      {/* Row 2: time centered below */}
+      <Text
+        className={`text-sm mt-1 ${
+          isNext ? 'font-sans-bold text-primary' : 'font-sans-medium text-gray-500'
+        }`}
+        style={{ textAlign: 'center' }}
+      >
+        {time}
+      </Text>
     </View>
   );
 }
