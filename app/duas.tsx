@@ -97,7 +97,7 @@ export default function DuasScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10 }}
         >
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
@@ -107,6 +107,7 @@ export default function DuasScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 20,
+                marginRight: 8,
                 backgroundColor: category === cat.id ? '#0F766E' : '#F3F4F6',
               }}
             >
