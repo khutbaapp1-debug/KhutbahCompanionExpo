@@ -111,6 +111,7 @@ export default function DuasScreen() {
               }}
             >
               <Text
+                numberOfLines={1}
                 style={{
                   fontFamily: 'Inter_500Medium',
                   fontSize: 13,
