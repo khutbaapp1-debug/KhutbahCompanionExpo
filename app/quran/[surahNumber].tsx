@@ -441,13 +441,7 @@ export default function SurahReader() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             {bookmarkedAyah !== null && (
               <TouchableOpacity
-                onPress={() => {
-                  if (listRef.current && flatListReadyRef.current) {
-                    scrollToVerse(bookmarkedAyah, true);
-                  } else {
-                    setPendingScrollAyah(bookmarkedAyah);
-                  }
-                }}
+                onPress={() => scrollToVerse(bookmarkedAyah, true)}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
