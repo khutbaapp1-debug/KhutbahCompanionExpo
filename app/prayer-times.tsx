@@ -1,17 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { Link, router, Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import LocationGate from '../src/components/LocationGate';
-import PrayerListRow from '../src/components/PrayerListRow';
-import {
-  ARABIC_NAMES,
-  PRAYER_DESCRIPTIONS,
-  RAKAT_DATA,
-  type RakatBreakdown,
-} from '../src/data/rakat';
+import { RAKAT_DATA, type RakatBreakdown } from '../src/data/rakat';
 import { useNextPrayer } from '../src/hooks/useNextPrayer';
 import {
   DEFAULT_PRAYER_SETTINGS,
@@ -23,14 +17,14 @@ import type { Coordinates } from '../src/lib/prayer-times';
 
 type PrayerKey = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 
-// Display order + English labels for the rakat breakdown cards.
-const PRAYER_ORDER: { key: PrayerKey; english: string }[] = [
-  { key: 'fajr', english: 'Fajr' },
-  { key: 'dhuhr', english: 'Dhuhr' },
-  { key: 'asr', english: 'Asr' },
-  { key: 'maghrib', english: 'Maghrib' },
-  { key: 'isha', english: 'Isha' },
-];
+// Maps the display name returned by useNextPrayer back to its rakat key.
+const KEY_BY_ENGLISH: Record<string, PrayerKey> = {
+  Fajr: 'fajr',
+  Dhuhr: 'dhuhr',
+  Asr: 'asr',
+  Maghrib: 'maghrib',
+  Isha: 'isha',
+};
 
 type Pill = { key: string; label: string; isFard: boolean };
 
@@ -72,36 +66,62 @@ function RakatPill({ label, isFard }: { label: string; isFard: boolean }) {
   );
 }
 
-function RakatCard({
-  prayerKey,
+// One compact row per prayer: name (+ NEXT badge) · rakat bubbles · time.
+function PrayerCard({
   english,
+  time,
   breakdown,
+  isNext,
+  isPast,
 }: {
-  prayerKey: PrayerKey;
   english: string;
+  time: string;
   breakdown: RakatBreakdown;
+  isNext: boolean;
+  isPast: boolean;
 }) {
   const pills = buildPills(breakdown);
 
   return (
-    <View className="bg-gray-50 rounded-2xl p-4 mx-4 mt-3">
-      <View className="flex-row items-start justify-between">
-        <View className="pr-3">
-          <Text className="font-sans-bold text-lg text-gray-900">{english}</Text>
+    <View
+      className={`bg-white rounded-xl mx-4 mb-2 px-4 py-3 border ${
+        isNext ? 'bg-primary/5 border-primary' : 'border-gray-100'
+      } ${isPast ? 'opacity-60' : ''}`}
+    >
+      <View className="flex-row items-center">
+        {/* Name + NEXT badge */}
+        <View style={{ flex: 0.35 }}>
           <Text
-            className="font-arabic text-2xl text-primary mt-1"
-            style={{ writingDirection: 'rtl' }}
+            className={`font-sans-semibold text-base ${
+              isNext ? 'text-primary' : 'text-gray-900'
+            }`}
           >
-            {ARABIC_NAMES[prayerKey]}
+            {english}
           </Text>
+          {isNext ? (
+            <View className="self-start mt-0.5 rounded-full bg-primary px-1.5 py-0.5">
+              <Text className="text-white font-sans-semibold text-[10px]">NEXT</Text>
+            </View>
+          ) : null}
         </View>
-        <View className="flex-1 flex-row flex-wrap gap-1.5 justify-end">
+
+        {/* Rakat bubbles */}
+        <View className="flex-row flex-wrap justify-center gap-1" style={{ flex: 1 }}>
           {pills.map((pill) => (
             <RakatPill key={pill.key} label={pill.label} isFard={pill.isFard} />
           ))}
         </View>
+
+        {/* Time */}
+        <Text
+          className={`text-sm ${
+            isNext ? 'font-sans-bold text-primary' : 'font-sans-medium text-gray-600'
+          }`}
+          style={{ flex: 0.3, textAlign: 'right' }}
+        >
+          {time}
+        </Text>
       </View>
-      <Text className="text-sm text-gray-600 mt-2">{PRAYER_DESCRIPTIONS[prayerKey]}</Text>
     </View>
   );
 }
@@ -152,7 +172,7 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
   const rakat = RAKAT_DATA[madhab];
 
   return (
-    <ScrollView className="flex-1 bg-white" contentContainerStyle={{ paddingBottom: 24 }}>
+    <View className="flex-1 bg-white">
       {/* Location label */}
       <Text className="px-4 py-2 text-sm text-gray-500 font-sans">
         {locationName === null ? 'Locating…' : `Prayer times for ${locationName}`}
@@ -174,37 +194,23 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
         </View>
       </View>
 
-      {/* Today's prayers */}
-      <Text className="font-sans-semibold text-lg text-gray-900 mt-6 mx-4">
-        Today's Prayers
-      </Text>
-      <View className="mx-4 mt-2 rounded-2xl overflow-hidden border border-gray-100">
-        {todaysPrayers.map((prayer) => (
-          <PrayerListRow
-            key={prayer.name}
-            name={prayer.name}
-            time={formatTime12Hour(prayer.time)}
-            isNext={prayer.name === nextPrayerName && !isPast(prayer.name)}
-            isPast={isPast(prayer.name)}
-          />
-        ))}
+      {/* Compact per-prayer cards: name + rakat + time, no scrolling */}
+      <View className="mt-3">
+        {todaysPrayers.map((prayer) => {
+          const isNext = prayer.name === nextPrayerName && !isPast(prayer.name);
+          return (
+            <PrayerCard
+              key={prayer.name}
+              english={prayer.name}
+              time={formatTime12Hour(prayer.time)}
+              breakdown={rakat[KEY_BY_ENGLISH[prayer.name]]}
+              isNext={isNext}
+              isPast={isPast(prayer.name) && !isNext}
+            />
+          );
+        })}
       </View>
-
-      {/* Rakat breakdown */}
-      <Text className="font-sans-semibold text-lg text-gray-900 mt-6 mx-4">
-        Rakat Breakdown
-      </Text>
-      <Text className="text-xs text-gray-500 mx-4 mt-1">
-        Following {madhab} tradition. Change in{' '}
-        <Link href="/settings" asChild>
-          <Text className="text-primary underline">settings</Text>
-        </Link>
-        .
-      </Text>
-      {PRAYER_ORDER.map(({ key, english }) => (
-        <RakatCard key={key} prayerKey={key} english={english} breakdown={rakat[key]} />
-      ))}
-    </ScrollView>
+    </View>
   );
 }
 
