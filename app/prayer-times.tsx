@@ -89,22 +89,24 @@ function PrayerCard({
         isNext ? 'bg-primary/5 border-primary' : 'border-gray-100'
       } ${isPast ? 'opacity-60' : ''}`}
     >
-      {/* Row 1: name + NEXT badge + rakat bubbles */}
-      <View className="flex-row items-center">
-        <Text
-          className={`font-sans-semibold text-base mr-2 ${
-            isNext ? 'text-primary' : 'text-gray-900'
-          }`}
-          style={{ flexShrink: 0 }}
-        >
-          {english}
-        </Text>
-        {isNext ? (
-          <View className="mr-2 rounded-full bg-primary px-1.5 py-0.5">
-            <Text className="text-white font-sans-semibold text-[10px]">NEXT</Text>
-          </View>
-        ) : null}
-        <View className="flex-row flex-wrap gap-1" style={{ flex: 1 }}>
+      {/* Row 1: name (+ NEXT badge) on the left, rakat bubbles pushed right */}
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center gap-1.5">
+          <Text
+            className={`font-sans-semibold text-base ${
+              isNext ? 'text-primary' : 'text-gray-900'
+            }`}
+            style={{ flexShrink: 0 }}
+          >
+            {english}
+          </Text>
+          {isNext ? (
+            <View className="rounded-full bg-primary px-1.5 py-0.5">
+              <Text className="text-white font-sans-semibold text-[10px]">NEXT</Text>
+            </View>
+          ) : null}
+        </View>
+        <View className="flex-row flex-wrap justify-end gap-1" style={{ flex: 1 }}>
           {pills.map((pill) => (
             <RakatPill key={pill.key} label={pill.label} isFard={pill.isFard} />
           ))}
