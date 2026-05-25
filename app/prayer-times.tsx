@@ -26,6 +26,16 @@ const KEY_BY_ENGLISH: Record<string, PrayerKey> = {
   Isha: 'isha',
 };
 
+// Time-of-day icon per prayer. (Ionicons has no "sunset" glyph, so Maghrib
+// uses cloudy-night-outline for a dusk feel.)
+const ICON_BY_KEY: Record<PrayerKey, keyof typeof Ionicons.glyphMap> = {
+  fajr: 'moon-outline',
+  dhuhr: 'sunny-outline',
+  asr: 'partly-sunny-outline',
+  maghrib: 'cloudy-night-outline',
+  isha: 'moon',
+};
+
 type Pill = { key: string; label: string; isFard: boolean };
 
 // Pills in canonical order, skipping any segment that is undefined or 0.
@@ -54,7 +64,25 @@ function buildPills(breakdown: RakatBreakdown): Pill[] {
   return pills;
 }
 
-function RakatPill({ label, isFard }: { label: string; isFard: boolean }) {
+function RakatPill({
+  label,
+  isFard,
+  onPrimary,
+}: {
+  label: string;
+  isFard: boolean;
+  onPrimary?: boolean;
+}) {
+  // On the teal next-prayer card every bubble is a translucent white pill —
+  // the fard/sunnah colour split would be illegible against the teal.
+  if (onPrimary) {
+    return (
+      <View className="px-2.5 py-1 rounded-full bg-white/20">
+        <Text className="text-xs font-sans-medium text-white">{label}</Text>
+      </View>
+    );
+  }
+
   return (
     <View className={`px-2.5 py-1 rounded-full ${isFard ? 'bg-primary' : 'bg-gray-200'}`}>
       <Text
@@ -66,17 +94,19 @@ function RakatPill({ label, isFard }: { label: string; isFard: boolean }) {
   );
 }
 
-// Compact prayer card: name (+ NEXT badge) and rakat bubbles on row 1,
-// time centered on row 2.
+// Rich prayer card: time-of-day icon · name + rakat bubbles · time + NEXT badge.
+// The next prayer is highlighted with a solid teal background.
 function PrayerCard({
   english,
   time,
+  icon,
   breakdown,
   isNext,
   isPast,
 }: {
   english: string;
   time: string;
+  icon: keyof typeof Ionicons.glyphMap;
   breakdown: RakatBreakdown;
   isNext: boolean;
   isPast: boolean;
@@ -85,43 +115,60 @@ function PrayerCard({
 
   return (
     <View
-      className={`bg-white rounded-xl mx-4 mb-2 px-4 py-3 border ${
-        isNext ? 'bg-primary/5 border-primary' : 'border-gray-100'
-      } ${isPast ? 'opacity-60' : ''}`}
+      className={`flex-row items-center px-4 py-3 rounded-2xl mx-4 ${
+        isNext
+          ? 'bg-primary'
+          : `bg-white border border-gray-100${isPast ? ' opacity-50' : ' shadow-sm'}`
+      }`}
+      style={!isNext && !isPast ? { elevation: 1 } : undefined}
     >
-      {/* Row 1: name (+ NEXT badge) on the left, rakat bubbles pushed right */}
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center gap-1.5">
-          <Text
-            className={`font-sans-semibold text-base ${
-              isNext ? 'text-primary' : 'text-gray-900'
-            }`}
-            style={{ flexShrink: 0 }}
-          >
-            {english}
-          </Text>
-          {isNext ? (
-            <View className="rounded-full bg-primary px-1.5 py-0.5">
-              <Text className="text-white font-sans-semibold text-[10px]">NEXT</Text>
-            </View>
-          ) : null}
+      {/* Left: time-of-day icon circle */}
+      <View style={{ width: 40 }} className="items-center">
+        <View
+          className={`items-center justify-center rounded-full ${
+            isNext ? 'bg-white/20' : 'bg-primary-container'
+          }`}
+          style={{ width: 36, height: 36 }}
+        >
+          <Ionicons name={icon} size={18} color={isNext ? '#FFFFFF' : '#0F766E'} />
         </View>
-        <View className="flex-row flex-wrap justify-end gap-1" style={{ flex: 1 }}>
+      </View>
+
+      {/* Middle: name + rakat bubbles */}
+      <View className="flex-1" style={{ marginHorizontal: 10 }}>
+        <Text
+          className={`text-base ${
+            isNext ? 'font-sans-bold text-white' : 'font-sans-semibold text-gray-900'
+          }`}
+        >
+          {english}
+        </Text>
+        <View className="flex-row flex-wrap gap-1 mt-1">
           {pills.map((pill) => (
-            <RakatPill key={pill.key} label={pill.label} isFard={pill.isFard} />
+            <RakatPill
+              key={pill.key}
+              label={pill.label}
+              isFard={pill.isFard}
+              onPrimary={isNext}
+            />
           ))}
         </View>
       </View>
 
-      {/* Row 2: time centered below */}
-      <Text
-        className={`text-sm mt-1 ${
-          isNext ? 'font-sans-bold text-primary' : 'font-sans-medium text-gray-500'
-        }`}
-        style={{ textAlign: 'center' }}
-      >
-        {time}
-      </Text>
+      {/* Right: time + NEXT badge */}
+      <View style={{ width: 70 }} className="items-end">
+        <Text
+          className={`font-sans-bold text-base ${isNext ? 'text-white' : 'text-gray-700'}`}
+          style={{ textAlign: 'right' }}
+        >
+          {time}
+        </Text>
+        {isNext ? (
+          <View className="mt-1 rounded-full bg-white px-2 py-0.5">
+            <Text className="text-primary font-sans-semibold text-xs">NEXT</Text>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -179,7 +226,7 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
       </Text>
 
       {/* Next prayer highlight card */}
-      <View className="bg-primary rounded-2xl p-5 mx-4 mt-3">
+      <View className="bg-primary rounded-2xl p-4 mx-4 mt-3">
         <Text className="text-white font-sans text-sm opacity-80">Next Prayer</Text>
         <Text className="text-white font-sans-bold text-3xl mt-1">
           {nextPrayerName ?? '—'}
@@ -194,16 +241,18 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
         </View>
       </View>
 
-      {/* Compact per-prayer cards: name + rakat + time, no scrolling */}
-      <View className="mt-3">
+      {/* Per-prayer cards fill the space below the next-prayer card evenly */}
+      <View className="flex-1 justify-evenly mt-3">
         {todaysPrayers.map((prayer) => {
+          const key = KEY_BY_ENGLISH[prayer.name];
           const isNext = prayer.name === nextPrayerName && !isPast(prayer.name);
           return (
             <PrayerCard
               key={prayer.name}
               english={prayer.name}
               time={formatTime12Hour(prayer.time)}
-              breakdown={rakat[KEY_BY_ENGLISH[prayer.name]]}
+              icon={ICON_BY_KEY[key]}
+              breakdown={rakat[key]}
               isNext={isNext}
               isPast={isPast(prayer.name) && !isNext}
             />
