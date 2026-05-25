@@ -244,7 +244,7 @@ export default function SurahReader() {
           animated: true,
           viewPosition: 0.3,
         });
-      }, 300);
+      }, 800);
     } else if (pageScrollRef.current && surah) {
       if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
         if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
