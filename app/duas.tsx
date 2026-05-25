@@ -8,7 +8,6 @@ import {
   FlatList,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -37,10 +36,14 @@ const CATEGORIES = [
   { id: 'food', label: 'Food' },
   { id: 'prayer', label: 'Prayer' },
   { id: 'distress', label: 'Distress' },
-  { id: 'gratitude', label: 'Gratitude' },
   { id: 'forgiveness', label: 'Forgiveness' },
   { id: 'knowledge', label: 'Knowledge' },
   { id: 'protection', label: 'Protection' },
+  { id: 'health', label: 'Health' },
+  { id: 'family', label: 'Family' },
+  { id: 'provision', label: 'Provision' },
+  { id: 'mosque', label: 'Mosque' },
+  { id: 'weather', label: 'Weather' },
 ];
 
 export default function DuasScreen() {
@@ -48,7 +51,6 @@ export default function DuasScreen() {
   const [duas, setDuas] = useState<Dua[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
-  const [query, setQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,19 +76,10 @@ export default function DuasScreen() {
     void load();
   }, []);
 
-  const filtered = useMemo(() => {
-    let list = category === 'all' ? duas : duas.filter((d) => d.category === category);
-    const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (d) =>
-          d.translation.toLowerCase().includes(q) ||
-          d.transliteration.toLowerCase().includes(q) ||
-          (d.occasion ?? '').toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [duas, category, query]);
+  const filtered = useMemo(
+    () => (category === 'all' ? duas : duas.filter((d) => d.category === category)),
+    [duas, category],
+  );
 
   const copyDua = async (dua: Dua) => {
     const text = `${dua.translation}\n\n${dua.transliteration}${dua.reference ? `\n— ${dua.reference}` : ''}`;
@@ -99,47 +92,6 @@ export default function DuasScreen() {
     <>
       <Stack.Screen options={{ title: 'Daily Duas' }} />
       <View style={{ flex: 1, backgroundColor: 'white' }}>
-        {/* Search bar */}
-        <View
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: '#F3F4F6',
-          }}
-        >
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: '#F9FAFB',
-              borderRadius: 10,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-            }}
-          >
-            <Ionicons name="search-outline" size={18} color="#9CA3AF" />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search duas…"
-              placeholderTextColor="#9CA3AF"
-              style={{
-                flex: 1,
-                marginLeft: 8,
-                fontFamily: 'Inter_400Regular',
-                fontSize: 14,
-                color: '#111827',
-              }}
-            />
-            {query.length > 0 && (
-              <TouchableOpacity onPress={() => setQuery('')}>
-                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
         {/* Category chips */}
         <ScrollView
           horizontal
@@ -152,8 +104,8 @@ export default function DuasScreen() {
               key={cat.id}
               onPress={() => setCategory(cat.id)}
               style={{
-                paddingHorizontal: 14,
-                paddingVertical: 6,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
                 borderRadius: 20,
                 backgroundColor: category === cat.id ? '#0F766E' : '#F3F4F6',
               }}
