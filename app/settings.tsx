@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -21,11 +22,12 @@ import {
   type HighLatitudeRuleKey,
   type MadhabKey,
 } from '../src/lib/prayer-settings';
+import type { ThemeMode } from '../src/lib/theme';
+import { useTheme } from '../src/lib/theme-context';
 
 // ─── Local types ────────────────────────────────────────────────────────────
 
 type FontSizeKey = 'Small' | 'Default' | 'Large' | 'X-Large';
-type ThemeKey = 'Light' | 'Dark' | 'High Contrast';
 type OpenModal = 'calcMethod' | 'madhab' | 'highLat' | 'fontSize' | null;
 type Option = { label: string; value: string };
 
@@ -62,7 +64,11 @@ const FONT_SIZE_OPTIONS: Option[] = [
   { label: 'X-Large', value: 'X-Large' },
 ];
 
-const THEMES: ThemeKey[] = ['Light', 'Dark', 'High Contrast'];
+const THEME_OPTIONS: { label: string; mode: ThemeMode }[] = [
+  { label: 'Light', mode: 'light' },
+  { label: 'Dark', mode: 'dark' },
+  { label: 'High Contrast', mode: 'high-contrast' },
+];
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
 
@@ -176,9 +182,11 @@ export default function SettingsScreen() {
   const [madhab, setMadhab] = useState<MadhabKey>('Hanafi');
   const [highLat, setHighLat] = useState<HighLatitudeRuleKey>('MiddleOfTheNight');
 
-  // Display preferences (their own AsyncStorage keys; not yet applied — Week 11).
+  // Theme comes from the global ThemeProvider (persisted there).
+  const { mode, setTheme } = useTheme();
+
+  // Display preferences (their own AsyncStorage keys).
   const [fontSize, setFontSize] = useState<FontSizeKey>('Default');
-  const [theme, setTheme] = useState<ThemeKey>('Light');
   const [reduceMotion, setReduceMotion] = useState(false);
 
   const [openModal, setOpenModal] = useState<OpenModal>(null);
@@ -192,8 +200,6 @@ export default function SettingsScreen() {
 
       const fs = await AsyncStorage.getItem('display-font-size');
       if (fs) setFontSize(fs as FontSizeKey);
-      const th = await AsyncStorage.getItem('display-theme');
-      if (th) setTheme(th as ThemeKey);
       const rm = await AsyncStorage.getItem('display-reduce-motion');
       if (rm !== null) setReduceMotion(rm === 'true');
     })();
@@ -227,23 +233,20 @@ export default function SettingsScreen() {
             <View className="flex-row items-center justify-between flex-wrap gap-y-2">
               <Text className="font-sans-medium text-base text-gray-900">Theme</Text>
               <View className="flex-row flex-wrap gap-2">
-                {THEMES.map((t) => (
+                {THEME_OPTIONS.map((opt) => (
                   <TouchableOpacity
-                    key={t}
-                    onPress={() => {
-                      setTheme(t);
-                      AsyncStorage.setItem('display-theme', t);
-                    }}
+                    key={opt.mode}
+                    onPress={() => setTheme(opt.mode)}
                     className={`px-2.5 py-1.5 rounded-lg ${
-                      theme === t ? 'bg-primary' : 'bg-gray-100'
+                      mode === opt.mode ? 'bg-primary' : 'bg-gray-100'
                     }`}
                   >
                     <Text
                       className={`text-xs font-sans-medium ${
-                        theme === t ? 'text-white' : 'text-gray-700'
+                        mode === opt.mode ? 'text-white' : 'text-gray-700'
                       }`}
                     >
-                      {t}
+                      {opt.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -330,7 +333,9 @@ export default function SettingsScreen() {
           {/* Version */}
           <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
             <Text className="font-sans-medium text-base text-gray-900">Version</Text>
-            <Text className="font-sans text-gray-500">1.0.0</Text>
+            <Text className="font-sans text-gray-500">
+              {Constants.expoConfig?.version ?? '1.0.0'}
+            </Text>
           </View>
 
           {/* Privacy Policy */}
@@ -359,10 +364,27 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Rate on Play Store */}
+          <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+            <Text className="font-sans-medium text-base text-gray-900">Rate the App</Text>
+            <TouchableOpacity
+              onPress={() => {
+                const pkg = Constants.expoConfig?.android?.package;
+                Linking.openURL(
+                  pkg
+                    ? `https://play.google.com/store/apps/details?id=${pkg}`
+                    : 'https://play.google.com/store',
+                );
+              }}
+            >
+              <Text className="text-primary font-sans-medium">Play Store →</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Tagline */}
           <View className="py-3 px-4">
             <Text className="text-xs text-gray-400 text-center font-sans">
-              Made with care for the global Muslim community
+              Made by Akber Khan in Dubai 🇦🇪
             </Text>
           </View>
         </View>
