@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
+  Image,
+  type ImageSourcePropType,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -28,6 +30,18 @@ const PRAYER_TABS: { id: PrayerTab; label: string; sub: string }[] = [
   { id: 'maghrib', label: 'Maghrib', sub: '3 rakat' },
   { id: 'witr', label: 'Witr', sub: '3 rakat' },
 ];
+
+// Photographed wudu steps. Steps 1/2/10 (intention, bismillah, closing dua) have
+// no image; step 8 covers head + ears + neck, so wudu-ears has no separate step.
+const WUDU_IMAGES: Record<number, ImageSourcePropType> = {
+  3: require('../assets/images/wudu/wudu-hands.jpg'),
+  4: require('../assets/images/wudu/wudu-mouth.jpg'),
+  5: require('../assets/images/wudu/wudu-nose.jpg'),
+  6: require('../assets/images/wudu/wudu-face.jpg'),
+  7: require('../assets/images/wudu/wudu-arms.jpg'),
+  8: require('../assets/images/wudu/wudu-head.jpg'),
+  9: require('../assets/images/wudu/wudu-feet.jpg'),
+};
 
 // ─── Wudu tab ─────────────────────────────────────────────────────────────────
 
@@ -82,6 +96,15 @@ function WuduTab() {
                 {s.title}
               </Text>
             </View>
+
+            {/* Step photo (where available) */}
+            {WUDU_IMAGES[s.number] && (
+              <Image
+                source={WUDU_IMAGES[s.number]}
+                resizeMode="contain"
+                style={{ width: '100%', height: 220, marginBottom: 16, borderRadius: 12 }}
+              />
+            )}
 
             {/* Description */}
             <Text
