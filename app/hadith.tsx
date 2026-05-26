@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTheme } from '../src/lib/theme-context';
+
 const BASE_URL = 'https://khutbah-translate.replit.app';
 
 type Hadith = {
@@ -31,6 +33,7 @@ function todayKey(): string {
 
 export default function HadithScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [hadith, setHadith] = useState<Hadith | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -83,24 +86,24 @@ export default function HadithScreen() {
           headerRight: () =>
             hadith ? (
               <TouchableOpacity onPress={() => void shareHadith()} style={{ marginRight: 4 }}>
-                <Ionicons name="share-outline" size={22} color="#0F766E" />
+                <Ionicons name="share-outline" size={22} color={theme.primary} />
               </TouchableOpacity>
             ) : null,
         }}
       />
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {loading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <ActivityIndicator size="large" color="#0F766E" />
+            <ActivityIndicator size="large" color={theme.primary} />
           </View>
         ) : error || !hadith ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-            <Ionicons name="cloud-offline-outline" size={48} color="#D1D5DB" />
+            <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
             <Text
               style={{
                 fontFamily: 'Inter_400Regular',
                 fontSize: 15,
-                color: '#9CA3AF',
+                color: theme.textMuted,
                 marginTop: 12,
                 textAlign: 'center',
               }}
@@ -116,16 +119,16 @@ export default function HadithScreen() {
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
               <View
                 style={{
-                  backgroundColor: '#F0FDFA',
+                  backgroundColor: theme.primaryContainer,
                   borderRadius: 20,
                   paddingHorizontal: 14,
                   paddingVertical: 5,
                   borderWidth: 1,
-                  borderColor: '#99F6E4',
+                  borderColor: theme.primary,
                 }}
               >
                 <Text
-                  style={{ fontFamily: 'Inter_500Medium', fontSize: 12, color: '#0F766E' }}
+                  style={{ fontFamily: 'Inter_500Medium', fontSize: 12, color: theme.primary }}
                 >
                   {dateLabel}
                 </Text>
@@ -135,30 +138,30 @@ export default function HadithScreen() {
             {/* Card */}
             <View
               style={{
-                backgroundColor: 'white',
+                backgroundColor: theme.card,
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: '#E5E7EB',
+                borderColor: theme.border,
                 overflow: 'hidden',
               }}
             >
               {/* Teal top accent */}
-              <View style={{ height: 4, backgroundColor: '#0F766E' }} />
+              <View style={{ height: 4, backgroundColor: theme.primary }} />
 
               {/* Arabic */}
               <View
                 style={{
                   padding: 20,
                   borderBottomWidth: 1,
-                  borderBottomColor: '#F3F4F6',
-                  backgroundColor: '#FAFFFE',
+                  borderBottomColor: theme.border,
+                  backgroundColor: theme.surface,
                 }}
               >
                 <Text
                   style={{
                     fontFamily: 'KFGQPCHafs',
                     fontSize: 22,
-                    color: '#111827',
+                    color: theme.text,
                     lineHeight: 44,
                     textAlign: 'right',
                   }}
@@ -168,12 +171,12 @@ export default function HadithScreen() {
               </View>
 
               {/* Translation */}
-              <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+              <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: theme.border }}>
                 <Text
                   style={{
                     fontFamily: 'Inter_400Regular',
                     fontSize: 16,
-                    color: '#111827',
+                    color: theme.text,
                     lineHeight: 26,
                   }}
                 >
@@ -185,28 +188,28 @@ export default function HadithScreen() {
               <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <View
                   style={{
-                    backgroundColor: '#F3F4F6',
+                    backgroundColor: theme.surface,
                     borderRadius: 6,
                     paddingHorizontal: 10,
                     paddingVertical: 4,
                   }}
                 >
                   <Text
-                    style={{ fontFamily: 'Inter_500Medium', fontSize: 12, color: '#374151' }}
+                    style={{ fontFamily: 'Inter_500Medium', fontSize: 12, color: theme.textSecondary }}
                   >
                     {hadith.narrator}
                   </Text>
                 </View>
                 <View
                   style={{
-                    backgroundColor: '#F0FDFA',
+                    backgroundColor: theme.primaryContainer,
                     borderRadius: 6,
                     paddingHorizontal: 10,
                     paddingVertical: 4,
                   }}
                 >
                   <Text
-                    style={{ fontFamily: 'Inter_500Medium', fontSize: 12, color: '#0F766E' }}
+                    style={{ fontFamily: 'Inter_500Medium', fontSize: 12, color: theme.primary }}
                   >
                     {hadith.reference}
                   </Text>
@@ -214,14 +217,14 @@ export default function HadithScreen() {
                 {hadith.grade && (
                   <View
                     style={{
-                      backgroundColor: '#ECFDF5',
+                      backgroundColor: theme.primaryContainer,
                       borderRadius: 6,
                       paddingHorizontal: 10,
                       paddingVertical: 4,
                     }}
                   >
                     <Text
-                      style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: '#059669' }}
+                      style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: theme.primary }}
                     >
                       {hadith.grade}
                     </Text>
@@ -239,7 +242,7 @@ export default function HadithScreen() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                backgroundColor: '#0F766E',
+                backgroundColor: theme.primary,
                 borderRadius: 12,
                 paddingVertical: 14,
               }}

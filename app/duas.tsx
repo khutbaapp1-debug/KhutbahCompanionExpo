@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTheme } from '../src/lib/theme-context';
+
 const BASE_URL = 'https://khutbah-translate.replit.app';
 const DUA_CACHE_KEY = 'duas-cache-v1';
 
@@ -48,6 +50,7 @@ const CATEGORIES = [
 
 export default function DuasScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [duas, setDuas] = useState<Dua[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
@@ -91,12 +94,12 @@ export default function DuasScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Daily Duas' }} />
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {/* Category chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', height: 44 }}
+          style={{ borderBottomWidth: 1, borderBottomColor: theme.border, height: 44 }}
           contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10 }}
         >
           {CATEGORIES.map((cat) => (
@@ -109,7 +112,7 @@ export default function DuasScreen() {
                 borderRadius: 20,
                 marginRight: 8,
                 alignSelf: 'center',
-                backgroundColor: category === cat.id ? '#0F766E' : '#F3F4F6',
+                backgroundColor: category === cat.id ? theme.primary : theme.surface,
               }}
             >
               <Text
@@ -117,7 +120,7 @@ export default function DuasScreen() {
                 style={{
                   fontFamily: 'Inter_500Medium',
                   fontSize: 13,
-                  color: category === cat.id ? 'white' : '#374151',
+                  color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
                 }}
               >
                 {cat.label}
@@ -128,7 +131,7 @@ export default function DuasScreen() {
 
         {loading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <ActivityIndicator size="large" color="#0F766E" />
+            <ActivityIndicator size="large" color={theme.primary} />
           </View>
         ) : (
           <FlatList
@@ -142,7 +145,7 @@ export default function DuasScreen() {
             ListEmptyComponent={
               <View style={{ padding: 40, alignItems: 'center' }}>
                 <Text
-                  style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#9CA3AF' }}
+                  style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textMuted }}
                 >
                   No duas found
                 </Text>
@@ -151,10 +154,10 @@ export default function DuasScreen() {
             renderItem={({ item: dua }) => (
               <View
                 style={{
-                  backgroundColor: 'white',
+                  backgroundColor: theme.card,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: '#E5E7EB',
+                  borderColor: theme.border,
                 }}
               >
                 {/* Card header: badges + copy button */}
@@ -171,7 +174,7 @@ export default function DuasScreen() {
                   <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 }}>
                     <View
                       style={{
-                        backgroundColor: '#F0FDFA',
+                        backgroundColor: theme.primaryContainer,
                         borderRadius: 6,
                         paddingHorizontal: 8,
                         paddingVertical: 3,
@@ -181,7 +184,7 @@ export default function DuasScreen() {
                         style={{
                           fontFamily: 'Inter_500Medium',
                           fontSize: 11,
-                          color: '#0F766E',
+                          color: theme.primary,
                         }}
                       >
                         {dua.occasion ?? dua.category}
@@ -190,19 +193,19 @@ export default function DuasScreen() {
                     {dua.reference && (
                       <View
                         style={{
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: theme.surface,
                           borderRadius: 6,
                           paddingHorizontal: 8,
                           paddingVertical: 3,
                           borderWidth: 1,
-                          borderColor: '#E5E7EB',
+                          borderColor: theme.border,
                         }}
                       >
                         <Text
                           style={{
                             fontFamily: 'Inter_400Regular',
                             fontSize: 11,
-                            color: '#6B7280',
+                            color: theme.textMuted,
                           }}
                         >
                           {dua.reference}
@@ -214,7 +217,7 @@ export default function DuasScreen() {
                     <Ionicons
                       name={copiedId === dua.id ? 'checkmark-circle' : 'copy-outline'}
                       size={20}
-                      color={copiedId === dua.id ? '#0F766E' : '#9CA3AF'}
+                      color={copiedId === dua.id ? theme.primary : theme.textMuted}
                     />
                   </TouchableOpacity>
                 </View>
@@ -224,7 +227,7 @@ export default function DuasScreen() {
                   style={{
                     fontFamily: 'KFGQPCHafs',
                     fontSize: 22,
-                    color: '#111827',
+                    color: theme.text,
                     lineHeight: 44,
                     textAlign: 'right',
                     paddingHorizontal: 16,
@@ -239,7 +242,7 @@ export default function DuasScreen() {
                   style={{
                     fontFamily: 'Inter_400Regular',
                     fontSize: 13,
-                    color: '#6B7280',
+                    color: theme.textMuted,
                     fontStyle: 'italic',
                     paddingHorizontal: 16,
                     paddingBottom: 8,
@@ -253,7 +256,7 @@ export default function DuasScreen() {
                   style={{
                     fontFamily: 'Inter_400Regular',
                     fontSize: 14,
-                    color: '#374151',
+                    color: theme.textSecondary,
                     lineHeight: 22,
                     paddingHorizontal: 16,
                     paddingBottom: 16,
