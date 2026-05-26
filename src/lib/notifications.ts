@@ -1,10 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { getStoredLocation } from './location';
 import { getPrayerSettings } from './prayer-settings';
 import { getPrayerTimesForDate } from './prayer-times';
+
+// expo-notifications touches native modules that are unavailable in Expo Go
+// (SDK 53+). Mirror the expo-av lazy-load pattern: never import it at module
+// scope, bail out in Expo Go, and require() it lazily inside each function.
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
 
 export type PrayerKey = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 
@@ -31,9 +36,13 @@ async function readBool(key: string, fallback = false): Promise<boolean> {
 
 /**
  * Ensure permission + (Android) a notification channel. Returns whether
- * notifications are permitted. Call before enabling any reminder.
+ * notifications are permitted. No-op (false) in Expo Go.
  */
 export async function requestNotificationPermissions(): Promise<boolean> {
+  if (IS_EXPO_GO) return false;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Notifications = require('expo-notifications') as typeof import('expo-notifications');
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Reminders',
@@ -48,6 +57,9 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 
 /** Cancel all scheduled notifications, then reschedule from saved preferences. */
 export async function scheduleAllNotifications(): Promise<void> {
+  if (IS_EXPO_GO) return;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Notifications = require('expo-notifications') as typeof import('expo-notifications');
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   // Master switch defaults on; if explicitly off, schedule nothing.
@@ -62,6 +74,10 @@ export async function scheduleAllNotifications(): Promise<void> {
 }
 
 async function schedulePrayerNotifications(): Promise<void> {
+  if (IS_EXPO_GO) return;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Notifications = require('expo-notifications') as typeof import('expo-notifications');
+
   const location = await getStoredLocation();
   if (!location) return; // no location → can't compute prayer times yet
 
@@ -98,6 +114,10 @@ async function schedulePrayerNotifications(): Promise<void> {
  * specific hadith (which would otherwise go stale each day).
  */
 export async function scheduleHadithNotification(time: string): Promise<void> {
+  if (IS_EXPO_GO) return;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Notifications = require('expo-notifications') as typeof import('expo-notifications');
+
   const [hStr, mStr] = time.split(':');
   const hour = Number.parseInt(hStr, 10);
   const minute = Number.parseInt(mStr, 10);
@@ -115,5 +135,8 @@ export async function scheduleHadithNotification(time: string): Promise<void> {
 }
 
 export async function cancelAllNotifications(): Promise<void> {
+  if (IS_EXPO_GO) return;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Notifications = require('expo-notifications') as typeof import('expo-notifications');
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
