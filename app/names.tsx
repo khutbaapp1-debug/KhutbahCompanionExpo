@@ -1,82 +1,18 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
-import {
-  FlatList,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { namesOfAllah } from '../src/data/names-of-allah';
 
 export default function NamesScreen() {
   const insets = useSafeAreaInsets();
-  const [query, setQuery] = useState('');
-  const listRef = useRef<FlatList>(null);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return namesOfAllah;
-    return namesOfAllah.filter(
-      (n) =>
-        n.transliteration.toLowerCase().includes(q) ||
-        n.meaning.toLowerCase().includes(q) ||
-        n.arabic.includes(q),
-    );
-  }, [query]);
 
   return (
     <>
       <Stack.Screen options={{ title: '99 Names of Allah' }} />
       <View style={{ flex: 1, backgroundColor: 'white' }}>
-        {/* Search bar */}
-        <View
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 10,
-            backgroundColor: 'white',
-            borderBottomWidth: 1,
-            borderBottomColor: '#F3F4F6',
-          }}
-        >
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: '#F9FAFB',
-              borderRadius: 10,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-            }}
-          >
-            <Ionicons name="search-outline" size={18} color="#9CA3AF" />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search by name or meaning…"
-              placeholderTextColor="#9CA3AF"
-              style={{
-                flex: 1,
-                marginLeft: 8,
-                fontFamily: 'Inter_400Regular',
-                fontSize: 14,
-                color: '#111827',
-              }}
-            />
-            {query.length > 0 && (
-              <TouchableOpacity onPress={() => setQuery('')}>
-                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
         <FlatList
-          ref={listRef}
-          data={filtered}
+          data={namesOfAllah}
           keyExtractor={(item) => String(item.number)}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 16 }}
           renderItem={({ item: name }) => (
@@ -148,15 +84,6 @@ export default function NamesScreen() {
               </Text>
             </View>
           )}
-          ListEmptyComponent={
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <Text
-                style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#9CA3AF' }}
-              >
-                No names match &quot;{query}&quot;
-              </Text>
-            </View>
-          }
         />
       </View>
     </>

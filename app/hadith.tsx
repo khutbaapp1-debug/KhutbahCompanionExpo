@@ -66,9 +66,8 @@ export default function HadithScreen() {
 
   const shareHadith = async () => {
     if (!hadith) return;
-    await Share.share({
-      message: `${hadith.englishTranslation}\n\n— ${hadith.narrator}, ${hadith.reference}`,
-    });
+    const text = `${hadith.arabicText}\n\n${hadith.englishTranslation}\n\n— ${hadith.narrator}, ${hadith.reference}`;
+    await Share.share({ message: text });
   };
 
   const dateLabel = new Date().toLocaleDateString('en-US', {

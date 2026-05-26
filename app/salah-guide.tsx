@@ -21,7 +21,7 @@ type PrayerTab = PrayerType;
 const MAIN_TABS: { id: MainTab; label: string }[] = [
   { id: 'wudu', label: 'Wudu' },
   { id: 'how-to-pray', label: 'How to Pray' },
-  { id: 'prayers', label: 'Prayers' },
+  { id: 'prayers', label: 'Info' },
 ];
 
 const PRAYER_TABS: { id: PrayerTab; label: string; sub: string }[] = [

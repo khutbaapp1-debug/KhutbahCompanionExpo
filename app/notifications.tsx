@@ -4,6 +4,7 @@ import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 import {
   PRAYERS,
+  dhikrKey,
   hadithKey,
   masterKey,
   prayerKey,
@@ -13,6 +14,7 @@ import {
 } from '../src/lib/notifications';
 
 const HADITH_TIME_KEY = 'hadith-notification-time';
+const DHIKR_TIME_KEY = 'dhikr-notification-time';
 const TIME_OPTIONS = ['06:00', '07:00', '08:00', '09:00', '20:00'];
 
 export default function NotificationsScreen() {
@@ -26,6 +28,8 @@ export default function NotificationsScreen() {
   });
   const [hadith, setHadith] = useState(false);
   const [hadithTime, setHadithTime] = useState('08:00');
+  const [dhikr, setDhikr] = useState(false);
+  const [dhikrTime, setDhikrTime] = useState('07:00');
 
   useEffect(() => {
     (async () => {
@@ -46,6 +50,8 @@ export default function NotificationsScreen() {
 
       setHadith((await AsyncStorage.getItem(hadithKey)) === 'true');
       setHadithTime((await AsyncStorage.getItem(HADITH_TIME_KEY)) ?? '08:00');
+      setDhikr((await AsyncStorage.getItem(dhikrKey)) === 'true');
+      setDhikrTime((await AsyncStorage.getItem(DHIKR_TIME_KEY)) ?? '07:00');
     })();
   }, []);
 
@@ -77,6 +83,18 @@ export default function NotificationsScreen() {
   const pickTime = async (t: string) => {
     setHadithTime(t);
     await AsyncStorage.setItem(HADITH_TIME_KEY, t);
+    await scheduleAllNotifications();
+  };
+
+  const toggleDhikr = async (v: boolean) => {
+    setDhikr(v);
+    await AsyncStorage.setItem(dhikrKey, String(v));
+    await apply(v);
+  };
+
+  const pickDhikrTime = async (t: string) => {
+    setDhikrTime(t);
+    await AsyncStorage.setItem(DHIKR_TIME_KEY, t);
     await scheduleAllNotifications();
   };
 
@@ -165,6 +183,52 @@ export default function NotificationsScreen() {
                   <Text
                     className={`text-sm font-sans-medium ${
                       hadithTime === t ? 'text-white' : 'text-gray-700'
+                    }`}
+                  >
+                    {t}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Dhikr & Tasbih */}
+      <Text className="text-xs font-sans-semibold text-gray-500 uppercase tracking-wider px-4 pt-2 pb-2">
+        Dhikr & Tasbih
+      </Text>
+      <View
+        className="bg-white rounded-2xl mx-4 mb-3 p-4 border border-gray-100"
+        style={{ opacity: disabled ? 0.4 : 1 }}
+        pointerEvents={disabled ? 'none' : 'auto'}
+      >
+        <View className="flex-row items-center justify-between">
+          <Text className="font-sans-medium text-base text-gray-900">
+            Daily Dhikr Reminder
+          </Text>
+          <Switch
+            value={dhikr}
+            onValueChange={toggleDhikr}
+            trackColor={{ false: '#E5E7EB', true: '#0F766E' }}
+            thumbColor="white"
+          />
+        </View>
+        {dhikr && (
+          <View className="mt-3 pt-3 border-t border-gray-100">
+            <Text className="font-sans-medium text-sm text-gray-700 mb-2">Reminder time</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {TIME_OPTIONS.map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => pickDhikrTime(t)}
+                  className={`px-3 py-1.5 rounded-lg ${
+                    dhikrTime === t ? 'bg-primary' : 'bg-gray-100'
+                  }`}
+                >
+                  <Text
+                    className={`text-sm font-sans-medium ${
+                      dhikrTime === t ? 'text-white' : 'text-gray-700'
                     }`}
                   >
                     {t}

@@ -22,12 +22,14 @@ export const PRAYERS: { key: PrayerKey; label: string }[] = [
 ];
 
 const HADITH_TIME_KEY = 'hadith-notification-time';
+const DHIKR_TIME_KEY = 'dhikr-notification-time';
 const DAYS_AHEAD = 5; // schedule prayer reminders for the next few days
 
 // AsyncStorage keys (brief-specified shape).
 export const masterKey = 'notifications-master';
 export const prayerKey = (k: PrayerKey) => `notifications-${k}`;
 export const hadithKey = 'notifications-hadith';
+export const dhikrKey = 'notifications-dhikr';
 
 async function readBool(key: string, fallback = false): Promise<boolean> {
   const v = await AsyncStorage.getItem(key);
@@ -70,6 +72,11 @@ export async function scheduleAllNotifications(): Promise<void> {
   if (await readBool(hadithKey)) {
     const time = (await AsyncStorage.getItem(HADITH_TIME_KEY)) ?? '08:00';
     await scheduleHadithNotification(time);
+  }
+
+  if (await readBool(dhikrKey)) {
+    const time = (await AsyncStorage.getItem(DHIKR_TIME_KEY)) ?? '07:00';
+    await scheduleDhikrNotification(time);
   }
 }
 
@@ -129,6 +136,28 @@ export async function scheduleHadithNotification(time: string): Promise<void> {
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: Number.isNaN(hour) ? 8 : hour,
+      minute: Number.isNaN(minute) ? 0 : minute,
+    },
+  });
+}
+
+/** Daily repeating reminder for dhikr / tasbih. */
+export async function scheduleDhikrNotification(time: string): Promise<void> {
+  if (IS_EXPO_GO) return;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Notifications = require('expo-notifications') as typeof import('expo-notifications');
+
+  const [hStr, mStr] = time.split(':');
+  const hour = Number.parseInt(hStr, 10);
+  const minute = Number.parseInt(mStr, 10);
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Dhikr & Tasbih',
+      body: 'Time for your daily dhikr and tasbih 📿',
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: Number.isNaN(hour) ? 7 : hour,
       minute: Number.isNaN(minute) ? 0 : minute,
     },
   });
