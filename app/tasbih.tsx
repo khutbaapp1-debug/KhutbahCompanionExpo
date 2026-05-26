@@ -1,9 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Stack } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
-  Alert,
   Animated,
+  Dimensions,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Arabic copied verbatim from the original presets — not retyped.
 const DHIKR_PRESETS = [
   { id: 'subhanallah', text: 'سُبْحَانَ ٱللَّٰهِ', translation: 'SubhanAllah', target: 33 },
   { id: 'alhamdulillah', text: 'ٱلْحَمْدُ لِلَّٰهِ', translation: 'Alhamdulillah', target: 33 },
@@ -25,41 +27,49 @@ const DHIKR_PRESETS = [
 
 type DhikrId = (typeof DHIKR_PRESETS)[number]['id'];
 
+const ALL_IDS = DHIKR_PRESETS.map((p) => p.id);
+const byId = (id: DhikrId) => DHIKR_PRESETS.find((p) => p.id === id)!;
+
+// Full width minus 48dp padding, capped so it fits shorter screens (≥200dp).
+const CIRCLE = Math.min(Dimensions.get('window').width - 48, 280);
+
+const ARABIC_FONT = 'NotoNaskhArabic_400Regular';
+
 export default function TasbihScreen() {
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<DhikrId>('subhanallah');
   const [count, setCount] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
-  const [completed, setCompleted] = useState(false);
+  const [completedIds, setCompletedIds] = useState<DhikrId[]>([]);
+  const [advancing, setAdvancing] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const completionAnim = useRef(new Animated.Value(0)).current;
 
-  const preset = DHIKR_PRESETS.find((p) => p.id === selectedId)!;
+  const preset = byId(selectedId);
 
-  const resetForPreset = (id: DhikrId) => {
-    setSelectedId(id);
-    setCount(0);
-    setCompleted(false);
-  };
+  // Display order: uncompleted (original order) first, completed pushed to the end.
+  const orderedIds: DhikrId[] = [
+    ...ALL_IDS.filter((id) => !completedIds.includes(id)),
+    ...completedIds,
+  ];
+  const nextId = orderedIds.find((id) => id !== selectedId && !completedIds.includes(id));
+  const allDone = completedIds.length === ALL_IDS.length;
 
-  const animateTap = useCallback(() => {
+  const animateTap = () => {
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.93, duration: 60, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.95, duration: 60, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
     ]).start();
-  }, [scaleAnim]);
+  };
 
-  const animateCompletion = useCallback(() => {
-    Animated.sequence([
-      Animated.timing(completionAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.delay(800),
-      Animated.timing(completionAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start();
-  }, [completionAnim]);
+  // Selecting a card makes it current; if it was completed, re-activate it.
+  const selectDhikr = (id: DhikrId) => {
+    setSelectedId(id);
+    setCount(0);
+    setCompletedIds((prev) => prev.filter((c) => c !== id));
+  };
 
   const handleTap = () => {
-    if (completed) return;
-
+    if (advancing) return;
     animateTap();
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -68,60 +78,59 @@ export default function TasbihScreen() {
     setSessionTotal((t) => t + 1);
 
     if (next >= preset.target) {
+      // Target reached: success haptic, brief pause, then auto-advance.
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setCompleted(true);
-      animateCompletion();
+      setAdvancing(true);
       setTimeout(() => {
+        const newCompleted = completedIds.includes(selectedId)
+          ? completedIds
+          : [...completedIds, selectedId];
+        const remaining = ALL_IDS.filter((id) => !newCompleted.includes(id));
+        setCompletedIds(newCompleted);
+        if (remaining.length > 0) setSelectedId(remaining[0]);
         setCount(0);
-        setCompleted(false);
-      }, 1200);
+        setAdvancing(false);
+      }, 800);
     }
   };
 
-  const confirmReset = () => {
-    Alert.alert('Reset Counter', 'Reset the current count to zero?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reset',
-        style: 'destructive',
-        onPress: () => {
-          setCount(0);
-          setCompleted(false);
-        },
-      },
-    ]);
+  const resetAll = () => {
+    setCount(0);
+    setSessionTotal(0);
+    setCompletedIds([]);
+    setSelectedId('subhanallah');
+    setAdvancing(false);
   };
-
-  const progress = Math.min(count / preset.target, 1);
-  const circumference = 2 * Math.PI * 80;
-  const strokeDashoffset = circumference * (1 - progress);
-
-  const completionScale = completionAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.08],
-  });
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Tasbih Counter' }} />
+      <Stack.Screen
+        options={{
+          title: 'Tasbih Counter',
+          headerRight: () => (
+            <TouchableOpacity onPress={resetAll} style={{ marginRight: 4 }} hitSlop={12}>
+              <Ionicons name="refresh" size={22} color="#0F766E" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
       <View style={{ flex: 1, backgroundColor: 'white' }}>
-        {/* Current dhikr display */}
+        {/* Main counter area */}
         <View
           style={{
+            flex: 1,
             alignItems: 'center',
-            paddingTop: 20,
-            paddingBottom: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: '#F3F4F6',
+            justifyContent: 'center',
+            paddingHorizontal: 24,
           }}
         >
           <Text
             style={{
-              fontFamily: 'KFGQPCHafs',
-              fontSize: 28,
+              fontFamily: ARABIC_FONT,
+              fontSize: 34,
               color: '#0F766E',
               textAlign: 'center',
-              lineHeight: 54,
+              lineHeight: 60,
             }}
           >
             {preset.text}
@@ -129,112 +138,64 @@ export default function TasbihScreen() {
           <Text
             style={{
               fontFamily: 'Inter_400Regular',
-              fontSize: 13,
+              fontSize: 18,
               color: '#6B7280',
-              marginTop: 2,
+              marginTop: 4,
+              marginBottom: 24,
+              textAlign: 'center',
             }}
           >
-            {preset.translation} · target {preset.target}
+            {preset.translation}
           </Text>
-        </View>
 
-        {/* Tap area */}
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Animated.View style={{ transform: [{ scale: completed ? completionScale : scaleAnim }] }}>
+          {/* Large tap circle */}
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <TouchableOpacity
               onPress={handleTap}
-              activeOpacity={0.9}
+              activeOpacity={0.85}
               style={{
-                width: 220,
-                height: 220,
-                borderRadius: 110,
-                backgroundColor: completed ? '#0F766E' : '#F0FDFA',
+                width: CIRCLE,
+                height: CIRCLE,
+                borderRadius: CIRCLE / 2,
+                backgroundColor: '#0F766E',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderWidth: 3,
-                borderColor: completed ? '#0F766E' : '#99F6E4',
               }}
             >
               <Text
                 style={{
                   fontFamily: 'Inter_700Bold',
                   fontSize: 72,
-                  color: completed ? 'white' : '#0F766E',
-                  lineHeight: 80,
+                  color: 'white',
+                  lineHeight: 84,
                 }}
               >
                 {count}
               </Text>
-              {!completed && (
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 14,
-                    color: '#6B7280',
-                    marginTop: 4,
-                  }}
-                >
-                  of {preset.target}
-                </Text>
-              )}
-              {completed && (
-                <Text
-                  style={{
-                    fontFamily: 'Inter_600SemiBold',
-                    fontSize: 16,
-                    color: 'white',
-                    marginTop: 4,
-                  }}
-                >
-                  ✓ Complete
-                </Text>
-              )}
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Progress bar */}
-          <View
+          {/* count / target */}
+          <Text
             style={{
+              fontFamily: 'Inter_600SemiBold',
+              fontSize: 18,
+              color: '#374151',
               marginTop: 20,
-              width: 200,
-              height: 6,
-              backgroundColor: '#F3F4F6',
-              borderRadius: 3,
-              overflow: 'hidden',
             }}
           >
-            <View
-              style={{
-                height: 6,
-                width: `${Math.round(progress * 100)}%`,
-                backgroundColor: '#0F766E',
-                borderRadius: 3,
-              }}
-            />
-          </View>
-
-          {/* Session total + reset */}
-          <View
+            {count} / {preset.target}
+          </Text>
+          <Text
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 16,
-              marginTop: 16,
+              fontFamily: 'Inter_400Regular',
+              fontSize: 13,
+              color: '#9CA3AF',
+              marginTop: 4,
             }}
           >
-            <Text
-              style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: '#9CA3AF' }}
-            >
-              Session total: {sessionTotal}
-            </Text>
-            <TouchableOpacity onPress={confirmReset} style={{ padding: 4 }}>
-              <Text
-                style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#DC2626' }}
-              >
-                Reset
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {allDone ? 'All dhikr complete — alhamdulillah' : `Session total: ${sessionTotal}`}
+          </Text>
         </View>
 
         {/* Dhikr selector */}
@@ -252,7 +213,7 @@ export default function TasbihScreen() {
               color: '#9CA3AF',
               paddingHorizontal: 16,
               paddingTop: 10,
-              paddingBottom: 6,
+              paddingBottom: 8,
               textTransform: 'uppercase',
               letterSpacing: 0.5,
             }}
@@ -262,43 +223,63 @@ export default function TasbihScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: 8 }}
           >
-            {DHIKR_PRESETS.map((p) => (
-              <TouchableOpacity
-                key={p.id}
-                onPress={() => resetForPreset(p.id)}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 10,
-                  backgroundColor: selectedId === p.id ? '#0F766E' : '#F3F4F6',
-                  alignItems: 'center',
-                  minWidth: 90,
-                }}
-              >
-                <Text
+            {orderedIds.map((id) => {
+              const p = byId(id);
+              const isSelected = id === selectedId;
+              const isCompleted = completedIds.includes(id);
+              const isNext = id === nextId;
+              return (
+                <TouchableOpacity
+                  key={id}
+                  onPress={() => selectDhikr(id)}
                   style={{
-                    fontFamily: 'KFGQPCHafs',
-                    fontSize: 16,
-                    color: selectedId === p.id ? 'white' : '#111827',
-                    lineHeight: 28,
+                    width: 160,
+                    padding: 12,
+                    borderRadius: 14,
+                    borderWidth: 2,
+                    borderColor: isSelected ? '#0F766E' : isNext ? '#99F6E4' : '#E5E7EB',
+                    backgroundColor: isSelected ? '#F0FDFA' : 'white',
+                    opacity: isCompleted ? 0.35 : 1,
                   }}
                 >
-                  {p.text.split(' ').slice(0, 2).join(' ')}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 10,
-                    color: selectedId === p.id ? '#99F6E4' : '#6B7280',
-                    marginTop: 2,
-                  }}
-                >
-                  ×{p.target}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={{
+                      fontFamily: ARABIC_FONT,
+                      fontSize: 20,
+                      color: '#111827',
+                      lineHeight: 34,
+                      textAlign: 'right',
+                    }}
+                    numberOfLines={2}
+                  >
+                    {p.text}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_600SemiBold',
+                      fontSize: 14,
+                      color: '#111827',
+                      marginTop: 6,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {p.translation}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 12,
+                      color: '#6B7280',
+                      marginTop: 2,
+                    }}
+                  >
+                    {isCompleted ? '✓ Done' : `Target: ${p.target}`}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
       </View>
