@@ -33,7 +33,10 @@ type UseNextPrayerResult = {
  * Call with explicit `coordinates` (prayer times screen, after the user grants
  * permission via LocationGate): recomputes whenever those coordinates change.
  */
-export function useNextPrayer(coordinates?: Coordinates | null): UseNextPrayerResult {
+export function useNextPrayer(
+  coordinates?: Coordinates | null,
+  refreshKey = 0,
+): UseNextPrayerResult {
   const [nextPrayerName, setNextPrayerName] = useState<string | null>(null);
   const [nextPrayerTime, setNextPrayerTime] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<string | null>(null);
@@ -118,7 +121,7 @@ export function useNextPrayer(coordinates?: Coordinates | null): UseNextPrayerRe
       isMounted = false;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [lat, lng]);
+  }, [lat, lng, refreshKey]);
 
   const isPast = (name: string): boolean => {
     const prayer = todaysPrayers.find((p) => p.name === name);

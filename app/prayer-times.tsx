@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { router, Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, Stack, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import LocationGate from '../src/components/LocationGate';
@@ -174,20 +174,26 @@ function PrayerCard({
 }
 
 function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
+  // Bumped on focus so prayer times + rakat reload after Settings changes.
+  const [refreshKey, setRefreshKey] = useState(0);
   const { nextPrayerName, nextPrayerTime, countdown, todaysPrayers, isPast } =
-    useNextPrayer(coordinates);
+    useNextPrayer(coordinates, refreshKey);
 
   // The rakat breakdown follows the madhab from settings (default Hanafi).
+  // Reloaded via useFocusEffect so a Settings change applies on navigate-back.
   const [madhab, setMadhab] = useState<MadhabKey>(DEFAULT_PRAYER_SETTINGS.madhab);
-  useEffect(() => {
-    let isMounted = true;
-    getPrayerSettings().then((settings) => {
-      if (isMounted) setMadhab(settings.madhab);
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      getPrayerSettings().then((settings) => {
+        if (isMounted) setMadhab(settings.madhab);
+      });
+      setRefreshKey((k) => k + 1);
+      return () => {
+        isMounted = false;
+      };
+    }, []),
+  );
 
   // Reverse-geocode the coordinates to a human-readable place name. null while
   // loading; falls back to a generic label (never raw coordinates) on failure.
