@@ -15,11 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const BASE_URL = 'https://khutbah-translate.replit.app';
 
 type Hadith = {
-  id: number;
+  id: string;
   arabicText: string;
-  translation: string;
+  englishTranslation: string;
   narrator: string;
-  source: string;
+  collection: string;
+  reference: string;
   grade?: string | null;
 };
 
@@ -47,7 +48,7 @@ export default function HadithScreen() {
       } catch {}
 
       try {
-        const res = await fetch(`${BASE_URL}/api/hadith/daily`);
+        const res = await fetch(`${BASE_URL}/api/hadiths/daily`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as Hadith;
         setHadith(data);
@@ -63,7 +64,7 @@ export default function HadithScreen() {
   const shareHadith = async () => {
     if (!hadith) return;
     await Share.share({
-      message: `${hadith.translation}\n\n— ${hadith.narrator}, ${hadith.source}`,
+      message: `${hadith.englishTranslation}\n\n— ${hadith.narrator}, ${hadith.reference}`,
     });
   };
 
@@ -176,7 +177,7 @@ export default function HadithScreen() {
                     lineHeight: 26,
                   }}
                 >
-                  {hadith.translation}
+                  {hadith.englishTranslation}
                 </Text>
               </View>
 
@@ -207,7 +208,7 @@ export default function HadithScreen() {
                   <Text
                     style={{ fontFamily: 'Inter_500Medium', fontSize: 12, color: '#0F766E' }}
                   >
-                    {hadith.source}
+                    {hadith.reference}
                   </Text>
                 </View>
                 {hadith.grade && (
