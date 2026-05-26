@@ -12,8 +12,7 @@ export type CalculationMethodKey =
   | 'Kuwait'
   | 'Qatar'
   | 'Singapore'
-  | 'Turkey'
-  | 'Tehran';
+  | 'Turkey';
 
 // 'Standard' = Shafi/Maliki/Hanbali (asr at 1x shadow). 'Hanafi' = 2x shadow.
 export type MadhabKey = 'Standard' | 'Hanafi';

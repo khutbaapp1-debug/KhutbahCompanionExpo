@@ -55,9 +55,6 @@ function buildCalculationParameters(settings: PrayerSettings) {
     case 'Turkey':
       params = CalculationMethod.Turkey();
       break;
-    case 'Tehran':
-      params = CalculationMethod.Tehran();
-      break;
     case 'MWL':
     default:
       params = CalculationMethod.MuslimWorldLeague();

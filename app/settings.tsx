@@ -42,7 +42,6 @@ const CALC_OPTIONS: Option[] = [
   { label: 'Qatar', value: 'Qatar' },
   { label: 'Singapore', value: 'Singapore' },
   { label: 'Turkey', value: 'Turkey' },
-  { label: 'Tehran', value: 'Tehran' },
 ];
 
 const MADHAB_OPTIONS: Option[] = [
