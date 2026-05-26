@@ -10,7 +10,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Khutbah Companion uses your location to calculate accurate prayer times for your area."
+        "NSLocationWhenInUseUsageDescription": "Khutbah Companion uses your location to calculate accurate prayer times for your area.",
+        "NSMicrophoneUsageDescription": "Khutbah Companion uses your microphone to translate the khutbah live."
       }
     },
     "android": {
@@ -20,6 +21,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "permissions": ["RECORD_AUDIO"],
       "predictiveBackGestureEnabled": false
     },
     "web": {
