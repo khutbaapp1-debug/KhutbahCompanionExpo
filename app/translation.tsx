@@ -26,6 +26,7 @@ import {
   type TranslationSegment,
 } from '../src/lib/audio-recorder';
 import { uploadChunk } from '../src/lib/translation-upload';
+import { useTheme } from '../src/lib/theme-context';
 
 const DISCLAIMER_KEY = 'translation-disclaimer-v1';
 const BACKGROUND_GRACE_MS = 30_000;
@@ -68,6 +69,7 @@ function formatElapsed(totalSeconds: number): string {
 
 // Gently pulsing microphone for the "listening" empty state.
 function PulsingMic() {
+  const { theme } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -97,13 +99,13 @@ function PulsingMic() {
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: '#F0FDFA',
+        backgroundColor: theme.primaryContainer,
         alignItems: 'center',
         justifyContent: 'center',
         transform: [{ scale }],
       }}
     >
-      <Ionicons name="mic" size={40} color="#0F766E" />
+      <Ionicons name="mic" size={40} color={theme.primary} />
     </Animated.View>
   );
 }
@@ -111,6 +113,7 @@ function PulsingMic() {
 export default function TranslationScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
   const [recorderState, setRecorderState] = useState<RecorderState>('idle');
   const [segments, setSegments] = useState<TranslationSegment[]>([]);
@@ -355,7 +358,7 @@ export default function TranslationScreen() {
               fontFamily: 'Inter_400Regular',
               fontStyle: 'italic',
               fontSize: 14,
-              color: '#9CA3AF',
+              color: theme.textMuted,
             }}
           >
             …
@@ -369,8 +372,8 @@ export default function TranslationScreen() {
         <View
           style={{
             borderLeftWidth: 3,
-            borderLeftColor: '#0F766E',
-            backgroundColor: '#F0FDFA',
+            borderLeftColor: theme.primary,
+            backgroundColor: theme.primaryContainer,
             borderRadius: 8,
             paddingVertical: 12,
             paddingHorizontal: 14,
@@ -397,7 +400,7 @@ export default function TranslationScreen() {
               fontFamily: 'Inter_400Regular',
               fontStyle: 'italic',
               fontSize: 16,
-              color: '#111827',
+              color: theme.text,
               lineHeight: 24,
               marginTop: 6,
             }}
@@ -414,14 +417,14 @@ export default function TranslationScreen() {
           paddingBottom: 12,
           marginBottom: 12,
           borderBottomWidth: 1,
-          borderBottomColor: '#F3F4F6',
+          borderBottomColor: theme.border,
         }}
       >
         <Text
           style={{
             fontFamily: 'NotoNaskhArabic_400Regular',
             fontSize: 18,
-            color: '#374151',
+            color: theme.textSecondary,
             lineHeight: 34,
             textAlign: 'right',
             writingDirection: 'rtl',
@@ -433,7 +436,7 @@ export default function TranslationScreen() {
           style={{
             fontFamily: 'Inter_400Regular',
             fontSize: 16,
-            color: '#111827',
+            color: theme.text,
             lineHeight: 24,
             marginTop: 6,
           }}
@@ -453,18 +456,18 @@ export default function TranslationScreen() {
               width: 80,
               height: 80,
               borderRadius: 40,
-              backgroundColor: '#F0FDFA',
+              backgroundColor: theme.primaryContainer,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="mic-outline" size={40} color="#0F766E" />
+            <Ionicons name="mic-outline" size={40} color={theme.primary} />
           </View>
           <Text
             style={{
               fontFamily: 'Inter_400Regular',
               fontSize: 15,
-              color: '#9CA3AF',
+              color: theme.textMuted,
               textAlign: 'center',
               marginTop: 16,
             }}
@@ -483,7 +486,7 @@ export default function TranslationScreen() {
           style={{
             fontFamily: 'Inter_400Regular',
             fontSize: 15,
-            color: '#6B7280',
+            color: theme.textMuted,
             textAlign: 'center',
             marginTop: 16,
           }}
@@ -498,7 +501,7 @@ export default function TranslationScreen() {
   const isPaused = recorderState === 'paused';
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
@@ -506,8 +509,8 @@ export default function TranslationScreen() {
         style={{
           paddingTop: insets.top,
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
-          backgroundColor: '#FFFFFF',
+          borderBottomColor: theme.border,
+          backgroundColor: theme.background,
         }}
       >
         <View
@@ -523,7 +526,7 @@ export default function TranslationScreen() {
             style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
             accessibilityLabel="Home"
           >
-            <Ionicons name="home-outline" size={24} color="#374151" />
+            <Ionicons name="home-outline" size={24} color={theme.textSecondary} />
           </TouchableOpacity>
 
           <Text
@@ -532,7 +535,7 @@ export default function TranslationScreen() {
               textAlign: 'center',
               fontFamily: 'Inter_600SemiBold',
               fontSize: 18,
-              color: '#111827',
+              color: theme.text,
             }}
           >
             Khutbah Translation
@@ -555,7 +558,7 @@ export default function TranslationScreen() {
               style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
               accessibilityLabel="Settings"
             >
-              <Ionicons name="settings-outline" size={22} color="#374151" />
+              <Ionicons name="settings-outline" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -564,7 +567,7 @@ export default function TranslationScreen() {
       {/* Translation feed */}
       <FlatList
         ref={flatListRef}
-        style={{ flex: 1, backgroundColor: '#F9FAFB' }}
+        style={{ flex: 1, backgroundColor: theme.surface }}
         data={segments}
         keyExtractor={(item) => item.id}
         renderItem={renderSegment}
@@ -578,8 +581,8 @@ export default function TranslationScreen() {
       <View
         style={{
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          backgroundColor: '#FFFFFF',
+          borderTopColor: theme.border,
+          backgroundColor: theme.surface,
           paddingTop: 14,
           paddingBottom: insets.bottom + 14,
           paddingHorizontal: 16,
@@ -594,7 +597,7 @@ export default function TranslationScreen() {
                 width: 72,
                 height: 72,
                 borderRadius: 36,
-                backgroundColor: '#0F766E',
+                backgroundColor: theme.primary,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -606,7 +609,7 @@ export default function TranslationScreen() {
               style={{
                 fontFamily: 'Inter_500Medium',
                 fontSize: 14,
-                color: '#6B7280',
+                color: theme.textMuted,
                 marginTop: 10,
               }}
             >
@@ -621,7 +624,7 @@ export default function TranslationScreen() {
                   style={{
                     fontFamily: 'Inter_600SemiBold',
                     fontSize: 24,
-                    color: '#111827',
+                    color: theme.text,
                     fontVariant: ['tabular-nums'],
                   }}
                 >
@@ -633,12 +636,12 @@ export default function TranslationScreen() {
                       width: 8,
                       height: 8,
                       borderRadius: 4,
-                      backgroundColor: '#0F766E',
+                      backgroundColor: theme.primary,
                       marginRight: 6,
                     }}
                   />
                   <Text
-                    style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#6B7280' }}
+                    style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textMuted }}
                   >
                     Translation in {countdown}s
                   </Text>
@@ -651,7 +654,7 @@ export default function TranslationScreen() {
                 style={{
                   fontFamily: 'Inter_600SemiBold',
                   fontSize: 16,
-                  color: '#9CA3AF',
+                  color: theme.textMuted,
                   marginBottom: 4,
                 }}
               >
@@ -670,12 +673,12 @@ export default function TranslationScreen() {
                   paddingHorizontal: 22,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: '#0F766E',
-                  backgroundColor: '#FFFFFF',
+                  borderColor: theme.primary,
+                  backgroundColor: theme.card,
                 }}
               >
-                <Ionicons name={isPaused ? 'play' : 'pause'} size={18} color="#0F766E" />
-                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: '#0F766E' }}>
+                <Ionicons name={isPaused ? 'play' : 'pause'} size={18} color={theme.primary} />
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: theme.primary }}>
                   {isPaused ? 'Resume' : 'Pause'}
                 </Text>
               </TouchableOpacity>
@@ -717,7 +720,7 @@ export default function TranslationScreen() {
             style={{
               width: '100%',
               maxWidth: 360,
-              backgroundColor: '#FFFFFF',
+              backgroundColor: theme.card,
               borderRadius: 20,
               padding: 24,
               alignItems: 'center',
@@ -728,20 +731,20 @@ export default function TranslationScreen() {
                 width: 72,
                 height: 72,
                 borderRadius: 36,
-                backgroundColor: '#F0FDFA',
+                backgroundColor: theme.primaryContainer,
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: 16,
               }}
             >
-              <Ionicons name={DISCLAIMER_CARDS[currentCard].icon} size={36} color="#0F766E" />
+              <Ionicons name={DISCLAIMER_CARDS[currentCard].icon} size={36} color={theme.primary} />
             </View>
 
             <Text
               style={{
                 fontFamily: 'Inter_700Bold',
                 fontSize: 20,
-                color: '#111827',
+                color: theme.text,
                 textAlign: 'center',
                 marginBottom: 12,
               }}
@@ -753,7 +756,7 @@ export default function TranslationScreen() {
               style={{
                 fontFamily: 'Inter_400Regular',
                 fontSize: 15,
-                color: '#6B7280',
+                color: theme.textMuted,
                 textAlign: 'center',
                 lineHeight: 22,
               }}
@@ -770,7 +773,7 @@ export default function TranslationScreen() {
                     width: 8,
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: i === currentCard ? '#0F766E' : '#D1D5DB',
+                    backgroundColor: i === currentCard ? theme.primary : theme.border,
                   }}
                 />
               ))}
@@ -780,7 +783,7 @@ export default function TranslationScreen() {
               onPress={handleDisclaimerAdvance}
               style={{
                 width: '100%',
-                backgroundColor: '#0F766E',
+                backgroundColor: theme.primary,
                 borderRadius: 12,
                 paddingVertical: 14,
                 alignItems: 'center',

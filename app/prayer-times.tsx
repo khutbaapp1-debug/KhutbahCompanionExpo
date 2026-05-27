@@ -112,16 +112,22 @@ function PrayerCard({
   isNext: boolean;
   isPast: boolean;
 }) {
+  const { theme } = useTheme();
   const pills = buildPills(breakdown);
 
   return (
     <View
-      className={`flex-row items-center px-4 py-4 rounded-2xl mx-4 ${
+      className="flex-row items-center px-4 py-4 rounded-2xl mx-4"
+      style={
         isNext
-          ? 'bg-primary'
-          : `bg-white border border-gray-100${isPast ? ' opacity-50' : ' shadow-sm'}`
-      }`}
-      style={!isNext && !isPast ? { elevation: 1 } : undefined}
+          ? { backgroundColor: theme.primary }
+          : {
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+              ...(isPast ? { opacity: 0.5 } : { elevation: 1 }),
+            }
+      }
     >
       {/* Left: time-of-day icon circle */}
       <View style={{ width: 44 }} className="items-center">
@@ -131,16 +137,15 @@ function PrayerCard({
           }`}
           style={{ width: 44, height: 44 }}
         >
-          <Ionicons name={icon} size={18} color={isNext ? '#FFFFFF' : '#0F766E'} />
+          <Ionicons name={icon} size={18} color={isNext ? '#FFFFFF' : theme.primary} />
         </View>
       </View>
 
       {/* Middle: name + rakat bubbles */}
       <View className="flex-1" style={{ marginHorizontal: 10 }}>
         <Text
-          className={`text-base ${
-            isNext ? 'font-sans-bold text-white' : 'font-sans-semibold text-gray-900'
-          }`}
+          className={`text-base ${isNext ? 'font-sans-bold' : 'font-sans-semibold'}`}
+          style={{ color: isNext ? '#FFFFFF' : theme.text }}
         >
           {english}
         </Text>
@@ -159,8 +164,8 @@ function PrayerCard({
       {/* Right: time + NEXT badge */}
       <View style={{ width: 70 }} className="items-end">
         <Text
-          className={`font-sans-bold text-base ${isNext ? 'text-white' : 'text-gray-700'}`}
-          style={{ textAlign: 'right' }}
+          className="font-sans-bold text-base"
+          style={{ textAlign: 'right', color: isNext ? '#FFFFFF' : theme.textSecondary }}
         >
           {time}
         </Text>
@@ -229,7 +234,7 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
       {/* Location label */}
-      <Text className="px-4 py-2 text-sm text-gray-500 font-sans">
+      <Text className="px-4 py-2 text-sm font-sans" style={{ color: theme.textMuted }}>
         {locationName === null ? 'Locating…' : `Prayer times for ${locationName}`}
       </Text>
 

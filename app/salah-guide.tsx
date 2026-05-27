@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { prayerFlows, PrayerType, PrayerFlowCard } from '../src/data/prayer-flows';
 import { wuduSteps } from '../src/data/wudu-steps';
+import { useTheme } from '../src/lib/theme-context';
 
 type MainTab = 'wudu' | 'how-to-pray' | 'prayers';
 type PrayerTab = PrayerType;
@@ -47,6 +48,7 @@ const WUDU_IMAGES: Record<number, ImageSourcePropType> = {
 
 function WuduTab() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [stepIdx, setStepIdx] = useState(0);
   const pagerRef = useRef<PagerView>(null);
 
@@ -79,7 +81,7 @@ function WuduTab() {
                   width: 36,
                   height: 36,
                   borderRadius: 18,
-                  backgroundColor: '#0F766E',
+                  backgroundColor: theme.primary,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -91,7 +93,7 @@ function WuduTab() {
                 </Text>
               </View>
               <Text
-                style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: '#111827', flex: 1 }}
+                style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: theme.text, flex: 1 }}
               >
                 {s.title}
               </Text>
@@ -111,7 +113,7 @@ function WuduTab() {
               style={{
                 fontFamily: 'Inter_400Regular',
                 fontSize: 15,
-                color: '#374151',
+                color: theme.textSecondary,
                 lineHeight: 24,
                 marginBottom: 16,
               }}
@@ -144,19 +146,19 @@ function WuduTab() {
               <View
                 key={ri}
                 style={{
-                  backgroundColor: '#F0FDFA',
+                  backgroundColor: theme.primaryContainer,
                   borderRadius: 12,
                   padding: 16,
                   marginBottom: 10,
                   borderWidth: 1,
-                  borderColor: '#99F6E4',
+                  borderColor: theme.primary,
                 }}
               >
                 <Text
                   style={{
                     fontFamily: 'Inter_500Medium',
                     fontSize: 11,
-                    color: '#0F766E',
+                    color: theme.primary,
                     marginBottom: 8,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
@@ -168,7 +170,7 @@ function WuduTab() {
                   style={{
                     fontFamily: 'KFGQPCHafs',
                     fontSize: 22,
-                    color: '#111827',
+                    color: theme.text,
                     lineHeight: 44,
                     textAlign: 'right',
                     marginBottom: 8,
@@ -180,7 +182,7 @@ function WuduTab() {
                   style={{
                     fontFamily: 'Inter_400Regular',
                     fontSize: 13,
-                    color: '#6B7280',
+                    color: theme.textMuted,
                     fontStyle: 'italic',
                     marginBottom: 6,
                   }}
@@ -188,7 +190,7 @@ function WuduTab() {
                   {r.transliteration}
                 </Text>
                 <Text
-                  style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: '#374151', lineHeight: 20 }}
+                  style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.textSecondary, lineHeight: 20 }}
                 >
                   {r.meaning}
                 </Text>
@@ -219,19 +221,19 @@ function WuduTab() {
             alignItems: 'center',
             gap: 4,
             opacity: stepIdx === 0 ? 0.3 : 1,
-            backgroundColor: 'white',
+            backgroundColor: theme.card,
             borderRadius: 8,
             paddingHorizontal: 14,
             paddingVertical: 10,
             borderWidth: 1,
-            borderColor: '#E5E7EB',
+            borderColor: theme.border,
           }}
         >
-          <Ionicons name="chevron-back" size={16} color="#374151" />
-          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#374151' }}>Prev</Text>
+          <Ionicons name="chevron-back" size={16} color={theme.textSecondary} />
+          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.textSecondary }}>Prev</Text>
         </TouchableOpacity>
 
-        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#6B7280' }}>
+        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.textMuted }}>
           {stepIdx + 1} / {total}
         </Text>
 
@@ -243,7 +245,7 @@ function WuduTab() {
             alignItems: 'center',
             gap: 4,
             opacity: stepIdx === total - 1 ? 0.3 : 1,
-            backgroundColor: '#0F766E',
+            backgroundColor: theme.primary,
             borderRadius: 8,
             paddingHorizontal: 14,
             paddingVertical: 10,
@@ -261,6 +263,7 @@ function WuduTab() {
 
 function HowToPrayTab() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   return (
     <ScrollView
       contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 20 }}
@@ -269,7 +272,7 @@ function HowToPrayTab() {
         style={{
           fontFamily: 'Inter_600SemiBold',
           fontSize: 18,
-          color: '#111827',
+          color: theme.text,
           marginBottom: 12,
         }}
       >
@@ -302,18 +305,18 @@ function HowToPrayTab() {
           key={i}
           style={{
             marginBottom: 16,
-            backgroundColor: '#F9FAFB',
+            backgroundColor: theme.surface,
             borderRadius: 12,
             padding: 16,
             borderWidth: 1,
-            borderColor: '#E5E7EB',
+            borderColor: theme.border,
           }}
         >
           <Text
             style={{
               fontFamily: 'Inter_600SemiBold',
               fontSize: 15,
-              color: '#0F766E',
+              color: theme.primary,
               marginBottom: 6,
             }}
           >
@@ -323,7 +326,7 @@ function HowToPrayTab() {
             style={{
               fontFamily: 'Inter_400Regular',
               fontSize: 14,
-              color: '#374151',
+              color: theme.textSecondary,
               lineHeight: 22,
             }}
           >
@@ -339,6 +342,7 @@ function HowToPrayTab() {
 
 function PrayersTab() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [prayerType, setPrayerType] = useState<PrayerTab>('2rakat');
   const [cardIdx, setCardIdx] = useState(0);
   const pagerRef = useRef<PagerView>(null);
@@ -363,7 +367,7 @@ function PrayersTab() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexGrow: 0 }}
+        style={{ borderBottomWidth: 1, borderBottomColor: theme.border, flexGrow: 0 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8 }}
       >
         {PRAYER_TABS.map((pt) => (
@@ -374,7 +378,7 @@ function PrayersTab() {
               paddingHorizontal: 14,
               paddingVertical: 8,
               borderRadius: 10,
-              backgroundColor: prayerType === pt.id ? '#0F766E' : '#F3F4F6',
+              backgroundColor: prayerType === pt.id ? theme.primary : theme.surface,
               alignItems: 'center',
             }}
           >
@@ -382,7 +386,7 @@ function PrayersTab() {
               style={{
                 fontFamily: 'Inter_600SemiBold',
                 fontSize: 13,
-                color: prayerType === pt.id ? 'white' : '#374151',
+                color: prayerType === pt.id ? 'white' : theme.textSecondary,
               }}
             >
               {pt.label}
@@ -391,7 +395,7 @@ function PrayersTab() {
               style={{
                 fontFamily: 'Inter_400Regular',
                 fontSize: 11,
-                color: prayerType === pt.id ? '#99F6E4' : '#9CA3AF',
+                color: prayerType === pt.id ? '#99F6E4' : theme.textMuted,
                 marginTop: 1,
               }}
             >
@@ -428,7 +432,7 @@ function PrayersTab() {
                   width: 32,
                   height: 32,
                   borderRadius: 16,
-                  backgroundColor: '#0F766E',
+                  backgroundColor: theme.primary,
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
@@ -445,7 +449,7 @@ function PrayersTab() {
                 style={{
                   fontFamily: 'Inter_600SemiBold',
                   fontSize: 16,
-                  color: '#111827',
+                  color: theme.text,
                   flex: 1,
                   lineHeight: 24,
                 }}
@@ -459,7 +463,7 @@ function PrayersTab() {
               style={{
                 fontFamily: 'Inter_400Regular',
                 fontSize: 14,
-                color: '#374151',
+                color: theme.textSecondary,
                 lineHeight: 22,
                 marginBottom: 14,
               }}
@@ -497,19 +501,19 @@ function PrayersTab() {
               <View
                 key={ri}
                 style={{
-                  backgroundColor: '#F0FDFA',
+                  backgroundColor: theme.primaryContainer,
                   borderRadius: 12,
                   padding: 16,
                   marginBottom: 10,
                   borderWidth: 1,
-                  borderColor: '#99F6E4',
+                  borderColor: theme.primary,
                 }}
               >
                 <Text
                   style={{
                     fontFamily: 'Inter_500Medium',
                     fontSize: 11,
-                    color: '#0F766E',
+                    color: theme.primary,
                     marginBottom: 4,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
@@ -521,7 +525,7 @@ function PrayersTab() {
                   style={{
                     fontFamily: 'KFGQPCHafs',
                     fontSize: 22,
-                    color: '#111827',
+                    color: theme.text,
                     lineHeight: 44,
                     textAlign: 'right',
                     marginBottom: 8,
@@ -533,7 +537,7 @@ function PrayersTab() {
                   style={{
                     fontFamily: 'Inter_400Regular',
                     fontSize: 13,
-                    color: '#6B7280',
+                    color: theme.textMuted,
                     fontStyle: 'italic',
                     marginBottom: 6,
                   }}
@@ -544,7 +548,7 @@ function PrayersTab() {
                   style={{
                     fontFamily: 'Inter_400Regular',
                     fontSize: 13,
-                    color: '#374151',
+                    color: theme.textSecondary,
                     lineHeight: 20,
                   }}
                 >
@@ -577,19 +581,19 @@ function PrayersTab() {
             alignItems: 'center',
             gap: 4,
             opacity: cardIdx === 0 ? 0.3 : 1,
-            backgroundColor: 'white',
+            backgroundColor: theme.card,
             borderRadius: 8,
             paddingHorizontal: 14,
             paddingVertical: 10,
             borderWidth: 1,
-            borderColor: '#E5E7EB',
+            borderColor: theme.border,
           }}
         >
-          <Ionicons name="chevron-back" size={16} color="#374151" />
-          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#374151' }}>Prev</Text>
+          <Ionicons name="chevron-back" size={16} color={theme.textSecondary} />
+          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.textSecondary }}>Prev</Text>
         </TouchableOpacity>
 
-        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: '#6B7280' }}>
+        <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.textMuted }}>
           {cardIdx + 1} / {cards.length}
         </Text>
 
@@ -601,7 +605,7 @@ function PrayersTab() {
             alignItems: 'center',
             gap: 4,
             opacity: cardIdx === cards.length - 1 ? 0.3 : 1,
-            backgroundColor: '#0F766E',
+            backgroundColor: theme.primary,
             borderRadius: 8,
             paddingHorizontal: 14,
             paddingVertical: 10,
@@ -619,17 +623,18 @@ function PrayersTab() {
 
 export default function SalahGuideScreen() {
   const [activeTab, setActiveTab] = useState<MainTab>('wudu');
+  const { theme } = useTheme();
 
   return (
     <>
       <Stack.Screen options={{ title: 'Salah & Wudu Guide' }} />
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {/* Tab bar */}
         <View
           style={{
             flexDirection: 'row',
             borderBottomWidth: 1,
-            borderBottomColor: '#E5E7EB',
+            borderBottomColor: theme.border,
           }}
         >
           {MAIN_TABS.map((tab) => (
@@ -641,14 +646,14 @@ export default function SalahGuideScreen() {
                 paddingVertical: 12,
                 alignItems: 'center',
                 borderBottomWidth: 2,
-                borderBottomColor: activeTab === tab.id ? '#0F766E' : 'transparent',
+                borderBottomColor: activeTab === tab.id ? theme.primary : 'transparent',
               }}
             >
               <Text
                 style={{
                   fontFamily: activeTab === tab.id ? 'Inter_600SemiBold' : 'Inter_400Regular',
                   fontSize: 14,
-                  color: activeTab === tab.id ? '#0F766E' : '#6B7280',
+                  color: activeTab === tab.id ? theme.primary : theme.textMuted,
                 }}
               >
                 {tab.label}
