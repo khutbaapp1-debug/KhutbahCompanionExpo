@@ -3,14 +3,16 @@ import { FlatList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { namesOfAllah } from '../src/data/names-of-allah';
+import { useTheme } from '../src/lib/theme-context';
 
 export default function NamesScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
   return (
     <>
       <Stack.Screen options={{ title: '99 Names of Allah' }} />
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <FlatList
           data={namesOfAllah}
           keyExtractor={(item) => String(item.number)}
@@ -23,7 +25,7 @@ export default function NamesScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 14,
                 borderBottomWidth: 1,
-                borderBottomColor: '#F3F4F6',
+                borderBottomColor: theme.border,
               }}
             >
               {/* Number badge */}
@@ -32,7 +34,7 @@ export default function NamesScreen() {
                   width: 36,
                   height: 36,
                   borderRadius: 18,
-                  backgroundColor: '#F0FDFA',
+                  backgroundColor: theme.primaryContainer,
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 14,
@@ -40,7 +42,7 @@ export default function NamesScreen() {
                 }}
               >
                 <Text
-                  style={{ fontFamily: 'Inter_700Bold', fontSize: 12, color: '#0F766E' }}
+                  style={{ fontFamily: 'Inter_700Bold', fontSize: 12, color: theme.primary }}
                 >
                   {name.number}
                 </Text>
@@ -52,7 +54,7 @@ export default function NamesScreen() {
                   style={{
                     fontFamily: 'Inter_600SemiBold',
                     fontSize: 15,
-                    color: '#111827',
+                    color: theme.text,
                   }}
                 >
                   {name.transliteration}
@@ -61,7 +63,7 @@ export default function NamesScreen() {
                   style={{
                     fontFamily: 'Inter_400Regular',
                     fontSize: 13,
-                    color: '#6B7280',
+                    color: theme.textMuted,
                     marginTop: 2,
                   }}
                 >
@@ -74,7 +76,7 @@ export default function NamesScreen() {
                 style={{
                   fontFamily: 'KFGQPCHafs',
                   fontSize: 20,
-                  color: '#0F766E',
+                  color: theme.primary,
                   marginLeft: 10,
                   flexShrink: 0,
                   lineHeight: 36,

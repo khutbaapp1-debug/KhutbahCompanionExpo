@@ -24,15 +24,15 @@ export const themes = {
     primaryContainer: '#134E4A',
   },
   'high-contrast': {
-    background: '#000000',
-    surface: '#111111',
-    card: '#1A1A1A',
-    text: '#FFFFFF',
-    textMuted: '#CCCCCC',
-    textSecondary: '#EEEEEE',
-    border: '#555555',
-    primary: '#00E5CC',
-    primaryContainer: '#003333',
+    background: '#000000', // pure black (vs dark #121212)
+    surface: '#0A0A0A', // near black
+    card: '#111111', // very dark (vs dark #2A2A2A)
+    text: '#FFFFFF', // pure white (vs dark #F9FAFB)
+    textMuted: '#FFFF00', // YELLOW — maximum contrast for muted text
+    textSecondary: '#FFFFFF', // pure white
+    border: '#FFFFFF', // white borders (vs dark #374151)
+    primary: '#00FFD1', // bright cyan (vs dark #4DB6AC)
+    primaryContainer: '#003322', // dark green container
   },
 } as const;
 

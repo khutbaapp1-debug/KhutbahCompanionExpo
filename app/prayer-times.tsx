@@ -14,6 +14,7 @@ import {
 } from '../src/lib/prayer-settings';
 import { formatTime12Hour } from '../src/lib/prayer-times';
 import type { Coordinates } from '../src/lib/prayer-times';
+import { useTheme } from '../src/lib/theme-context';
 
 type PrayerKey = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 
@@ -174,6 +175,7 @@ function PrayerCard({
 }
 
 function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
+  const { theme } = useTheme();
   // Bumped on focus so prayer times + rakat reload after Settings changes.
   const [refreshKey, setRefreshKey] = useState(0);
   const { nextPrayerName, nextPrayerTime, countdown, todaysPrayers, isPast } =
@@ -225,7 +227,7 @@ function PrayerTimesContent({ coordinates }: { coordinates: Coordinates }) {
   const rakat = RAKAT_DATA[madhab];
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: theme.background }}>
       {/* Location label */}
       <Text className="px-4 py-2 text-sm text-gray-500 font-sans">
         {locationName === null ? 'Locating…' : `Prayer times for ${locationName}`}

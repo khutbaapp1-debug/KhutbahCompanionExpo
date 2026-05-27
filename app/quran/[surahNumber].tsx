@@ -240,12 +240,20 @@ export default function SurahReader() {
   // Page: uses stored exact scrollY if jumping to the bookmarked verse; otherwise estimates.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (viewMode === 'detailed' && listRef.current) {
-      // Index-based scroll stays correct no matter when the bookmark was saved.
-      listRef.current.scrollToIndex({
-        index: ayahNumber - 1,
-        animated: true,
-        viewPosition: 0.3,
-      });
+      // Only scroll once the FlatList has laid out; otherwise defer to onLayout
+      // (first-tap was landing on the wrong verse before the list was ready).
+      const doScroll = () => {
+        listRef.current?.scrollToIndex({
+          index: ayahNumber - 1,
+          animated: false,
+          viewPosition: 0,
+        });
+      };
+      if (flatListReadyRef.current) {
+        doScroll();
+      } else {
+        setPendingScrollAyah(ayahNumber);
+      }
     } else if (pageScrollRef.current && surah) {
       if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
         if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
@@ -620,12 +628,16 @@ export default function SurahReader() {
           onLayout={() => {
             flatListReadyRef.current = true;
             if (pendingScrollAyah !== null) {
-              listRef.current?.scrollToIndex({
-                index: pendingScrollAyah - 1,
-                animated: false,
-                viewPosition: 0,
-              });
+              const target = pendingScrollAyah;
               setPendingScrollAyah(null);
+              // Give the list time to finish rendering rows before scrolling.
+              setTimeout(() => {
+                listRef.current?.scrollToIndex({
+                  index: target - 1,
+                  animated: false,
+                  viewPosition: 0,
+                });
+              }, 800);
             }
           }}
           data={surah.ayahs}

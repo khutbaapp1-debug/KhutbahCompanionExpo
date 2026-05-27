@@ -8,11 +8,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QuickTourModal from '../../src/components/quran/QuickTourModal';
 import { getSurahList } from '../../src/lib/quran';
 import { getBookmark } from '../../src/lib/quran-bookmark';
+import { useTheme } from '../../src/lib/theme-context';
 
 const TOUR_KEY = 'quran-tour-seen';
 
 export default function QuranListScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [query, setQuery] = useState('');
   const [tourVisible, setTourVisible] = useState(false);
   const [lastSurah, setLastSurah] = useState<
@@ -64,50 +66,50 @@ export default function QuranListScreen() {
           title: 'The Holy Qur’an',
           headerRight: () => (
             <TouchableOpacity onPress={() => setTourVisible(true)} style={{ marginRight: 4 }}>
-              <Ionicons name="help-circle-outline" size={24} color="#0F766E" />
+              <Ionicons name="help-circle-outline" size={24} color={theme.primary} />
             </TouchableOpacity>
           ),
         }}
       />
 
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {/* Search bar */}
         <View
           style={{
             paddingHorizontal: 16,
             paddingVertical: 10,
-            backgroundColor: 'white',
+            backgroundColor: theme.background,
             borderBottomWidth: 1,
-            borderBottomColor: '#F3F4F6',
+            borderBottomColor: theme.border,
           }}
         >
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#F9FAFB',
+              backgroundColor: theme.surface,
               borderRadius: 10,
               paddingHorizontal: 12,
               paddingVertical: 8,
             }}
           >
-            <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+            <Ionicons name="search-outline" size={18} color={theme.textMuted} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="Search by name or number…"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.textMuted}
               style={{
                 flex: 1,
                 marginLeft: 8,
                 fontFamily: 'Inter_400Regular',
                 fontSize: 14,
-                color: '#111827',
+                color: theme.text,
               }}
             />
             {query.length > 0 && (
               <TouchableOpacity onPress={() => setQuery('')}>
-                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={18} color={theme.textMuted} />
               </TouchableOpacity>
             )}
           </View>
@@ -117,7 +119,7 @@ export default function QuranListScreen() {
           <TouchableOpacity
             onPress={() => router.push(`/quran/${lastSurah.number}`)}
             style={{
-              backgroundColor: '#0F766E',
+              backgroundColor: theme.primary,
               marginHorizontal: 16,
               marginTop: 12,
               marginBottom: 4,
@@ -194,7 +196,7 @@ export default function QuranListScreen() {
                 paddingHorizontal: 16,
                 paddingVertical: 14,
                 borderBottomWidth: 1,
-                borderBottomColor: '#F3F4F6',
+                borderBottomColor: theme.border,
               }}
             >
               {/* Number badge */}
@@ -203,7 +205,7 @@ export default function QuranListScreen() {
                   width: 36,
                   height: 36,
                   borderRadius: 18,
-                  backgroundColor: '#F0FDFA',
+                  backgroundColor: theme.primaryContainer,
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: 14,
@@ -211,7 +213,7 @@ export default function QuranListScreen() {
                 }}
               >
                 <Text
-                  style={{ fontFamily: 'Inter_700Bold', fontSize: 12, color: '#0F766E' }}
+                  style={{ fontFamily: 'Inter_700Bold', fontSize: 12, color: theme.primary }}
                 >
                   {item.number}
                 </Text>
@@ -224,7 +226,7 @@ export default function QuranListScreen() {
                     style={{
                       fontFamily: 'Inter_600SemiBold',
                       fontSize: 15,
-                      color: '#111827',
+                      color: theme.text,
                       marginRight: 6,
                     }}
                   >
@@ -253,7 +255,7 @@ export default function QuranListScreen() {
                   style={{
                     fontFamily: 'Inter_400Regular',
                     fontSize: 12,
-                    color: '#6B7280',
+                    color: theme.textMuted,
                     marginTop: 2,
                   }}
                 >
@@ -266,7 +268,7 @@ export default function QuranListScreen() {
                 style={{
                   fontFamily: 'KFGQPCHafs',
                   fontSize: 18,
-                  color: '#0F766E',
+                  color: theme.primary,
                   marginLeft: 10,
                   flexShrink: 0,
                 }}
@@ -277,7 +279,7 @@ export default function QuranListScreen() {
           )}
           ListEmptyComponent={
             <View style={{ padding: 40, alignItems: 'center' }}>
-              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#9CA3AF' }}>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textMuted }}>
                 No surahs match &quot;{query}&quot;
               </Text>
             </View>

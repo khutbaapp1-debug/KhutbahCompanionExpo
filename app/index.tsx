@@ -8,6 +8,8 @@ import GridTile from '../src/components/GridTile';
 import HomeHeader from '../src/components/HomeHeader';
 import NextPrayerCard from '../src/components/NextPrayerCard';
 import { useNextPrayer } from '../src/hooks/useNextPrayer';
+import { useTheme } from '../src/lib/theme-context';
+import type { ThemeMode } from '../src/lib/theme';
 
 const IMG_PRAYER_TIMES = require('../assets/images/Mosque_at_dawn_prayer_time_1c06498c.png');
 const IMG_QURAN = require('../assets/images/Open_Quran_with_calligraphy_c7ef6e94.png');
@@ -93,15 +95,25 @@ const TILES: TileData[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const { nextPrayerName, nextPrayerTime, countdown } = useNextPrayer();
+  const { mode, theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    const nextMode: ThemeMode =
+      mode === 'light' ? 'dark' : mode === 'dark' ? 'high-contrast' : 'light';
+    setTheme(nextMode);
+  };
+  const themeIcon =
+    mode === 'light' ? 'sunny-outline' : mode === 'dark' ? 'moon-outline' : 'contrast-outline';
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView edges={['top']}>
         <HomeHeader
           onSettingsPress={() => router.push('/settings')}
-          onThemeTogglePress={() => {}}
-          onNotificationsPress={() => {}}
+          onThemeTogglePress={cycleTheme}
+          themeIcon={themeIcon}
+          onNotificationsPress={() => router.push('/notifications')}
         />
       </SafeAreaView>
       <ScrollView
@@ -140,7 +152,7 @@ export default function HomeScreen() {
           />
         </View>
       </ScrollView>
-      <SafeAreaView edges={['bottom']} className="bg-surface-light">
+      <SafeAreaView edges={['bottom']} style={{ backgroundColor: theme.surface }}>
         <BannerAdPlaceholder />
       </SafeAreaView>
     </View>

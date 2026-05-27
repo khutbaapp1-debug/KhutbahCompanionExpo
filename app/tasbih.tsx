@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTheme } from '../src/lib/theme-context';
+
 // Arabic copied verbatim from the original presets — not retyped.
 const DHIKR_PRESETS = [
   { id: 'subhanallah', text: 'سُبْحَانَ ٱللَّٰهِ', translation: 'SubhanAllah', target: 33 },
@@ -37,6 +39,7 @@ const ARABIC_FONT = 'NotoNaskhArabic_400Regular';
 
 export default function TasbihScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [selectedId, setSelectedId] = useState<DhikrId>('subhanallah');
   const [count, setCount] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
@@ -109,12 +112,12 @@ export default function TasbihScreen() {
           title: 'Tasbih Counter',
           headerRight: () => (
             <TouchableOpacity onPress={resetAll} style={{ marginRight: 4 }} hitSlop={12}>
-              <Ionicons name="refresh" size={22} color="#0F766E" />
+              <Ionicons name="refresh" size={22} color={theme.primary} />
             </TouchableOpacity>
           ),
         }}
       />
-      <View style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {/* Main counter area */}
         <View
           style={{
@@ -128,7 +131,7 @@ export default function TasbihScreen() {
             style={{
               fontFamily: ARABIC_FONT,
               fontSize: 34,
-              color: '#0F766E',
+              color: theme.primary,
               textAlign: 'center',
               lineHeight: 60,
             }}
@@ -139,7 +142,7 @@ export default function TasbihScreen() {
             style={{
               fontFamily: 'Inter_400Regular',
               fontSize: 18,
-              color: '#6B7280',
+              color: theme.textMuted,
               marginTop: 4,
               marginBottom: 24,
               textAlign: 'center',
@@ -157,7 +160,7 @@ export default function TasbihScreen() {
                 width: CIRCLE,
                 height: CIRCLE,
                 borderRadius: CIRCLE / 2,
-                backgroundColor: '#0F766E',
+                backgroundColor: theme.primary,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -166,7 +169,7 @@ export default function TasbihScreen() {
                 style={{
                   fontFamily: 'Inter_700Bold',
                   fontSize: 72,
-                  color: 'white',
+                  color: theme.background,
                   lineHeight: 84,
                 }}
               >
@@ -180,7 +183,7 @@ export default function TasbihScreen() {
             style={{
               fontFamily: 'Inter_600SemiBold',
               fontSize: 18,
-              color: '#374151',
+              color: theme.textSecondary,
               marginTop: 20,
             }}
           >
@@ -190,7 +193,7 @@ export default function TasbihScreen() {
             style={{
               fontFamily: 'Inter_400Regular',
               fontSize: 13,
-              color: '#9CA3AF',
+              color: theme.textMuted,
               marginTop: 4,
             }}
           >
@@ -202,7 +205,7 @@ export default function TasbihScreen() {
         <View
           style={{
             borderTopWidth: 1,
-            borderTopColor: '#F3F4F6',
+            borderTopColor: theme.border,
             paddingBottom: insets.bottom + 8,
           }}
         >
@@ -210,7 +213,7 @@ export default function TasbihScreen() {
             style={{
               fontFamily: 'Inter_500Medium',
               fontSize: 12,
-              color: '#9CA3AF',
+              color: theme.textMuted,
               paddingHorizontal: 16,
               paddingTop: 10,
               paddingBottom: 8,
@@ -239,8 +242,12 @@ export default function TasbihScreen() {
                     padding: 12,
                     borderRadius: 14,
                     borderWidth: 2,
-                    borderColor: isSelected ? '#0F766E' : isNext ? '#99F6E4' : '#E5E7EB',
-                    backgroundColor: isSelected ? '#F0FDFA' : 'white',
+                    borderColor: isSelected
+                      ? theme.primary
+                      : isNext
+                        ? theme.primaryContainer
+                        : theme.border,
+                    backgroundColor: isSelected ? theme.primaryContainer : theme.card,
                     opacity: isCompleted ? 0.35 : 1,
                   }}
                 >
@@ -248,7 +255,7 @@ export default function TasbihScreen() {
                     style={{
                       fontFamily: ARABIC_FONT,
                       fontSize: 20,
-                      color: '#111827',
+                      color: theme.text,
                       lineHeight: 34,
                       textAlign: 'right',
                     }}
@@ -260,7 +267,7 @@ export default function TasbihScreen() {
                     style={{
                       fontFamily: 'Inter_600SemiBold',
                       fontSize: 14,
-                      color: '#111827',
+                      color: theme.text,
                       marginTop: 6,
                     }}
                     numberOfLines={1}
@@ -271,7 +278,7 @@ export default function TasbihScreen() {
                     style={{
                       fontFamily: 'Inter_400Regular',
                       fontSize: 12,
-                      color: '#6B7280',
+                      color: theme.textMuted,
                       marginTop: 2,
                     }}
                   >

@@ -183,7 +183,7 @@ export default function SettingsScreen() {
   const [highLat, setHighLat] = useState<HighLatitudeRuleKey>('MiddleOfTheNight');
 
   // Theme comes from the global ThemeProvider (persisted there).
-  const { mode, setTheme } = useTheme();
+  const { mode, theme, setTheme } = useTheme();
 
   // Display preferences (their own AsyncStorage keys).
   const [fontSize, setFontSize] = useState<FontSizeKey>('Default');
@@ -210,7 +210,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView edges={['bottom']} className="flex-1 bg-gray-50">
+    <SafeAreaView edges={['bottom']} className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
 
         {/* ── Section 1 — Display ──────────────────────────────────── */}
