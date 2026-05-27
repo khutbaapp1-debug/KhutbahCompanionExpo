@@ -659,8 +659,10 @@ export default function SalahGuideScreen() {
 
         {/* Tab content */}
         {activeTab === 'wudu' && <WuduTab />}
-        {activeTab === 'how-to-pray' && <HowToPrayTab />}
-        {activeTab === 'prayers' && <PrayersTab />}
+        {/* Tab 2 "How to Pray" shows the step-by-step prayer flows; tab 3 "Info"
+            shows the general guidance (content swapped per design). */}
+        {activeTab === 'how-to-pray' && <PrayersTab />}
+        {activeTab === 'prayers' && <HowToPrayTab />}
       </View>
     </>
   );

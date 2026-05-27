@@ -7,6 +7,7 @@ import DuaIcon from './icons/DuaIcon';
 import PrayerMatIcon from './icons/PrayerMatIcon';
 import PrayerTimesIcon from './icons/PrayerTimesIcon';
 import TasbihIcon from './icons/TasbihIcon';
+import { useTheme } from '../lib/theme-context';
 
 type Props = {
   href: string;
@@ -33,6 +34,8 @@ export default function GridTile({
   textOverlay,
   title,
 }: Props) {
+  const { theme } = useTheme();
+
   function renderOverlay() {
     if (textOverlay) {
       return <Text className="font-sans-bold text-3xl text-white">{textOverlay}</Text>;
@@ -87,7 +90,8 @@ export default function GridTile({
             </ImageBackground>
           </View>
           <Text
-            className="font-sans-semibold text-sm text-gray-900 text-center mt-1.5"
+            className="font-sans-semibold text-sm text-center mt-1.5"
+            style={{ color: theme.text }}
             numberOfLines={1}
           >
             {title}

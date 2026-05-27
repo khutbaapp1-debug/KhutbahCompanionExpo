@@ -72,12 +72,8 @@ export default function SurahReader() {
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
   const [bookmarkScrollY, setBookmarkScrollY] = useState<number | undefined>(undefined);
   const [bookmarkFontSizeIdx, setBookmarkFontSizeIdx] = useState<number | undefined>(undefined);
-  // Detailed-view scroll requested before the FlatList has laid out (deferred to onLayout).
-  const [pendingScrollAyah, setPendingScrollAyah] = useState<number | null>(null);
-
   const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
-  const flatListReadyRef = useRef(false);
   const pageScrollRef = useRef<ScrollView>(null);
   const pageScrollYRef = useRef(0);
   const itemHeightsRef = useRef<Record<number, number>>({});
@@ -240,20 +236,12 @@ export default function SurahReader() {
   // Page: uses stored exact scrollY if jumping to the bookmarked verse; otherwise estimates.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (viewMode === 'detailed' && listRef.current) {
-      // Only scroll once the FlatList has laid out; otherwise defer to onLayout
-      // (first-tap was landing on the wrong verse before the list was ready).
-      const doScroll = () => {
-        listRef.current?.scrollToIndex({
-          index: ayahNumber - 1,
-          animated: false,
-          viewPosition: 0,
-        });
-      };
-      if (flatListReadyRef.current) {
-        doScroll();
-      } else {
-        setPendingScrollAyah(ayahNumber);
-      }
+      // Direct index scroll; onScrollToIndexFailed handles rows not yet rendered.
+      listRef.current.scrollToIndex({
+        index: ayahNumber - 1,
+        animated: false,
+        viewPosition: 0,
+      });
     } else if (pageScrollRef.current && surah) {
       if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
         if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
@@ -625,29 +613,23 @@ export default function SurahReader() {
         /* ── Detailed view: card per ayah ── */
         <FlatList
           ref={listRef}
-          onLayout={() => {
-            flatListReadyRef.current = true;
-            if (pendingScrollAyah !== null) {
-              const target = pendingScrollAyah;
-              setPendingScrollAyah(null);
-              // Give the list time to finish rendering rows before scrolling.
-              setTimeout(() => {
-                listRef.current?.scrollToIndex({
-                  index: target - 1,
-                  animated: false,
-                  viewPosition: 0,
-                });
-              }, 800);
-            }
-          }}
           data={surah.ayahs}
           keyExtractor={(ayah) => String(ayah.numberInSurah)}
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig.current}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 24 }}
           onScrollToIndexFailed={(info) => {
-            const offset = (info.averageItemLength ?? 200) * info.index;
-            listRef.current?.scrollToOffset({ offset, animated: true });
+            listRef.current?.scrollToOffset({
+              offset: info.averageItemLength * info.index,
+              animated: false,
+            });
+            setTimeout(() => {
+              listRef.current?.scrollToIndex({
+                index: info.index,
+                animated: false,
+                viewPosition: 0,
+              });
+            }, 200);
           }}
           renderItem={({ item: ayah }) => {
             const t = translations.find((x) => x.numberInSurah === ayah.numberInSurah);

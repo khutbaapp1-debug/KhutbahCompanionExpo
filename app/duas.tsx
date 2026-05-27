@@ -99,7 +99,7 @@ export default function DuasScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}
+          style={{ borderBottomWidth: 1, borderBottomColor: theme.border, height: 52 }}
           contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10 }}
         >
           {CATEGORIES.map((cat) => (

@@ -14,6 +14,7 @@ import Svg, { Circle, Line, Path, Polygon, Text as SvgText } from 'react-native-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { calculateQiblaDirection, getCardinalDirection } from '../src/lib/qibla';
+import { useTheme } from '../src/lib/theme-context';
 
 type LocState =
   | { status: 'idle' }
@@ -23,6 +24,7 @@ type LocState =
 
 export default function QiblaScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [locState, setLocState] = useState<LocState>({ status: 'idle' });
   const headingAnim = useRef(new Animated.Value(0)).current;
   const lastRaw = useRef(0);
@@ -95,11 +97,11 @@ export default function QiblaScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Qibla Compass' }} />
-      <View style={{ flex: 1, backgroundColor: 'white', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background, alignItems: 'center' }}>
         {locState.status === 'requesting' ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <ActivityIndicator size="large" color="#0F766E" />
-            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#6B7280' }}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textMuted }}>
               Getting your location…
             </Text>
           </View>
@@ -113,12 +115,12 @@ export default function QiblaScreen() {
               gap: 16,
             }}
           >
-            <Ionicons name="location-outline" size={56} color="#D1D5DB" />
+            <Ionicons name="location-outline" size={56} color={theme.textMuted} />
             <Text
               style={{
                 fontFamily: 'Inter_600SemiBold',
                 fontSize: 16,
-                color: '#374151',
+                color: theme.textSecondary,
                 textAlign: 'center',
               }}
             >
@@ -128,7 +130,7 @@ export default function QiblaScreen() {
               style={{
                 fontFamily: 'Inter_400Regular',
                 fontSize: 14,
-                color: '#6B7280',
+                color: theme.textMuted,
                 textAlign: 'center',
               }}
             >
@@ -137,7 +139,7 @@ export default function QiblaScreen() {
             <TouchableOpacity
               onPress={() => void requestLocation()}
               style={{
-                backgroundColor: '#0F766E',
+                backgroundColor: theme.primary,
                 borderRadius: 10,
                 paddingHorizontal: 24,
                 paddingVertical: 12,
@@ -210,9 +212,9 @@ export default function QiblaScreen() {
                 >
                   <Svg width={280} height={280} viewBox="0 0 280 280">
                     {/* Green qibla arrow pointing up (toward Makkah) */}
-                    <Polygon points="140,38 147,140 133,140" fill="#0F766E" opacity="0.9" />
+                    <Polygon points="140,38 147,140 133,140" fill={theme.primary} opacity="0.9" />
                     {/* Kaaba icon at tip */}
-                    <SvgText x="140" y="32" textAnchor="middle" fontSize="12" fill="#0F766E">🕋</SvgText>
+                    <SvgText x="140" y="32" textAnchor="middle" fontSize="12" fill={theme.primary}>🕋</SvgText>
                   </Svg>
                 </Animated.View>
               )}
@@ -227,18 +229,18 @@ export default function QiblaScreen() {
                       flexDirection: 'row',
                       alignItems: 'center',
                       gap: 6,
-                      backgroundColor: '#F0FDFA',
+                      backgroundColor: theme.primaryContainer,
                       borderRadius: 10,
                       paddingHorizontal: 16,
                       paddingVertical: 8,
                     }}
                   >
-                    <Ionicons name="compass-outline" size={18} color="#0F766E" />
+                    <Ionicons name="compass-outline" size={18} color={theme.primary} />
                     <Text
                       style={{
                         fontFamily: 'Inter_600SemiBold',
                         fontSize: 15,
-                        color: '#0F766E',
+                        color: theme.primary,
                       }}
                     >
                       {Math.round(qiblaDeg)}° {cardinal} — Qibla direction
@@ -248,20 +250,20 @@ export default function QiblaScreen() {
                     style={{
                       fontFamily: 'Inter_400Regular',
                       fontSize: 13,
-                      color: '#6B7280',
+                      color: theme.textMuted,
                     }}
                   >
                     {distanceKm.toLocaleString()} km to Makkah
                   </Text>
                 </>
               ) : (
-                <ActivityIndicator size="small" color="#0F766E" />
+                <ActivityIndicator size="small" color={theme.primary} />
               )}
               <Text
                 style={{
                   fontFamily: 'Inter_400Regular',
                   fontSize: 11,
-                  color: '#9CA3AF',
+                  color: theme.textMuted,
                   textAlign: 'center',
                   maxWidth: 260,
                 }}
