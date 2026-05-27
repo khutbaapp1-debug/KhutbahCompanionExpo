@@ -27,6 +27,7 @@ import { getBookmark, getQuranFontSize, getQuranViewMode, setBookmark, setLastPo
 import type { Bookmark } from '../../src/lib/quran-bookmark';
 import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
+import { useTheme } from '../../src/lib/theme-context';
 
 type ViewMode = 'page' | 'detailed';
 type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unknown> };
@@ -57,6 +58,7 @@ function estimateVerseOffset(
 }
 
 export default function SurahReader() {
+  const { theme, mode: themeMode } = useTheme();
   const { surahNumber: surahParam } = useLocalSearchParams<{ surahNumber: string }>();
   const surahNum = parseInt(surahParam ?? '1', 10);
   const insets = useSafeAreaInsets();
@@ -296,14 +298,14 @@ export default function SurahReader() {
   const firstAyahText = startsWithBismillah ? firstAyahRaw.slice(basmalah.length).trim() : firstAyahRaw;
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'white' }} {...panResponder.panHandlers}>
+    <View style={{ flex: 1, backgroundColor: theme.background }} {...panResponder.panHandlers}>
       {/* ── Fixed header ── */}
       <View
         style={{
           paddingTop: insets.top,
-          backgroundColor: 'white',
+          backgroundColor: theme.background,
           borderBottomWidth: 1,
-          borderBottomColor: '#F3F4F6',
+          borderBottomColor: theme.border,
         }}
       >
         <View
@@ -315,7 +317,7 @@ export default function SurahReader() {
           }}
         >
           <TouchableOpacity onPress={() => router.replace('/')} style={{ padding: 6 }}>
-            <Ionicons name="home-outline" size={20} color="#0F766E" />
+            <Ionicons name="home-outline" size={20} color={theme.primary} />
           </TouchableOpacity>
 
           <Text
@@ -323,7 +325,7 @@ export default function SurahReader() {
               flex: 1,
               fontFamily: 'Inter_600SemiBold',
               fontSize: 16,
-              color: '#111827',
+              color: theme.text,
               textAlign: 'center',
             }}
             numberOfLines={1}
@@ -340,7 +342,7 @@ export default function SurahReader() {
               style={{
                 fontFamily: 'Inter_500Medium',
                 fontSize: 13,
-                color: fontSizeIdx === 0 ? '#D1D5DB' : '#0F766E',
+                color: fontSizeIdx === 0 ? theme.textMuted : theme.primary,
               }}
             >
               A-
@@ -355,7 +357,7 @@ export default function SurahReader() {
               style={{
                 fontFamily: 'Inter_600SemiBold',
                 fontSize: 15,
-                color: fontSizeIdx === FONT_SIZES.length - 1 ? '#D1D5DB' : '#0F766E',
+                color: fontSizeIdx === FONT_SIZES.length - 1 ? theme.textMuted : theme.primary,
               }}
             >
               A+
@@ -370,7 +372,7 @@ export default function SurahReader() {
             <Ionicons
               name="chevron-back-circle-outline"
               size={22}
-              color={surahNum <= 1 ? '#D1D5DB' : '#0F766E'}
+              color={surahNum <= 1 ? theme.textMuted : theme.primary}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -381,7 +383,7 @@ export default function SurahReader() {
             <Ionicons
               name="chevron-forward-circle-outline"
               size={22}
-              color={surahNum >= 114 ? '#D1D5DB' : '#0F766E'}
+              color={surahNum >= 114 ? theme.textMuted : theme.primary}
             />
           </TouchableOpacity>
         </View>
@@ -396,13 +398,13 @@ export default function SurahReader() {
             paddingHorizontal: 16,
             paddingVertical: 8,
             borderTopWidth: 1,
-            borderTopColor: '#F3F4F6',
+            borderTopColor: theme.border,
           }}
         >
           <View
             style={{
               flexDirection: 'row',
-              backgroundColor: '#F3F4F6',
+              backgroundColor: theme.surface,
               borderRadius: 8,
               padding: 2,
             }}
@@ -415,14 +417,14 @@ export default function SurahReader() {
                   paddingHorizontal: 14,
                   paddingVertical: 6,
                   borderRadius: 6,
-                  backgroundColor: viewMode === mode ? 'white' : 'transparent',
+                  backgroundColor: viewMode === mode ? theme.background : 'transparent',
                 }}
               >
                 <Text
                   style={{
                     fontFamily: viewMode === mode ? 'Inter_600SemiBold' : 'Inter_400Regular',
                     fontSize: 13,
-                    color: viewMode === mode ? '#0F766E' : '#6B7280',
+                    color: viewMode === mode ? theme.primary : theme.textMuted,
                     textTransform: 'capitalize',
                   }}
                 >
@@ -500,7 +502,7 @@ export default function SurahReader() {
               style={{
                 fontFamily: 'KFGQPCHafs',
                 fontSize: fontSize * 0.9,
-                color: '#0F766E',
+                color: theme.primary,
                 textAlign: 'center',
                 marginHorizontal: 16,
                 marginTop: 16,
@@ -514,7 +516,7 @@ export default function SurahReader() {
           {/* Parchment card */}
           <View
             style={{
-              backgroundColor: '#F5F0E8',
+              backgroundColor: themeMode === 'light' ? '#F5F0E8' : theme.card,
               borderRadius: 12,
               margin: 16,
               marginTop: showBasmalah ? 0 : 16,
@@ -534,7 +536,7 @@ export default function SurahReader() {
                 fontFamily: 'KFGQPCHafs',
                 fontSize,
                 lineHeight: fontSize * 2,
-                color: '#1a1a1a',
+                color: themeMode === 'light' ? '#1a1a1a' : theme.text,
               }}
             >
               {surah.ayahs.map((ayah) => {
@@ -551,12 +553,12 @@ export default function SurahReader() {
                   ? `۞ ${ayah.numberInSurah}`
                   : `۝ ${ayah.numberInSurah}`;
                 const markerColor = isLoading
-                  ? '#9CA3AF'
+                  ? theme.textMuted
                   : isPlaying
-                  ? '#0D9488'
+                  ? theme.primary
                   : isBookmarked
                   ? '#C0392B'
-                  : '#0F766E';
+                  : theme.primary;
                 return (
                   <Text key={ayah.numberInSurah}>
                     <Text style={{ fontFamily: 'KFGQPCHafs', fontSize }}>{textContent}{' '}</Text>
@@ -581,13 +583,13 @@ export default function SurahReader() {
           {activeVerse !== null && (
             <View
               style={{
-                backgroundColor: 'white',
+                backgroundColor: theme.card,
                 borderRadius: 16,
                 marginHorizontal: 16,
                 marginBottom: 16,
                 padding: 16,
                 borderWidth: 1,
-                borderColor: '#F3F4F6',
+                borderColor: theme.border,
               }}
             >
               <View
@@ -598,12 +600,12 @@ export default function SurahReader() {
                 }}
               >
                 <Text
-                  style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: '#111827' }}
+                  style={{ fontFamily: 'Inter_600SemiBold', fontSize: 13, color: theme.text }}
                 >
                   {surah.englishName} : {activeVerse}
                 </Text>
                 <TouchableOpacity onPress={() => setActiveVerse(null)} style={{ padding: 4 }}>
-                  <Ionicons name="close" size={18} color="#6B7280" />
+                  <Ionicons name="close" size={18} color={theme.textMuted} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -647,9 +649,9 @@ export default function SurahReader() {
                   marginHorizontal: 16,
                   marginBottom: 12,
                   borderRadius: 16,
-                  backgroundColor: 'white',
+                  backgroundColor: theme.card,
                   borderWidth: 1,
-                  borderColor: isBookmarked ? '#0F766E' : '#F3F4F6',
+                  borderColor: isBookmarked ? theme.primary : theme.border,
                   padding: 16,
                 }}
               >
@@ -662,7 +664,7 @@ export default function SurahReader() {
                       textAlign: 'right',
                       writingDirection: 'rtl',
                       lineHeight: fontSize * 1.8,
-                      color: '#111827',
+                      color: theme.text,
                       marginBottom: 12,
                     }}
                   >
@@ -674,7 +676,7 @@ export default function SurahReader() {
                       style={{
                         fontFamily: 'Inter_400Regular',
                         fontSize: 13,
-                        color: '#6B7280',
+                        color: theme.textMuted,
                         fontStyle: 'italic',
                         marginBottom: 8,
                         lineHeight: 20,
@@ -689,7 +691,7 @@ export default function SurahReader() {
                       style={{
                         fontFamily: 'Inter_400Regular',
                         fontSize: 15,
-                        color: '#111827',
+                        color: theme.text,
                         marginBottom: 14,
                         lineHeight: 22,
                       }}
@@ -710,8 +712,8 @@ export default function SurahReader() {
                         paddingVertical: 8,
                         borderRadius: 8,
                         borderWidth: 1,
-                        borderColor: isPlaying ? '#0F766E' : '#D1D5DB',
-                        backgroundColor: isPlaying ? '#0F766E' : 'white',
+                        borderColor: isPlaying ? theme.primary : theme.border,
+                        backgroundColor: isPlaying ? theme.primary : theme.card,
                         marginRight: 8,
                         marginBottom: 4,
                       }}
@@ -719,14 +721,14 @@ export default function SurahReader() {
                       {isLoading ? (
                         <ActivityIndicator
                           size="small"
-                          color="#6B7280"
+                          color={theme.textMuted}
                           style={{ marginRight: 6 }}
                         />
                       ) : (
                         <Ionicons
                           name={isPlaying ? 'pause' : 'play'}
                           size={14}
-                          color={isPlaying ? 'white' : '#374151'}
+                          color={isPlaying ? 'white' : theme.textSecondary}
                           style={{ marginRight: 6 }}
                         />
                       )}
@@ -734,7 +736,7 @@ export default function SurahReader() {
                         style={{
                           fontFamily: 'Inter_500Medium',
                           fontSize: 13,
-                          color: isPlaying ? 'white' : '#374151',
+                          color: isPlaying ? 'white' : theme.textSecondary,
                         }}
                       >
                         {isLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play Recitation'}
@@ -751,22 +753,22 @@ export default function SurahReader() {
                         paddingVertical: 8,
                         borderRadius: 8,
                         borderWidth: 1,
-                        borderColor: isBookmarked ? '#0F766E' : '#D1D5DB',
-                        backgroundColor: isBookmarked ? '#0F766E' : 'white',
+                        borderColor: isBookmarked ? theme.primary : theme.border,
+                        backgroundColor: isBookmarked ? theme.primary : theme.card,
                         marginBottom: 4,
                       }}
                     >
                       <Ionicons
                         name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
                         size={14}
-                        color={isBookmarked ? 'white' : '#374151'}
+                        color={isBookmarked ? 'white' : theme.textSecondary}
                         style={{ marginRight: 6 }}
                       />
                       <Text
                         style={{
                           fontFamily: 'Inter_500Medium',
                           fontSize: 13,
-                          color: isBookmarked ? 'white' : '#374151',
+                          color: isBookmarked ? 'white' : theme.textSecondary,
                         }}
                       >
                         {isBookmarked ? 'Bookmarked' : 'Bookmark'}
@@ -782,8 +784,8 @@ export default function SurahReader() {
                     height: 32,
                     borderRadius: 16,
                     borderWidth: 1,
-                    borderColor: '#0F766E',
-                    backgroundColor: isBookmarked ? '#0F766E' : 'white',
+                    borderColor: theme.primary,
+                    backgroundColor: isBookmarked ? theme.primary : theme.card,
                     alignItems: 'center',
                     justifyContent: 'center',
                     alignSelf: 'flex-start',
@@ -794,7 +796,7 @@ export default function SurahReader() {
                     style={{
                       fontFamily: 'Inter_700Bold',
                       fontSize: 11,
-                      color: isBookmarked ? 'white' : '#0F766E',
+                      color: isBookmarked ? 'white' : theme.primary,
                     }}
                   >
                     {ayah.numberInSurah}
