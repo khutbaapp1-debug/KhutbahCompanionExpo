@@ -30,20 +30,38 @@ const STEP_IMAGES = {
 } as const;
 
 function pickStepImage(title: string): number | null {
-  const t = title.toLowerCase();
-  if (t.includes("takbir") || t.includes("allahu akbar")) return STEP_IMAGES.takbir;
-  if (t.includes("niyyah") || t.includes("intention")) return STEP_IMAGES.standing;
-  if (t.includes("ruku") || t.includes("bowing")) return STEP_IMAGES.ruku;
-  if (t.includes("i'tidal") || t.includes("itidal") || t.includes("rising") || t.includes("standing after")) return STEP_IMAGES.standing;
-  if (t.includes("sujood") || t.includes("sajdah") || t.includes("prostrat")) return STEP_IMAGES.sujood;
-  if (t.includes("jalsa") || t.includes("sitting between") || t.includes("between two")) return STEP_IMAGES.jalsa;
-  if (t.includes("tashahhud") || t.includes("attahiyyat") || t.includes("tashahud")) return STEP_IMAGES.tashahhud;
-  if (t.includes("salam") || t.includes("tasleem") || t.includes("tasleem")) {
-    if (t.includes("right")) return STEP_IMAGES.salamRight;
-    if (t.includes("left")) return STEP_IMAGES.salamLeft;
-    return STEP_IMAGES.salamRight;
-  }
-  if (t.includes("qiyam") || t.includes("qiraat") || t.includes("fatiha") || t.includes("surah") || t.includes("recit")) return STEP_IMAGES.qiyam;
+  // Pre-prayer steps — no posture image
+  if (title.includes("Wudu")) return null;
+  if (title.includes("Facing") || title.includes("Qibla")) return null;
+
+  // Intention
+  if (title.includes("Niyyah") || title.includes("Intention")) return STEP_IMAGES.standing;
+
+  // Opening takbir
+  if (title.includes("Takbir al-Ihram") || title.includes("Opening Takbir")) return STEP_IMAGES.takbir;
+
+  // I'tidal — must come BEFORE the generic "Standing" branch
+  if (title.includes("I'tidal") || title.includes("Standing After Ruku")) return STEP_IMAGES.standing;
+
+  // Ruku
+  if (title.includes("Ruku'") || title.includes("Bowing")) return STEP_IMAGES.ruku;
+
+  // Sujood (first/second)
+  if (title.includes("Sujood (First") || title.includes("First Prostration")) return STEP_IMAGES.sujood;
+  if (title.includes("Sujood (Second") || title.includes("Second Prostration")) return STEP_IMAGES.sujood;
+
+  // Jalsah
+  if (title.includes("Jalsah") || title.includes("Sitting Briefly")) return STEP_IMAGES.jalsa;
+
+  // Tashahhud
+  if (title.includes("Tashahhud") || title.includes("Attahiyyat") || title.includes("At-Tahiyyat")) return STEP_IMAGES.tashahhud;
+
+  // Tasleem (closing)
+  if (title.includes("Tasleem") || title.includes("Closing the Prayer")) return STEP_IMAGES.salamRight;
+
+  // Qiyam / Standing (general — "Standing After Ruku'" was already handled above)
+  if (title.includes("Qiyam") || title.includes("Standing")) return STEP_IMAGES.qiyam;
+
   return null;
 }
 

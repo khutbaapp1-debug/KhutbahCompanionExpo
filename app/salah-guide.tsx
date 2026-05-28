@@ -104,7 +104,7 @@ function WuduTab() {
               <Image
                 source={WUDU_IMAGES[s.number]}
                 resizeMode="contain"
-                style={{ width: '100%', height: 220, marginBottom: 16, borderRadius: 12 }}
+                style={{ width: '100%', height: 330, marginBottom: 16, borderRadius: 12 }}
               />
             )}
 
@@ -419,16 +419,31 @@ function PrayersTab() {
             contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 80 }}
           >
             {card.image && (
-              <Image
-                source={card.image}
-                style={{
-                  width: '100%',
-                  height: 220,
-                  resizeMode: 'contain',
-                  marginBottom: 12,
-                  borderRadius: 8,
-                }}
-              />
+              <>
+                <Image
+                  source={card.image}
+                  style={{
+                    width: '100%',
+                    height: 330,
+                    resizeMode: 'contain',
+                    marginBottom: 8,
+                    borderRadius: 8,
+                  }}
+                />
+                {card.title?.toLowerCase().includes('tasleem') ||
+                card.title?.toLowerCase().includes('closing') ? (
+                  <Image
+                    source={require('../assets/images/salah/salah-salam-left.png')}
+                    style={{
+                      width: '100%',
+                      height: 330,
+                      resizeMode: 'contain',
+                      marginBottom: 12,
+                      borderRadius: 8,
+                    }}
+                  />
+                ) : null}
+              </>
             )}
 
             {/* Card header */}
