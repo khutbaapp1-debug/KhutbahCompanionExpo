@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { router, Stack } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -7,7 +7,7 @@ import {
   Animated,
   Dimensions,
   Easing,
-  Image,
+  ImageBackground,
   Pressable,
   StatusBar,
   Text,
@@ -444,14 +444,21 @@ export default function LoadingScreen() {
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <StatusBar barStyle="light-content" backgroundColor={TEAL} />
-      <View style={{ flex: 1, backgroundColor: TEAL }}>
-        {/* Top 40% — Bismillah + title */}
+      <ImageBackground
+        source={SPLASH_IMAGE}
+        style={{ flex: 1 }}
+        resizeMode="cover"
+        imageStyle={{ opacity: 0.35 }}
+      >
+        {/* Teal overlay keeps the brand colour dominant while the mic/mosque
+            image stays subtly visible underneath. */}
         <View
           style={{
-            flex: 4,
+            flex: 1,
+            backgroundColor: 'rgba(15, 118, 110, 0.75)',
             alignItems: 'center',
             justifyContent: 'center',
-            paddingHorizontal: 24,
+            paddingHorizontal: 32,
           }}
         >
           <Text
@@ -465,18 +472,9 @@ export default function LoadingScreen() {
           >
             {BISMILLAH}
           </Text>
-          <Image
-            source={SPLASH_IMAGE}
-            style={{
-              width: 220,
-              height: 220,
-              resizeMode: 'contain',
-              marginVertical: 24,
-              opacity: 0.9,
-            }}
-          />
           <Text
             style={{
+              marginTop: 32,
               fontFamily: 'Inter_700Bold',
               fontSize: 24,
               color: '#FFFFFF',
@@ -496,21 +494,12 @@ export default function LoadingScreen() {
           >
             Your complete Islamic companion
           </Text>
-        </View>
-
-        {/* Middle — dots + status */}
-        <View
-          style={{
-            flex: 4,
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 24,
-          }}
-        >
-          <PulsingDots />
+          <View style={{ marginTop: 56 }}>
+            <PulsingDots />
+          </View>
           <Animated.Text
             style={{
-              marginTop: 28,
+              marginTop: 24,
               fontFamily: 'Inter_500Medium',
               fontSize: 14,
               color: 'rgba(255,255,255,0.9)',
@@ -522,22 +511,6 @@ export default function LoadingScreen() {
           </Animated.Text>
         </View>
 
-        {/* Bottom decorative spacer */}
-        <View
-          style={{
-            flex: 2,
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            paddingBottom: 32,
-          }}
-        >
-          <MaterialCommunityIcons
-            name="mosque"
-            size={28}
-            color="rgba(255,255,255,0.5)"
-          />
-        </View>
-
         {cardKind ? (
           <PermissionCard
             kind={cardKind}
@@ -545,7 +518,7 @@ export default function LoadingScreen() {
             onSkip={cardKind === 'location' ? undefined : handleSkip}
           />
         ) : null}
-      </View>
+      </ImageBackground>
     </>
   );
 }
