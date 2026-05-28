@@ -425,6 +425,10 @@ function PrayersTab() {
                   titleLower.includes('tasleem') || titleLower.includes('closing');
                 const isJalsah =
                   titleLower.includes('jalsah') || titleLower.includes('sitting briefly');
+                const isTashahhud =
+                  titleLower.includes('tashahhud') ||
+                  titleLower.includes('attahiyyat') ||
+                  titleLower.includes('at-tahiyyat');
 
                 if (isTasleem) {
                   return (
@@ -450,6 +454,21 @@ function PrayersTab() {
                       />
                       <Image
                         source={require('../assets/images/salah/salah-sitting.png')}
+                        style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
+                      />
+                    </View>
+                  );
+                }
+
+                if (isTashahhud) {
+                  return (
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                      <Image
+                        source={card.image}
+                        style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
+                      />
+                      <Image
+                        source={require('../assets/images/salah/salah-jalsa.png')}
                         style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
                       />
                     </View>
