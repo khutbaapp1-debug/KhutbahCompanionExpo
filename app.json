@@ -11,7 +11,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Khutbah Companion uses your location to calculate accurate prayer times for your area.",
-        "NSMicrophoneUsageDescription": "Khutbah Companion uses your microphone to translate the khutbah live."
+        "NSMicrophoneUsageDescription": "Khutbah Companion uses your microphone to translate the khutbah live.",
+        "NSUserTrackingUsageDescription": "Khutbah Companion uses your activity data to show relevant ads.",
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
@@ -21,7 +23,17 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "permissions": ["RECORD_AUDIO"],
+      "permissions": [
+        "RECORD_AUDIO",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "WAKE_LOCK",
+        "VIBRATE",
+        "INTERNET"
+      ],
       "predictiveBackGestureEnabled": false,
       "config": {
         "googleMaps": {
@@ -36,6 +48,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-notifications",
       [
         "expo-location",
         {
