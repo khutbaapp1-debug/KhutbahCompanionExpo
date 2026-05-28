@@ -13,7 +13,9 @@
         "NSLocationWhenInUseUsageDescription": "Khutbah Companion uses your location to calculate accurate prayer times for your area.",
         "NSMicrophoneUsageDescription": "Khutbah Companion uses your microphone to translate the khutbah live.",
         "NSUserTrackingUsageDescription": "Khutbah Companion uses your activity data to show relevant ads.",
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -32,19 +34,24 @@
         "SCHEDULE_EXACT_ALARM",
         "WAKE_LOCK",
         "VIBRATE",
-        "INTERNET"
+        "INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "predictiveBackGestureEnabled": false,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_F"
         }
-      }
+      },
+      "package": "com.khutbahcompanion.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "fonts": ["./assets/fonts/KFGQPCHafs.otf"],
+    "fonts": [
+      "./assets/fonts/KFGQPCHafs.otf"
+    ],
     "plugins": [
       "expo-router",
       "expo-font",
@@ -54,7 +61,20 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Khutbah Companion uses your location to calculate accurate prayer times for your area."
         }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-6514143339893635~7248812544",
+          "iosAppId": "ca-app-pub-6514143339893635~4866191788"
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8412654f-a881-40ef-a82c-48546baddbf2"
+      }
+    }
   }
 }
