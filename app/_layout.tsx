@@ -16,6 +16,13 @@ import {
 
 import { ThemeProvider, useTheme } from '../src/lib/theme-context';
 
+// Make the loading screen the initial route so the onboarding flow always
+// runs first on a cold start. Falls through to "/" via router.replace once
+// the sequence completes.
+export const unstable_settings = {
+  initialRouteName: 'loading',
+};
+
 // Inner navigator: consumes the theme so the native header bars and default
 // screen background follow the selected light/dark/high-contrast theme.
 function ThemedStack() {
@@ -29,6 +36,10 @@ function ThemedStack() {
         contentStyle: { backgroundColor: theme.background },
       }}
     >
+      <Stack.Screen
+        name="loading"
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="translation" options={{ headerShown: false }} />
       <Stack.Screen name="prayer-times" options={{ title: 'Prayer Times' }} />
