@@ -22,7 +22,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": ["RECORD_AUDIO"],
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_F"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
