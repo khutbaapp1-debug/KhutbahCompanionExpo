@@ -12,9 +12,44 @@ export type PrayerFlowCard = {
   description: string;
   recitations?: PrayerFlowRecitation[];
   note?: string;
+  image?: number | null;
 };
 
 export type PrayerType = "2rakat" | "4rakat" | "maghrib" | "witr";
+
+const STEP_IMAGES = {
+  standing: require("../../assets/images/salah/salah-standing.png"),
+  takbir: require("../../assets/images/salah/salah-takbir.png"),
+  qiyam: require("../../assets/images/salah/salah-qiyam.png"),
+  ruku: require("../../assets/images/salah/salah-ruku.png"),
+  sujood: require("../../assets/images/salah/salah-sujood.png"),
+  jalsa: require("../../assets/images/salah/salah-jalsa.png"),
+  tashahhud: require("../../assets/images/salah/salah-tashahhud-finger.png"),
+  salamRight: require("../../assets/images/salah/salah-salam-right.png"),
+  salamLeft: require("../../assets/images/salah/salah-salam-left.png"),
+} as const;
+
+function pickStepImage(title: string): number | null {
+  const t = title.toLowerCase();
+  if (t.includes("takbir") || t.includes("allahu akbar")) return STEP_IMAGES.takbir;
+  if (t.includes("niyyah") || t.includes("intention")) return STEP_IMAGES.standing;
+  if (t.includes("ruku") || t.includes("bowing")) return STEP_IMAGES.ruku;
+  if (t.includes("i'tidal") || t.includes("itidal") || t.includes("rising") || t.includes("standing after")) return STEP_IMAGES.standing;
+  if (t.includes("sujood") || t.includes("sajdah") || t.includes("prostrat")) return STEP_IMAGES.sujood;
+  if (t.includes("jalsa") || t.includes("sitting between") || t.includes("between two")) return STEP_IMAGES.jalsa;
+  if (t.includes("tashahhud") || t.includes("attahiyyat") || t.includes("tashahud")) return STEP_IMAGES.tashahhud;
+  if (t.includes("salam") || t.includes("tasleem") || t.includes("tasleem")) {
+    if (t.includes("right")) return STEP_IMAGES.salamRight;
+    if (t.includes("left")) return STEP_IMAGES.salamLeft;
+    return STEP_IMAGES.salamRight;
+  }
+  if (t.includes("qiyam") || t.includes("qiraat") || t.includes("fatiha") || t.includes("surah") || t.includes("recit")) return STEP_IMAGES.qiyam;
+  return null;
+}
+
+function withImages(cards: PrayerFlowCard[]): PrayerFlowCard[] {
+  return cards.map((c) => ({ ...c, image: pickStepImage(c.title) }));
+}
 
 const BISMILLAH: PrayerFlowRecitation = {
   name: "Bismillah",
@@ -510,8 +545,8 @@ const witr: PrayerFlowCard[] = [
 ];
 
 export const prayerFlows: Record<PrayerType, PrayerFlowCard[]> = {
-  "2rakat": twoRakat,
-  "4rakat": fourRakat,
-  "maghrib": maghrib,
-  "witr": witr,
+  "2rakat": withImages(twoRakat),
+  "4rakat": withImages(fourRakat),
+  "maghrib": withImages(maghrib),
+  "witr": withImages(witr),
 };

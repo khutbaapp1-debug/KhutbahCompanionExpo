@@ -99,8 +99,14 @@ export default function DuasScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ borderBottomWidth: 1, borderBottomColor: theme.border, height: 52 }}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10 }}
+          style={{ borderBottomWidth: 1, borderBottomColor: theme.border, flexGrow: 0 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingRight: 24,
+            paddingVertical: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
         >
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
@@ -120,6 +126,8 @@ export default function DuasScreen() {
                 style={{
                   fontFamily: 'Inter_500Medium',
                   fontSize: 13,
+                  lineHeight: 20,
+                  includeFontPadding: false,
                   color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
                 }}
               >

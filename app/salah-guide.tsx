@@ -418,6 +418,19 @@ function PrayersTab() {
             key={card.number}
             contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 80 }}
           >
+            {card.image && (
+              <Image
+                source={card.image}
+                style={{
+                  width: '100%',
+                  height: 220,
+                  resizeMode: 'contain',
+                  marginBottom: 12,
+                  borderRadius: 8,
+                }}
+              />
+            )}
+
             {/* Card header */}
             <View
               style={{
