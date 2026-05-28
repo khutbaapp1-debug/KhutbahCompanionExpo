@@ -418,22 +418,47 @@ function PrayersTab() {
             key={card.number}
             contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 80 }}
           >
-            {card.image && (
-              <>
-                <Image
-                  source={card.image}
-                  style={{
-                    width: '100%',
-                    height: 330,
-                    resizeMode: 'contain',
-                    marginBottom: 8,
-                    borderRadius: 8,
-                  }}
-                />
-                {card.title?.toLowerCase().includes('tasleem') ||
-                card.title?.toLowerCase().includes('closing') ? (
+            {card.image &&
+              (() => {
+                const titleLower = card.title?.toLowerCase() ?? '';
+                const isTasleem =
+                  titleLower.includes('tasleem') || titleLower.includes('closing');
+                const isJalsah =
+                  titleLower.includes('jalsah') || titleLower.includes('sitting briefly');
+
+                if (isTasleem) {
+                  return (
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                      <Image
+                        source={card.image}
+                        style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
+                      />
+                      <Image
+                        source={require('../assets/images/salah/salah-salam-left.png')}
+                        style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
+                      />
+                    </View>
+                  );
+                }
+
+                if (isJalsah) {
+                  return (
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                      <Image
+                        source={card.image}
+                        style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
+                      />
+                      <Image
+                        source={require('../assets/images/salah/salah-sitting.png')}
+                        style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
+                      />
+                    </View>
+                  );
+                }
+
+                return (
                   <Image
-                    source={require('../assets/images/salah/salah-salam-left.png')}
+                    source={card.image}
                     style={{
                       width: '100%',
                       height: 330,
@@ -442,9 +467,8 @@ function PrayersTab() {
                       borderRadius: 8,
                     }}
                   />
-                ) : null}
-              </>
-            )}
+                );
+              })()}
 
             {/* Card header */}
             <View
