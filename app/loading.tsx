@@ -448,14 +448,14 @@ export default function LoadingScreen() {
         source={SPLASH_IMAGE}
         style={{ flex: 1 }}
         resizeMode="cover"
-        imageStyle={{ opacity: 0.35 }}
+        imageStyle={{ opacity: 0.7 }}
       >
         {/* Teal overlay keeps the brand colour dominant while the mic/mosque
             image stays subtly visible underneath. */}
         <View
           style={{
             flex: 1,
-            backgroundColor: 'rgba(15, 118, 110, 0.75)',
+            backgroundColor: 'rgba(15, 118, 110, 0.45)',
             alignItems: 'center',
             justifyContent: 'center',
             paddingHorizontal: 32,
