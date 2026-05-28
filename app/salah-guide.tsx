@@ -464,11 +464,11 @@ function PrayersTab() {
                   return (
                     <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                       <Image
-                        source={card.image}
+                        source={require('../assets/images/salah/salah-jalsa.png')}
                         style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
                       />
                       <Image
-                        source={require('../assets/images/salah/salah-jalsa.png')}
+                        source={card.image}
                         style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
                       />
                     </View>
