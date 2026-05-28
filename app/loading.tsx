@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   Pressable,
   StatusBar,
   Text,
@@ -22,6 +23,8 @@ const BASE_URL = 'https://khutbah-translate.replit.app';
 const PERMS_KEY = 'permissions-requested';
 const PRAYER_CACHE_KEY = 'cached-prayer-times-v1';
 const BISMILLAH = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const SPLASH_IMAGE = require('../assets/images/mosque_microphone_audio_setup.png');
 
 // Skip the full sequence on subsequent in-session navigations (e.g. system
 // back from home). Module-level so it survives unmount but resets on cold
@@ -462,9 +465,18 @@ export default function LoadingScreen() {
           >
             {BISMILLAH}
           </Text>
+          <Image
+            source={SPLASH_IMAGE}
+            style={{
+              width: 220,
+              height: 220,
+              resizeMode: 'contain',
+              marginVertical: 24,
+              opacity: 0.9,
+            }}
+          />
           <Text
             style={{
-              marginTop: 24,
               fontFamily: 'Inter_700Bold',
               fontSize: 24,
               color: '#FFFFFF',
