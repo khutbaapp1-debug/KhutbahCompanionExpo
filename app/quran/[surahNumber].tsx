@@ -23,7 +23,7 @@ import { getSurah } from '../../src/lib/quran';
 import type { Ayah, Surah } from '../../src/lib/quran';
 import { getAyahAudioUrl } from '../../src/lib/quran-audio';
 import type { ReciterId } from '../../src/lib/quran-audio';
-import { getBookmark, getQuranFontSize, getQuranViewMode, setBookmark, setLastPosition, setLastSurah, setQuranFontSize, setQuranViewMode } from '../../src/lib/quran-bookmark';
+import { clearBookmark, getBookmark, getQuranFontSize, getQuranViewMode, setBookmark, setLastPosition, setLastSurah, setQuranFontSize, setQuranViewMode } from '../../src/lib/quran-bookmark';
 import type { Bookmark } from '../../src/lib/quran-bookmark';
 import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
@@ -205,7 +205,14 @@ export default function SurahReader() {
       if (bookmarkedAyah === ayahNumber) {
         Alert.alert('Remove Bookmark', 'Remove bookmark from this verse?', [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Remove', style: 'destructive', onPress: () => setBookmarkedAyah(null) },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => {
+              setBookmarkedAyah(null);
+              void clearBookmark();
+            },
+          },
         ]);
       } else {
         const scrollY = viewMode === 'page' ? pageScrollYRef.current : undefined;
