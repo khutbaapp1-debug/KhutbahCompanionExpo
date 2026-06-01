@@ -57,6 +57,15 @@
       "expo-font",
       "expo-notifications",
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#E6F4FE"
+        }
+      ],
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Khutbah Companion uses your location to calculate accurate prayer times for your area."
