@@ -1,4 +1,7 @@
 import '../global.css';
+// Applies global Text defaults (disables Android includeFontPadding) so letter
+// descenders aren't clipped. Side-effect import — must run before any Text renders.
+import '../src/lib/text-defaults';
 
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
