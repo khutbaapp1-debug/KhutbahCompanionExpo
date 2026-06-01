@@ -51,9 +51,15 @@ export async function requestNotificationPermissions(): Promise<boolean> {
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
-  const current = await Notifications.getPermissionsAsync();
+  // expo-modules-core isn't hoisted to the top-level node_modules in this
+  // install (it resolves only under expo/node_modules), so expo-notifications'
+  // PermissionResponse base type comes through empty here and `.granted` is
+  // missing from the typings even though it's present at runtime. Read the
+  // result through its documented runtime shape.
+  type PermissionResult = { granted: boolean };
+  const current = (await Notifications.getPermissionsAsync()) as unknown as PermissionResult;
   if (current.granted) return true;
-  const requested = await Notifications.requestPermissionsAsync();
+  const requested = (await Notifications.requestPermissionsAsync()) as unknown as PermissionResult;
   return requested.granted;
 }
 
