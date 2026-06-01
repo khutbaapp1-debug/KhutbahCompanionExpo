@@ -1,7 +1,9 @@
 import '../global.css';
 
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   Inter_400Regular,
@@ -15,6 +17,14 @@ import {
 } from '@expo-google-fonts/noto-naskh-arabic';
 
 import { ThemeProvider, useTheme } from '../src/lib/theme-context';
+
+// Keep the native splash screen visible while we load fonts and other critical
+// startup state. Called at module scope (before the component renders) so the
+// splash is never auto-hidden on the first frame. Errors are ignored: if the
+// splash is already hidden this throws, which is harmless.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* ignore — splash may already be hidden */
+});
 
 // Make the loading screen the initial route so the onboarding flow always
 // runs first on a cold start. Falls through to "/" via router.replace once
@@ -76,6 +86,19 @@ export default function RootLayout() {
     KFGQPCHafs: require('../assets/fonts/KFGQPCHafs.otf'),
   });
 
+  // Hide the native splash screen only once the fonts have finished loading, so
+  // the splash stays up for the whole startup instead of flashing and then
+  // showing a blank screen while fonts resolve.
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {
+        /* ignore — splash may already be hidden */
+      });
+    }
+  }, [fontsLoaded]);
+
+  // Keep rendering nothing (the native splash remains visible) until fonts are
+  // ready, so text never flashes in a fallback face.
   if (!fontsLoaded) {
     return null;
   }
