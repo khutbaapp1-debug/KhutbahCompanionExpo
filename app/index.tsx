@@ -1,4 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, ImageSourcePropType, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,6 +9,8 @@ import GridTile from '../src/components/GridTile';
 import HomeHeader from '../src/components/HomeHeader';
 import NextPrayerCard from '../src/components/NextPrayerCard';
 import { useNextPrayer } from '../src/hooks/useNextPrayer';
+import { getStoredLocation, requestAndCacheLocation } from '../src/lib/location';
+import type { Coordinates } from '../src/lib/prayer-times';
 import { useTheme } from '../src/lib/theme-context';
 import type { ThemeMode } from '../src/lib/theme';
 
@@ -94,8 +97,54 @@ const TILES: TileData[] = [
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { nextPrayerName, nextPrayerTime, countdown } = useNextPrayer();
   const { mode, theme, setTheme } = useTheme();
+
+  // Location for the next-prayer card. null until we've checked the cache.
+  // Once checked with nothing cached (and permission not granted), the card
+  // shows an "Enable Location" prompt instead of empty "—:—" placeholders.
+  const [coords, setCoords] = useState<Coordinates | null>(null);
+  const [locationChecked, setLocationChecked] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    getStoredLocation().then((cached) => {
+      if (!isMounted) return;
+      setCoords(cached);
+      setLocationChecked(true);
+      if (cached) {
+        // Permission already granted — refresh silently without prompting.
+        requestAndCacheLocation()
+          .then((fresh) => {
+            if (isMounted) setCoords(fresh);
+          })
+          .catch(() => {
+            /* keep the cached coordinates on failure */
+          });
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Uses the same permission-request flow as LocationGate (the Prayer Times
+  // screen). On success the card flips to live prayer times; on failure we stay
+  // on the prompt so the user can retry.
+  const handleEnableLocation = useCallback(async () => {
+    setRequesting(true);
+    try {
+      const fresh = await requestAndCacheLocation();
+      setCoords(fresh);
+    } catch {
+      /* stay on the prompt so the user can try again */
+    } finally {
+      setRequesting(false);
+    }
+  }, []);
+
+  const { nextPrayerName, nextPrayerTime, countdown } = useNextPrayer(coords);
+  const needsLocation = locationChecked && !coords;
 
   const cycleTheme = () => {
     const nextMode: ThemeMode =
@@ -126,6 +175,9 @@ export default function HomeScreen() {
             prayerName={nextPrayerName ?? '—'}
             prayerTime={nextPrayerTime ?? '—:—'}
             countdown={countdown ?? '00:00:00'}
+            needsLocation={needsLocation}
+            requesting={requesting}
+            onEnableLocation={handleEnableLocation}
           />
         </View>
         <View className="mt-3 px-6">
