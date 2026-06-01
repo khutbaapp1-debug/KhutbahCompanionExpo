@@ -208,13 +208,14 @@ export default function SurahReader() {
           { text: 'Remove', style: 'destructive', onPress: () => setBookmarkedAyah(null) },
         ]);
       } else {
+        const scrollY = viewMode === 'page' ? pageScrollYRef.current : undefined;
         setBookmarkedAyah(ayahNumber);
-        void setBookmark(
-          surahNum,
-          ayahNumber,
-          viewMode === 'page' ? pageScrollYRef.current : undefined,
-          fontSizeIdx,
-        );
+        // Keep the in-memory restore state in sync with what we persist, so
+        // tapping "Bookmark N" later in the same session jumps to the exact
+        // saved scroll offset instead of falling back to the verse estimate.
+        setBookmarkScrollY(scrollY);
+        setBookmarkFontSizeIdx(fontSizeIdx);
+        void setBookmark(surahNum, ayahNumber, scrollY, fontSizeIdx);
         Alert.alert(
           'Bookmark Saved',
           `Verse ${ayahNumber} of ${surah?.englishName ?? 'this surah'} bookmarked.`,
