@@ -28,6 +28,7 @@ import type { Bookmark } from '../../src/lib/quran-bookmark';
 import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
 import { useTheme } from '../../src/lib/theme-context';
+import { isPremium } from '../../src/lib/premium';
 
 type ViewMode = 'page' | 'detailed';
 type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unknown> };
@@ -178,6 +179,13 @@ const soundRef = useRef<SoundInstance | null>(null);
 
   const handleBookmarkAyah = useCallback(
     (ayahNumber: number) => {
+      if (!isPremium()) {
+        Alert.alert(
+          'Premium Feature',
+          'Bookmarks are a Premium feature. Upgrade to unlock.',
+        );
+        return;
+      }
       if (bookmarkedAyah === ayahNumber) {
         Alert.alert('Remove Bookmark', 'Remove bookmark from this verse?', [
           { text: 'Cancel', style: 'cancel' },
