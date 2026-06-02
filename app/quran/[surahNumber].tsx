@@ -28,7 +28,7 @@ import type { Bookmark } from '../../src/lib/quran-bookmark';
 import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
 import { useTheme } from '../../src/lib/theme-context';
-import { isPremium } from '../../src/lib/premium';
+import { usePremium } from '../../src/hooks/usePremium';
 
 type ViewMode = 'page' | 'detailed';
 type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unknown> };
@@ -39,6 +39,7 @@ const FONT_SIZES: number[] = [20, 24, 28, 32];
 
 export default function SurahReader() {
   const { theme, mode: themeMode } = useTheme();
+  const { isPremium } = usePremium();
   const { surahNumber: surahParam } = useLocalSearchParams<{ surahNumber: string }>();
   const surahNum = parseInt(surahParam ?? '1', 10);
   const insets = useSafeAreaInsets();
@@ -179,7 +180,7 @@ const soundRef = useRef<SoundInstance | null>(null);
 
   const handleBookmarkAyah = useCallback(
     (ayahNumber: number) => {
-      if (!isPremium()) {
+      if (!isPremium) {
         Alert.alert(
           'Premium Feature',
           'Bookmarks are a Premium feature. Upgrade to unlock.',
@@ -200,7 +201,7 @@ const soundRef = useRef<SoundInstance | null>(null);
         );
       }
     },
-    [bookmarkedAyah, surahNum, surah, fontSizeIdx],
+    [bookmarkedAyah, surahNum, surah, fontSizeIdx, isPremium],
   );
 
   // Page view: tap verse marker → play + show active verse panel

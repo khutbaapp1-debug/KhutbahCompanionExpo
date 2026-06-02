@@ -27,7 +27,7 @@ import {
 } from '../src/lib/audio-recorder';
 import { AdEventType, RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
 import { uploadChunk } from '../src/lib/translation-upload';
-import { isPremium } from '../src/lib/premium';
+import { usePremium } from '../src/hooks/usePremium';
 import { useTheme } from '../src/lib/theme-context';
 
 const DISCLAIMER_KEY = 'translation-disclaimer-v1';
@@ -143,14 +143,35 @@ export default function TranslationScreen() {
   // Mirror of recorderState so the AppState listener reads the latest value
   // without re-subscribing on every state change.
   const recorderStateRef = useRef<RecorderState>('idle');
+  // Mirror isPremium into a ref so callbacks (stopRecordingInternal, doStartRecording,
+  // handleStart) can read the latest value without adding it to their deps arrays.
+  const { isPremium } = usePremium();
+  const isPremiumRef = useRef(isPremium);
 
   useEffect(() => {
     recorderStateRef.current = recorderState;
   }, [recorderState]);
 
   useEffect(() => {
+    isPremiumRef.current = isPremium;
+  }, [isPremium]);
+
+  useEffect(() => {
     segmentsRef.current = segments;
   }, [segments]);
+
+  // Load saved history once premium status is known; re-runs if the value flips
+  // (e.g. user upgrades mid-session — unlikely but correct).
+  useEffect(() => {
+    if (!isPremium) return;
+    void AsyncStorage.getItem(HISTORY_KEY).then((saved) => {
+      if (!saved) return;
+      try {
+        const parsed = JSON.parse(saved) as TranslationSegment[];
+        if (Array.isArray(parsed) && parsed.length > 0) setSegments(parsed);
+      } catch {}
+    });
+  }, [isPremium]);
 
   // --- timer helpers ---
   const stopCountdownTimer = useCallback(() => {
@@ -244,7 +265,7 @@ export default function TranslationScreen() {
     setRecorderState('idle');
     safeDeactivateKeepAwake();
     setIsFirstChunkPending(false);
-    if (isPremium() && segmentsRef.current.length > 0) {
+    if (isPremiumRef.current && segmentsRef.current.length > 0) {
       void AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(segmentsRef.current));
     }
   }, [stopElapsedTimer, stopCountdownTimer, safeDeactivateKeepAwake, setIsFirstChunkPending]);
@@ -258,7 +279,7 @@ export default function TranslationScreen() {
       }
       setSegments([]);
       setElapsed(0);
-      if (isPremium()) {
+      if (isPremiumRef.current) {
         void AsyncStorage.removeItem(HISTORY_KEY);
       }
       await recorderRef.current.start(handleChunk);
@@ -300,7 +321,7 @@ export default function TranslationScreen() {
       }
     }
 
-    if (!isPremium()) {
+    if (!isPremiumRef.current) {
       const ad = rewardedAdRef.current;
       if (!ad || !adLoadedRef.current) {
         // Ad not ready (cold-start race or network failure) — let the user record
@@ -370,17 +391,6 @@ export default function TranslationScreen() {
       } catch {
         // if storage fails, show the disclaimer to be safe
         setShowDisclaimer(true);
-      }
-      if (isPremium()) {
-        try {
-          const saved = await AsyncStorage.getItem(HISTORY_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved) as TranslationSegment[];
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setSegments(parsed);
-            }
-          }
-        } catch {}
       }
     })();
 

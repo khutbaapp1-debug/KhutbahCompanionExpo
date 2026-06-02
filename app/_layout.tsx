@@ -19,7 +19,17 @@ import {
   NotoNaskhArabic_700Bold,
 } from '@expo-google-fonts/noto-naskh-arabic';
 
+import Purchases from 'react-native-purchases';
 import { ThemeProvider, useTheme } from '../src/lib/theme-context';
+
+// Initialise RevenueCat early so getCustomerInfo() is ready before any screen
+// calls isPremium(). Wrapped in try/catch so Expo Go (no native module) never
+// crashes the app.
+try {
+  Purchases.configure({ apiKey: 'goog_dJveXoqqkSCQqhfMYICADUBSHyn' });
+} catch {
+  // Native module unavailable (Expo Go) — premium features default to locked.
+}
 
 // Keep the native splash screen visible while we load fonts and other critical
 // startup state. Called at module scope (before the component renders) so the
