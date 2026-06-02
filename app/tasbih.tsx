@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { Stack } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Dimensions,
   ScrollView,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { isPremium } from '../src/lib/premium';
 import { useTheme } from '../src/lib/theme-context';
 
 // Arabic copied verbatim from the original presets — not retyped.
@@ -30,6 +32,7 @@ const DHIKR_PRESETS = [
 type DhikrId = (typeof DHIKR_PRESETS)[number]['id'];
 
 const ALL_IDS = DHIKR_PRESETS.map((p) => p.id);
+const FREE_DHIKR_IDS: DhikrId[] = ['subhanallah', 'alhamdulillah', 'allahu-akbar'];
 const byId = (id: DhikrId) => DHIKR_PRESETS.find((p) => p.id === id)!;
 
 // Full width minus 48dp padding, capped so it fits shorter screens (≥200dp).
@@ -54,8 +57,11 @@ export default function TasbihScreen() {
     ...ALL_IDS.filter((id) => !completedIds.includes(id)),
     ...completedIds,
   ];
-  const nextId = orderedIds.find((id) => id !== selectedId && !completedIds.includes(id));
-  const allDone = completedIds.length === ALL_IDS.length;
+  const nextId = orderedIds.find(
+    (id) => id !== selectedId && !completedIds.includes(id) && (isPremium() || FREE_DHIKR_IDS.includes(id)),
+  );
+  const accessibleIds = isPremium() ? ALL_IDS : FREE_DHIKR_IDS;
+  const allDone = accessibleIds.every((id) => completedIds.includes(id));
 
   const animateTap = () => {
     Animated.sequence([
@@ -88,7 +94,8 @@ export default function TasbihScreen() {
         const newCompleted = completedIds.includes(selectedId)
           ? completedIds
           : [...completedIds, selectedId];
-        const remaining = ALL_IDS.filter((id) => !newCompleted.includes(id));
+        const accessible = isPremium() ? ALL_IDS : FREE_DHIKR_IDS;
+        const remaining = accessible.filter((id) => !newCompleted.includes(id));
         setCompletedIds(newCompleted);
         if (remaining.length > 0) setSelectedId(remaining[0]);
         setCount(0);
@@ -233,10 +240,17 @@ export default function TasbihScreen() {
               const isSelected = id === selectedId;
               const isCompleted = completedIds.includes(id);
               const isNext = id === nextId;
+              const isLocked = !isPremium() && !FREE_DHIKR_IDS.includes(id);
               return (
                 <TouchableOpacity
                   key={id}
-                  onPress={() => selectDhikr(id)}
+                  onPress={() => {
+                    if (isLocked) {
+                      Alert.alert('Premium Feature', 'Upgrade to Premium to unlock all dhikr options.');
+                      return;
+                    }
+                    selectDhikr(id);
+                  }}
                   style={{
                     width: 160,
                     padding: 12,
@@ -248,7 +262,7 @@ export default function TasbihScreen() {
                         ? theme.primaryContainer
                         : theme.border,
                     backgroundColor: isSelected ? theme.primaryContainer : theme.card,
-                    opacity: isCompleted ? 0.35 : 1,
+                    opacity: isCompleted ? 0.35 : isLocked ? 0.6 : 1,
                   }}
                 >
                   <Text
@@ -282,7 +296,7 @@ export default function TasbihScreen() {
                       marginTop: 2,
                     }}
                   >
-                    {isCompleted ? '✓ Done' : `Target: ${p.target}`}
+                    {isLocked ? '🔒 Premium' : isCompleted ? '✓ Done' : `Target: ${p.target}`}
                   </Text>
                 </TouchableOpacity>
               );
