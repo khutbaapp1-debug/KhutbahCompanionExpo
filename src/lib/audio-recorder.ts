@@ -169,6 +169,7 @@ export class AudioRecorderManager {
       return;
     }
 
+    console.log(`[AudioRecorder] seq=${this.sequenceNumber} chunk dispatched for upload — recording continues in parallel`);
     this.onChunkCallback?.(wav, this.sequenceNumber);
     this.buffer = [];
     this.sequenceNumber++;
