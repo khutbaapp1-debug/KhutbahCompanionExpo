@@ -121,6 +121,7 @@ export default function TranslationScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [currentCard, setCurrentCard] = useState(0);
+  const [isFirstChunkPending, setIsFirstChunkPending] = useState(false);
 
   const recorderRef = useRef<AudioRecorderManager | null>(null);
   const flatListRef = useRef<FlatList<TranslationSegment>>(null);
@@ -181,9 +182,11 @@ export default function TranslationScreen() {
 
   // --- chunk -> upload -> segment ---
   const handleChunk = useCallback((wav: Uint8Array, sequenceNumber: number) => {
+    if (sequenceNumber === 0) setIsFirstChunkPending(true);
     const sentAt = Date.now();
     // Fire-and-forget: recording continues while the upload resolves.
     void uploadChunk(wav, sequenceNumber).then((result) => {
+      if (sequenceNumber === 0) setIsFirstChunkPending(false);
       const rtt = Math.max(5, Math.round((Date.now() - sentAt) / 1000));
       measuredRttRef.current = rtt;
       if (!result) return; // 429 / 500 / network — silently skipped
@@ -205,7 +208,7 @@ export default function TranslationScreen() {
         return next;
       });
     });
-  }, []);
+  }, [setIsFirstChunkPending]);
 
   // --- recording controls ---
   const stopRecordingInternal = useCallback(() => {
@@ -214,7 +217,8 @@ export default function TranslationScreen() {
     void recorderRef.current?.stop();
     setRecorderState('idle');
     safeDeactivateKeepAwake();
-  }, [stopElapsedTimer, stopCountdownTimer, safeDeactivateKeepAwake]);
+    setIsFirstChunkPending(false);
+  }, [stopElapsedTimer, stopCountdownTimer, safeDeactivateKeepAwake, setIsFirstChunkPending]);
 
   const handleStart = useCallback(async () => {
     if (IS_EXPO_GO) {
@@ -635,19 +639,21 @@ export default function TranslationScreen() {
                   {formatElapsed(elapsed)}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                  <View
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: theme.primary,
-                      marginRight: 6,
-                    }}
-                  />
+                  {!isFirstChunkPending && (
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: theme.primary,
+                        marginRight: 6,
+                      }}
+                    />
+                  )}
                   <Text
                     style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textMuted }}
                   >
-                    Translation in {countdown}s
+                    {isFirstChunkPending ? 'Translating…' : `Translation in ${countdown}s`}
                   </Text>
                 </View>
               </>
