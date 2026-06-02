@@ -128,6 +128,7 @@ export default function TranslationScreen() {
   const elapsedTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const backgroundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoStoppedRef = useRef(false);
+  const measuredRttRef = useRef<number | null>(null);
   // Mirror of recorderState so the AppState listener reads the latest value
   // without re-subscribing on every state change.
   const recorderStateRef = useRef<RecorderState>('idle');
@@ -156,8 +157,8 @@ export default function TranslationScreen() {
       stopCountdownTimer();
       setCountdown(initial);
       countdownTimer.current = setInterval(() => {
-        // First chunk counts down from 15; every chunk afterwards from 12.
-        setCountdown((prev) => (prev <= 1 ? 12 : prev - 1));
+        // First chunk counts down from 15; every chunk afterwards from measured RTT.
+        setCountdown((prev) => (prev <= 1 ? (measuredRttRef.current ?? 12) : prev - 1));
       }, 1000);
     },
     [stopCountdownTimer],
@@ -180,8 +181,11 @@ export default function TranslationScreen() {
 
   // --- chunk -> upload -> segment ---
   const handleChunk = useCallback((wav: Uint8Array, sequenceNumber: number) => {
+    const sentAt = Date.now();
     // Fire-and-forget: recording continues while the upload resolves.
     void uploadChunk(wav, sequenceNumber).then((result) => {
+      const rtt = Math.max(5, Math.round((Date.now() - sentAt) / 1000));
+      measuredRttRef.current = rtt;
       if (!result) return; // 429 / 500 / network — silently skipped
 
       const hasContent = Boolean(result.arabic && result.translation);
