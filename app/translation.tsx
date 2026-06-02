@@ -26,9 +26,11 @@ import {
   type TranslationSegment,
 } from '../src/lib/audio-recorder';
 import { uploadChunk } from '../src/lib/translation-upload';
+import { isPremium } from '../src/lib/premium';
 import { useTheme } from '../src/lib/theme-context';
 
 const DISCLAIMER_KEY = 'translation-disclaimer-v1';
+const HISTORY_KEY = 'translation-history-v1';
 const BACKGROUND_GRACE_MS = 30_000;
 const KEEP_AWAKE_TAG = 'translation';
 
@@ -124,6 +126,7 @@ export default function TranslationScreen() {
   const [isFirstChunkPending, setIsFirstChunkPending] = useState(false);
 
   const recorderRef = useRef<AudioRecorderManager | null>(null);
+  const segmentsRef = useRef<TranslationSegment[]>([]);
   const flatListRef = useRef<FlatList<TranslationSegment>>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const elapsedTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -137,6 +140,10 @@ export default function TranslationScreen() {
   useEffect(() => {
     recorderStateRef.current = recorderState;
   }, [recorderState]);
+
+  useEffect(() => {
+    segmentsRef.current = segments;
+  }, [segments]);
 
   // --- timer helpers ---
   const stopCountdownTimer = useCallback(() => {
@@ -218,6 +225,9 @@ export default function TranslationScreen() {
     setRecorderState('idle');
     safeDeactivateKeepAwake();
     setIsFirstChunkPending(false);
+    if (isPremium() && segmentsRef.current.length > 0) {
+      void AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(segmentsRef.current));
+    }
   }, [stopElapsedTimer, stopCountdownTimer, safeDeactivateKeepAwake, setIsFirstChunkPending]);
 
   const handleStart = useCallback(async () => {
@@ -254,6 +264,9 @@ export default function TranslationScreen() {
       }
       setSegments([]);
       setElapsed(0);
+      if (isPremium()) {
+        void AsyncStorage.removeItem(HISTORY_KEY);
+      }
       await recorderRef.current.start(handleChunk);
       setRecorderState('recording');
       startElapsedTimer();
@@ -294,6 +307,17 @@ export default function TranslationScreen() {
       } catch {
         // if storage fails, show the disclaimer to be safe
         setShowDisclaimer(true);
+      }
+      if (isPremium()) {
+        try {
+          const saved = await AsyncStorage.getItem(HISTORY_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved) as TranslationSegment[];
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setSegments(parsed);
+            }
+          }
+        } catch {}
       }
     })();
 
