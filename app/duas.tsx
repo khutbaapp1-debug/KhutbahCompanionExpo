@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../src/lib/theme-context';
+import { isPremium } from '../src/lib/premium';
 
 const BASE_URL = 'https://khutbah-translate.replit.app';
 const DUA_CACHE_KEY = 'duas-cache-v1';
@@ -27,6 +28,8 @@ type Dua = {
   translation: string;
   reference: string | null;
 };
+
+const FREE_CATEGORY_IDS = ['all', 'morning', 'evening'];
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -79,10 +82,13 @@ export default function DuasScreen() {
     void load();
   }, []);
 
-  const filtered = useMemo(
-    () => (category === 'all' ? duas : duas.filter((d) => d.category === category)),
-    [duas, category],
-  );
+  const filtered = useMemo(() => {
+    const free = !isPremium();
+    if (free && category === 'all') {
+      return duas.filter((d) => d.category === 'morning' || d.category === 'evening');
+    }
+    return category === 'all' ? duas : duas.filter((d) => d.category === category);
+  }, [duas, category]);
 
   const copyDua = async (dua: Dua) => {
     const text = `${dua.translation}\n\n${dua.transliteration}${dua.reference ? `\n— ${dua.reference}` : ''}`;
@@ -108,39 +114,69 @@ export default function DuasScreen() {
             alignItems: 'center',
           }}
         >
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              onPress={() => setCategory(cat.id)}
-              style={{
-                paddingHorizontal: 16,
-                paddingTop: 8,
-                paddingBottom: 10,
-                borderRadius: 20,
-                marginRight: 8,
-                alignSelf: 'center',
-                backgroundColor: category === cat.id ? theme.primary : theme.surface,
-              }}
-            >
-              <Text
-                numberOfLines={1}
+          {CATEGORIES.map((cat) => {
+            const isLocked = !isPremium() && !FREE_CATEGORY_IDS.includes(cat.id);
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() => setCategory(cat.id)}
                 style={{
-                  fontFamily: 'Inter_500Medium',
-                  fontSize: 13,
-                  lineHeight: 20,
-                  includeFontPadding: false,
-                  color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
+                  paddingHorizontal: 16,
+                  paddingTop: 8,
+                  paddingBottom: 10,
+                  borderRadius: 20,
+                  marginRight: 8,
+                  alignSelf: 'center',
+                  backgroundColor: category === cat.id ? theme.primary : theme.surface,
                 }}
               >
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontFamily: 'Inter_500Medium',
+                    fontSize: 13,
+                    lineHeight: 20,
+                    includeFontPadding: false,
+                    color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
+                  }}
+                >
+                  {cat.label}{isLocked ? ' 🔒' : ''}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         {loading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator size="large" color={theme.primary} />
+          </View>
+        ) : !isPremium() && !FREE_CATEGORY_IDS.includes(category) ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+            <Ionicons name="lock-closed" size={48} color={theme.textMuted} />
+            <Text
+              style={{
+                fontFamily: 'Inter_600SemiBold',
+                fontSize: 17,
+                color: theme.text,
+                textAlign: 'center',
+                marginTop: 16,
+                marginBottom: 8,
+              }}
+            >
+              Premium Category
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Inter_400Regular',
+                fontSize: 14,
+                color: theme.textMuted,
+                textAlign: 'center',
+                lineHeight: 22,
+              }}
+            >
+              Upgrade to Premium to unlock all duas
+            </Text>
           </View>
         ) : (
           <FlatList
