@@ -25,6 +25,7 @@ import {
   type RecorderState,
   type TranslationSegment,
 } from '../src/lib/audio-recorder';
+import { AdEventType, RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
 import { uploadChunk } from '../src/lib/translation-upload';
 import { isPremium } from '../src/lib/premium';
 import { useTheme } from '../src/lib/theme-context';
@@ -33,6 +34,9 @@ const DISCLAIMER_KEY = 'translation-disclaimer-v1';
 const HISTORY_KEY = 'translation-history-v1';
 const BACKGROUND_GRACE_MS = 30_000;
 const KEEP_AWAKE_TAG = 'translation';
+const AD_UNIT_ID = __DEV__
+  ? TestIds.REWARDED
+  : 'ca-app-pub-6514143339893635/REWARDED_UNIT_ID';
 
 // `appOwnership === 'expo'` is only true inside Expo Go, where the native audio
 // module is unavailable. We still render the full UI + disclaimer there, but
@@ -133,6 +137,9 @@ export default function TranslationScreen() {
   const backgroundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoStoppedRef = useRef(false);
   const measuredRttRef = useRef<number | null>(null);
+  const rewardedAdRef = useRef<RewardedAd | null>(null);
+  const adLoadedRef = useRef(false);
+  const rewardEarnedRef = useRef(false);
   // Mirror of recorderState so the AppState listener reads the latest value
   // without re-subscribing on every state change.
   const recorderStateRef = useRef<RecorderState>('idle');
@@ -187,6 +194,18 @@ export default function TranslationScreen() {
     }
   }, []);
 
+  // --- rewarded ad ---
+  const loadAd = useCallback(() => {
+    if (IS_EXPO_GO) return;
+    adLoadedRef.current = false;
+    const ad = RewardedAd.createForAdRequest(AD_UNIT_ID);
+    rewardedAdRef.current = ad;
+    ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+      adLoadedRef.current = true;
+    });
+    ad.load();
+  }, []);
+
   // --- chunk -> upload -> segment ---
   const handleChunk = useCallback((wav: Uint8Array, sequenceNumber: number) => {
     if (sequenceNumber === 0) setIsFirstChunkPending(true);
@@ -230,6 +249,29 @@ export default function TranslationScreen() {
     }
   }, [stopElapsedTimer, stopCountdownTimer, safeDeactivateKeepAwake, setIsFirstChunkPending]);
 
+  // Core recording start — called directly for premium users, or from the ad
+  // earned-reward callback for free users.
+  const doStartRecording = useCallback(async () => {
+    try {
+      if (!recorderRef.current) {
+        recorderRef.current = new AudioRecorderManager();
+      }
+      setSegments([]);
+      setElapsed(0);
+      if (isPremium()) {
+        void AsyncStorage.removeItem(HISTORY_KEY);
+      }
+      await recorderRef.current.start(handleChunk);
+      setRecorderState('recording');
+      startElapsedTimer();
+      startCountdownTimer(15);
+      await activateKeepAwakeAsync(KEEP_AWAKE_TAG);
+    } catch {
+      Alert.alert('Recording error', 'Could not start recording. Please try again.');
+      stopRecordingInternal();
+    }
+  }, [handleChunk, startElapsedTimer, startCountdownTimer, stopRecordingInternal]);
+
   const handleStart = useCallback(async () => {
     if (IS_EXPO_GO) {
       Alert.alert('Native build required', EXPO_GO_MESSAGE);
@@ -258,25 +300,45 @@ export default function TranslationScreen() {
       }
     }
 
-    try {
-      if (!recorderRef.current) {
-        recorderRef.current = new AudioRecorderManager();
+    if (!isPremium()) {
+      const ad = rewardedAdRef.current;
+      if (!ad || !adLoadedRef.current) {
+        // Ad not ready (cold-start race or network failure) — let the user record
+        // without it rather than blocking them indefinitely.
+        await doStartRecording();
+        return;
       }
-      setSegments([]);
-      setElapsed(0);
-      if (isPremium()) {
-        void AsyncStorage.removeItem(HISTORY_KEY);
+
+      rewardEarnedRef.current = false;
+
+      const unsubEarned = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
+        rewardEarnedRef.current = true;
+      });
+
+      const unsubClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
+        unsubEarned();
+        unsubClosed();
+        if (rewardEarnedRef.current) {
+          void doStartRecording();
+          loadAd(); // pre-load the next ad
+        }
+        // Skipped or dismissed without completing — recording does not start.
+      });
+
+      try {
+        await ad.show();
+      } catch {
+        // Ad expired or failed to show; clean up and let the user record.
+        unsubEarned();
+        unsubClosed();
+        loadAd();
+        await doStartRecording();
       }
-      await recorderRef.current.start(handleChunk);
-      setRecorderState('recording');
-      startElapsedTimer();
-      startCountdownTimer(15); // first chunk arrives after ~15s
-      await activateKeepAwakeAsync(KEEP_AWAKE_TAG);
-    } catch {
-      Alert.alert('Recording error', 'Could not start recording. Please try again.');
-      stopRecordingInternal();
+      return;
     }
-  }, [handleChunk, startElapsedTimer, startCountdownTimer, stopRecordingInternal]);
+
+    await doStartRecording();
+  }, [doStartRecording, loadAd]);
 
   const handlePause = useCallback(() => {
     recorderRef.current?.pause();
@@ -296,9 +358,10 @@ export default function TranslationScreen() {
     stopRecordingInternal();
   }, [stopRecordingInternal]);
 
-  // --- mount: pre-warm recorder + check disclaimer ---
+  // --- mount: pre-warm recorder + pre-load ad + check disclaimer ---
   useEffect(() => {
     recorderRef.current = new AudioRecorderManager();
+    loadAd();
 
     void (async () => {
       try {
@@ -328,7 +391,7 @@ export default function TranslationScreen() {
       void recorderRef.current?.stop();
       safeDeactivateKeepAwake();
     };
-  }, [stopElapsedTimer, stopCountdownTimer, safeDeactivateKeepAwake]);
+  }, [stopElapsedTimer, stopCountdownTimer, safeDeactivateKeepAwake, loadAd]);
 
   // --- background tolerance: 30s grace before auto-stopping ---
   useEffect(() => {
