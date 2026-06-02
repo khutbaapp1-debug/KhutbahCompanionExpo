@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { isPremium } from '../src/lib/premium';
+import { usePremium } from '../src/hooks/usePremium';
 import { useTheme } from '../src/lib/theme-context';
 
 // Arabic copied verbatim from the original presets — not retyped.
@@ -43,6 +43,7 @@ const ARABIC_FONT = 'NotoNaskhArabic_400Regular';
 export default function TasbihScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { isPremium } = usePremium();
   const [selectedId, setSelectedId] = useState<DhikrId>('subhanallah');
   const [count, setCount] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
@@ -58,9 +59,9 @@ export default function TasbihScreen() {
     ...completedIds,
   ];
   const nextId = orderedIds.find(
-    (id) => id !== selectedId && !completedIds.includes(id) && (isPremium() || FREE_DHIKR_IDS.includes(id)),
+    (id) => id !== selectedId && !completedIds.includes(id) && (isPremium || FREE_DHIKR_IDS.includes(id)),
   );
-  const accessibleIds = isPremium() ? ALL_IDS : FREE_DHIKR_IDS;
+  const accessibleIds = isPremium ? ALL_IDS : FREE_DHIKR_IDS;
   const allDone = accessibleIds.every((id) => completedIds.includes(id));
 
   const animateTap = () => {
@@ -94,7 +95,7 @@ export default function TasbihScreen() {
         const newCompleted = completedIds.includes(selectedId)
           ? completedIds
           : [...completedIds, selectedId];
-        const accessible = isPremium() ? ALL_IDS : FREE_DHIKR_IDS;
+        const accessible = isPremium ? ALL_IDS : FREE_DHIKR_IDS;
         const remaining = accessible.filter((id) => !newCompleted.includes(id));
         setCompletedIds(newCompleted);
         if (remaining.length > 0) setSelectedId(remaining[0]);
@@ -240,7 +241,7 @@ export default function TasbihScreen() {
               const isSelected = id === selectedId;
               const isCompleted = completedIds.includes(id);
               const isNext = id === nextId;
-              const isLocked = !isPremium() && !FREE_DHIKR_IDS.includes(id);
+              const isLocked = !isPremium && !FREE_DHIKR_IDS.includes(id);
               return (
                 <TouchableOpacity
                   key={id}

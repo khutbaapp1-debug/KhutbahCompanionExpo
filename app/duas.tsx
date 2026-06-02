@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../src/lib/theme-context';
-import { isPremium } from '../src/lib/premium';
+import { usePremium } from '../src/hooks/usePremium';
 
 const BASE_URL = 'https://khutbah-translate.replit.app';
 const DUA_CACHE_KEY = 'duas-cache-v1';
@@ -54,6 +54,7 @@ const CATEGORIES = [
 export default function DuasScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { isPremium } = usePremium();
   const [duas, setDuas] = useState<Dua[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
@@ -83,12 +84,11 @@ export default function DuasScreen() {
   }, []);
 
   const filtered = useMemo(() => {
-    const free = !isPremium();
-    if (free && category === 'all') {
+    if (!isPremium && category === 'all') {
       return duas.filter((d) => d.category === 'morning' || d.category === 'evening');
     }
     return category === 'all' ? duas : duas.filter((d) => d.category === category);
-  }, [duas, category]);
+  }, [duas, category, isPremium]);
 
   const copyDua = async (dua: Dua) => {
     const text = `${dua.translation}\n\n${dua.transliteration}${dua.reference ? `\n— ${dua.reference}` : ''}`;
@@ -115,7 +115,7 @@ export default function DuasScreen() {
           }}
         >
           {CATEGORIES.map((cat) => {
-            const isLocked = !isPremium() && !FREE_CATEGORY_IDS.includes(cat.id);
+            const isLocked = !isPremium && !FREE_CATEGORY_IDS.includes(cat.id);
             return (
               <TouchableOpacity
                 key={cat.id}
@@ -151,7 +151,7 @@ export default function DuasScreen() {
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator size="large" color={theme.primary} />
           </View>
-        ) : !isPremium() && !FREE_CATEGORY_IDS.includes(category) ? (
+        ) : !isPremium && !FREE_CATEGORY_IDS.includes(category) ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
             <Ionicons name="lock-closed" size={48} color={theme.textMuted} />
             <Text
