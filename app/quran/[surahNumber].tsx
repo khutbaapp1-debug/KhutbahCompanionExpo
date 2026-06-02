@@ -35,27 +35,6 @@ type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unk
 const DEFAULT_RECITER: ReciterId = 'ar.alafasy';
 const FONT_SIZES: number[] = [20, 24, 28, 32];
 
-function estimateVerseOffset(
-  ayahs: Ayah[],
-  targetAyahNumber: number,
-  fontSize: number,
-  cardWidth: number,
-): number {
-  const lineHeight = fontSize * 2;
-  // Arabic text with tashkeel averages ~3.2 Unicode code points per visible glyph,
-  // so multiply raw glyph capacity by that ratio to get true chars-per-line.
-  const DIACRITIC_RATIO = 4.8;
-  const charsPerLine = Math.floor((cardWidth * 0.85) / (fontSize * 0.6)) * DIACRITIC_RATIO;
-  let offset = 0;
-  for (let i = 0; i < targetAyahNumber - 1; i++) {
-    const ayah = ayahs[i];
-    if (!ayah) break;
-    const lines = Math.ceil(ayah.text.length / Math.max(charsPerLine, 1));
-    offset += lines * lineHeight;
-    offset += lineHeight * 0.55; // verse marker row
-  }
-  return offset;
-}
 
 export default function SurahReader() {
   const { theme, mode: themeMode } = useTheme();
@@ -72,11 +51,10 @@ export default function SurahReader() {
   const [bookmarkedAyah, setBookmarkedAyah] = useState<number | null>(null);
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
-  const [bookmarkScrollY, setBookmarkScrollY] = useState<number | undefined>(undefined);
-  const [bookmarkFontSizeIdx, setBookmarkFontSizeIdx] = useState<number | undefined>(undefined);
-  const soundRef = useRef<SoundInstance | null>(null);
+const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
+  const verseRefs = useRef<Record<number, View | null>>({});
   const pageScrollYRef = useRef(0);
   const itemHeightsRef = useRef<Record<number, number>>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,8 +105,6 @@ export default function SurahReader() {
     getBookmark().then((bm: Bookmark | null) => {
       if (bm?.surahNumber === surahNum) {
         setBookmarkedAyah(bm.ayahNumber);
-        setBookmarkScrollY(bm.scrollY);
-        setBookmarkFontSizeIdx(bm.fontSizeIdx);
       }
     });
   }, [surahNum]);
@@ -209,19 +185,14 @@ export default function SurahReader() {
         ]);
       } else {
         setBookmarkedAyah(ayahNumber);
-        void setBookmark(
-          surahNum,
-          ayahNumber,
-          viewMode === 'page' ? pageScrollYRef.current : undefined,
-          fontSizeIdx,
-        );
+        void setBookmark(surahNum, ayahNumber, undefined, fontSizeIdx);
         Alert.alert(
           'Bookmark Saved',
           `Verse ${ayahNumber} of ${surah?.englishName ?? 'this surah'} bookmarked.`,
         );
       }
     },
-    [bookmarkedAyah, surahNum, surah, viewMode, fontSizeIdx],
+    [bookmarkedAyah, surahNum, surah, fontSizeIdx],
   );
 
   // Page view: tap verse marker → play + show active verse panel
@@ -235,34 +206,23 @@ export default function SurahReader() {
 
   // Scroll to a verse in either view mode.
   // Detailed: index-based scrollToIndex (always accurate).
-  // Page: uses stored exact scrollY if jumping to the bookmarked verse; otherwise estimates.
+  // Page: measureInWindow on the per-verse ref gives the exact current position regardless of
+  // font size at save time — font-size changes are handled automatically.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (viewMode === 'detailed' && listRef.current) {
-      // Direct index scroll; onScrollToIndexFailed handles rows not yet rendered.
       listRef.current.scrollToIndex({
         index: ayahNumber - 1,
         animated: false,
         viewPosition: 0,
       });
-    } else if (pageScrollRef.current && surah) {
-      if (ayahNumber === bookmarkedAyah && bookmarkScrollY !== undefined) {
-        if (bookmarkFontSizeIdx !== undefined && bookmarkFontSizeIdx !== fontSizeIdx) {
-          setFontSizeIdx(bookmarkFontSizeIdx);
-          setTimeout(() => {
-            pageScrollRef.current?.scrollTo({ y: bookmarkScrollY, animated });
-          }, 350);
-        } else {
-          pageScrollRef.current.scrollTo({ y: bookmarkScrollY, animated });
-        }
-      } else {
-        const showBismillah = surahNum !== 1 && surahNum !== 9;
-        const bismillahOffset = showBismillah ? fontSize * 0.9 + 24 : 0;
-        const cardPadding = 36;
-        const verseOffset = estimateVerseOffset(surah.ayahs, ayahNumber, fontSize, cardWidth);
-        pageScrollRef.current.scrollTo({ y: bismillahOffset + cardPadding + verseOffset, animated });
-      }
+    } else if (pageScrollRef.current) {
+      verseRefs.current[ayahNumber]?.measureInWindow((_, windowY, __, height) => {
+        const screenHeight = Dimensions.get('window').height;
+        const targetY = pageScrollYRef.current + windowY + height / 2 - screenHeight / 2;
+        pageScrollRef.current?.scrollTo({ y: Math.max(0, targetY), animated });
+      });
     }
-  }, [viewMode, surah, surahNum, fontSize, cardWidth, bookmarkedAyah, bookmarkScrollY, bookmarkFontSizeIdx, fontSizeIdx]);
+  }, [viewMode]);
 
   const handleViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -493,7 +453,7 @@ export default function SurahReader() {
         <ScrollView
           ref={pageScrollRef}
           onScroll={(e) => { pageScrollYRef.current = e.nativeEvent.contentOffset.y; }}
-          scrollEventThrottle={100}
+          scrollEventThrottle={16}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         >
           {/* Bismillah header above the parchment (not shown for surah 1 or 9) */}
@@ -528,40 +488,44 @@ export default function SurahReader() {
               elevation: 3,
             }}
           >
-            {/* One continuous Text block — all ayahs inline with ornamental verse markers */}
-            <Text
-              style={{
-                writingDirection: 'rtl',
-                textAlign: 'justify',
-                fontFamily: 'KFGQPCHafs',
-                fontSize,
-                lineHeight: fontSize * 2,
-                color: themeMode === 'light' ? '#1a1a1a' : theme.text,
-              }}
-            >
-              {surah.ayahs.map((ayah) => {
-                const isPlaying = playingAyah === ayah.numberInSurah;
-                const isLoading = loadingAyah === ayah.numberInSurah;
-                const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
-                const textContent =
-                  ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
-                const markerContent = isLoading
-                  ? '○'
-                  : isPlaying
-                  ? '⏸'
-                  : isBookmarked
-                  ? `۞ ${ayah.numberInSurah}`
-                  : `۝ ${ayah.numberInSurah}`;
-                const markerColor = isLoading
-                  ? theme.textMuted
-                  : isPlaying
-                  ? theme.primary
-                  : isBookmarked
-                  ? '#C0392B'
-                  : theme.primary;
-                return (
-                  <Text key={ayah.numberInSurah}>
-                    <Text style={{ fontFamily: 'KFGQPCHafs', fontSize }}>{textContent}{' '}</Text>
+            {/* One View per ayah so measureInWindow can locate each verse exactly */}
+            {surah.ayahs.map((ayah) => {
+              const isPlaying = playingAyah === ayah.numberInSurah;
+              const isLoading = loadingAyah === ayah.numberInSurah;
+              const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
+              const textContent =
+                ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
+              const markerContent = isLoading
+                ? '○'
+                : isPlaying
+                ? '⏸'
+                : isBookmarked
+                ? `۞ ${ayah.numberInSurah}`
+                : `۝ ${ayah.numberInSurah}`;
+              const markerColor = isLoading
+                ? theme.textMuted
+                : isPlaying
+                ? theme.primary
+                : isBookmarked
+                ? '#C0392B'
+                : theme.primary;
+              return (
+                <View
+                  key={ayah.numberInSurah}
+                  ref={(el) => { verseRefs.current[ayah.numberInSurah] = el; }}
+                  collapsable={false}
+                >
+                  <Text
+                    style={{
+                      writingDirection: 'rtl',
+                      textAlign: 'justify',
+                      fontFamily: 'KFGQPCHafs',
+                      fontSize,
+                      lineHeight: fontSize * 2,
+                      color: themeMode === 'light' ? '#1a1a1a' : theme.text,
+                    }}
+                  >
+                    {textContent}{' '}
                     <Text
                       onPress={() => handleVerseMarkerPress(ayah.numberInSurah)}
                       onLongPress={() => handleBookmarkAyah(ayah.numberInSurah)}
@@ -574,9 +538,9 @@ export default function SurahReader() {
                       {markerContent}{' '}
                     </Text>
                   </Text>
-                );
-              })}
-            </Text>
+                </View>
+              );
+            })}
           </View>
 
           {/* Active verse panel — shown when a verse marker is tapped */}

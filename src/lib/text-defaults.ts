@@ -6,8 +6,8 @@ import { Platform, Text, type TextProps } from 'react-native';
  * On Android, `Text` ships with `includeFontPadding: true`, which adds extra
  * font-metric padding and frequently clips the descenders (the tails of
  * g, y, p, q, j) at the bottom of a line. Disabling it app-wide fixes the
- * clipping. We also set `textAlignVertical: 'center'` so removing the padding
- * doesn't shift single-line text off-centre. Both properties are Android-only;
+ * clipping. We also set `textAlignVertical: 'auto'` and add `paddingBottom: 2`
+ * so descenders are not clipped after disabling the built-in padding. Both properties are Android-only;
  * React Native ignores them on iOS/web, so this is a harmless cross-platform
  * default.
  *
@@ -18,7 +18,7 @@ import { Platform, Text, type TextProps } from 'react-native';
  * an array style resolves left-to-right.
  */
 const androidTextDefaults = Platform.select({
-  android: { includeFontPadding: false, textAlignVertical: 'center' as const },
+  android: { includeFontPadding: false, textAlignVertical: 'auto' as const, paddingBottom: 2 },
   default: undefined,
 });
 

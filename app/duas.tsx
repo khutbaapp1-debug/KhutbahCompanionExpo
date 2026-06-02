@@ -114,7 +114,8 @@ export default function DuasScreen() {
               onPress={() => setCategory(cat.id)}
               style={{
                 paddingHorizontal: 16,
-                paddingVertical: 8,
+                paddingTop: 8,
+                paddingBottom: 10,
                 borderRadius: 20,
                 marginRight: 8,
                 alignSelf: 'center',
