@@ -77,6 +77,7 @@ function ThemedStack() {
       <Stack.Screen name="names" options={{ title: '99 Names of Allah' }} />
       <Stack.Screen name="mosques" options={{ title: 'Mosque Finder' }} />
       <Stack.Screen name="salah-guide" options={{ title: 'Salah & Wudu Guide' }} />
+      <Stack.Screen name="ramadan" options={{ title: 'Ramadan' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
     </Stack>
