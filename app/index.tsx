@@ -67,6 +67,13 @@ const TILES: TileData[] = [
     title: 'Daily Hadith',
   },
   {
+    href: '/zakat',
+    imageSource: IMG_NAMES,
+    iconLibrary: 'ionicons',
+    iconName: 'calculator-outline',
+    title: 'Zakat',
+  },
+  {
     href: '/tasbih',
     imageSource: IMG_TASBIH,
     iconLibrary: 'custom-tasbih',
