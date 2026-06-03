@@ -496,59 +496,55 @@ const soundRef = useRef<SoundInstance | null>(null);
               elevation: 3,
             }}
           >
-            {/* One View per ayah so measureInWindow can locate each verse exactly */}
-            {surah.ayahs.map((ayah) => {
-              const isPlaying = playingAyah === ayah.numberInSurah;
-              const isLoading = loadingAyah === ayah.numberInSurah;
-              const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
-              const textContent =
-                ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
-              const markerContent = isLoading
-                ? '○'
-                : isPlaying
-                ? '⏸'
-                : isBookmarked
-                ? `۞ ${ayah.numberInSurah}`
-                : `۝ ${ayah.numberInSurah}`;
-              const markerColor = isLoading
-                ? theme.textMuted
-                : isPlaying
-                ? theme.primary
-                : isBookmarked
-                ? '#C0392B'
-                : theme.primary;
-              return (
-                <View
-                  key={ayah.numberInSurah}
-                  ref={(el) => { verseRefs.current[ayah.numberInSurah] = el; }}
-                  collapsable={false}
-                >
-                  <Text
-                    style={{
-                      writingDirection: 'rtl',
-                      textAlign: 'justify',
-                      fontFamily: 'KFGQPCHafs',
-                      fontSize,
-                      lineHeight: fontSize * 2,
-                      color: themeMode === 'light' ? '#1a1a1a' : theme.text,
-                    }}
-                  >
+            {/* Continuous flowing RTL paragraph — verse markers are inline spans */}
+            <Text
+              style={{
+                writingDirection: 'rtl',
+                textAlign: 'right',
+                fontFamily: 'KFGQPCHafs',
+                fontSize,
+                lineHeight: fontSize * 2,
+                color: themeMode === 'light' ? '#1a1a1a' : theme.text,
+              }}
+            >
+              {surah.ayahs.map((ayah) => {
+                const isPlaying = playingAyah === ayah.numberInSurah;
+                const isLoading = loadingAyah === ayah.numberInSurah;
+                const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
+                const textContent =
+                  ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
+                const markerContent = isLoading
+                  ? '○'
+                  : isPlaying
+                  ? '⏸'
+                  : isBookmarked
+                  ? `۞ ${ayah.numberInSurah}`
+                  : `۝ ${ayah.numberInSurah}`;
+                const markerColor = isLoading
+                  ? theme.textMuted
+                  : isPlaying
+                  ? theme.primary
+                  : isBookmarked
+                  ? '#C0392B'
+                  : theme.primary;
+                return (
+                  <Text key={ayah.numberInSurah}>
                     {textContent}{' '}
                     <Text
                       onPress={() => handleVerseMarkerPress(ayah.numberInSurah)}
                       onLongPress={() => handleBookmarkAyah(ayah.numberInSurah)}
                       style={{
                         fontFamily: 'KFGQPCHafs',
-                        fontSize: isBookmarked ? fontSize * 1.0 : fontSize * 0.85,
+                        fontSize: fontSize * 0.85,
                         color: markerColor,
                       }}
                     >
                       {markerContent}{' '}
                     </Text>
                   </Text>
-                </View>
-              );
-            })}
+                );
+              })}
+            </Text>
           </View>
 
           {/* Active verse panel — shown when a verse marker is tapped */}

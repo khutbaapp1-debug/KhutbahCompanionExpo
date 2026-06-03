@@ -232,7 +232,7 @@ export default function SettingsScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                 <Ionicons name="star" size={18} color="white" style={{ marginRight: 8 }} />
                 <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: 'white' }}>
-                  Support the App — Sadaqah Jariyah
+                  Upgrade to Premium
                 </Text>
               </View>
               <Text
@@ -244,7 +244,7 @@ export default function SettingsScreen() {
                   marginBottom: 16,
                 }}
               >
-                Unlock all duas, unlimited dhikr, Quran bookmarks, and translation history.
+                Unlock all features and support the development of Khutbah Companion.
               </Text>
               <TouchableOpacity
                 onPress={() => setShowPaywall(true)}
