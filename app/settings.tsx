@@ -24,6 +24,8 @@ import {
 } from '../src/lib/prayer-settings';
 import type { ThemeMode } from '../src/lib/theme';
 import { useTheme } from '../src/lib/theme-context';
+import { usePremium } from '../src/hooks/usePremium';
+import { PremiumPaywall } from '../src/components/PremiumPaywall';
 
 // ─── Local types ────────────────────────────────────────────────────────────
 
@@ -184,10 +186,12 @@ export default function SettingsScreen() {
 
   // Theme comes from the global ThemeProvider (persisted there).
   const { mode, theme, setTheme } = useTheme();
+  const { isPremium } = usePremium();
 
   // Display preferences (their own AsyncStorage keys).
   const [fontSize, setFontSize] = useState<FontSizeKey>('Default');
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const [openModal, setOpenModal] = useState<OpenModal>(null);
 
@@ -212,6 +216,58 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView edges={['bottom']} className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+
+        {/* ── Premium upsell — hidden once subscribed ──────────────── */}
+        {!isPremium && (
+          <>
+            <SectionHeader title="Premium" />
+            <View
+              style={{
+                marginHorizontal: 16,
+                borderRadius: 16,
+                backgroundColor: theme.primary,
+                padding: 20,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Ionicons name="star" size={18} color="white" style={{ marginRight: 8 }} />
+                <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 16, color: 'white' }}>
+                  Support the App — Sadaqah Jariyah
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontFamily: 'Inter_400Regular',
+                  fontSize: 13,
+                  color: 'rgba(255,255,255,0.85)',
+                  lineHeight: 20,
+                  marginBottom: 16,
+                }}
+              >
+                Unlock all duas, unlimited dhikr, Quran bookmarks, and translation history.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowPaywall(true)}
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'Inter_600SemiBold',
+                    fontSize: 14,
+                    color: theme.primary,
+                  }}
+                >
+                  Upgrade to Premium
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
 
         {/* ── Section 1 — Display ──────────────────────────────────── */}
         <SectionHeader title="Display" />
@@ -442,6 +498,7 @@ export default function SettingsScreen() {
         }}
         onClose={() => setOpenModal(null)}
       />
+      <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />
     </SafeAreaView>
   );
 }

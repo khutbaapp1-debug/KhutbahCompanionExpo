@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, ImageSourcePropType, ScrollView, View } from 'react-native';
+import { FlatList, ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BannerAdPlaceholder from '../src/components/BannerAdPlaceholder';
@@ -9,7 +10,9 @@ import GridTile from '../src/components/GridTile';
 import HomeHeader from '../src/components/HomeHeader';
 import NextPrayerCard from '../src/components/NextPrayerCard';
 import { useNextPrayer } from '../src/hooks/useNextPrayer';
+import { usePremium } from '../src/hooks/usePremium';
 import { getStoredLocation, requestAndCacheLocation } from '../src/lib/location';
+import { PremiumPaywall } from '../src/components/PremiumPaywall';
 import type { Coordinates } from '../src/lib/prayer-times';
 import { useTheme } from '../src/lib/theme-context';
 import type { ThemeMode } from '../src/lib/theme';
@@ -98,6 +101,8 @@ const TILES: TileData[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const { mode, theme, setTheme } = useTheme();
+  const { isPremium } = usePremium();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Location for the next-prayer card. null until we've checked the cache.
   // Once checked with nothing cached (and permission not granted), the card
@@ -165,6 +170,37 @@ export default function HomeScreen() {
           onNotificationsPress={() => router.push('/notifications')}
         />
       </SafeAreaView>
+      {!isPremium && (
+        <TouchableOpacity
+          onPress={() => setShowPaywall(true)}
+          activeOpacity={0.85}
+          style={{
+            backgroundColor: theme.primary,
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+          }}
+        >
+          <Ionicons
+            name="star"
+            size={15}
+            color="rgba(255,255,255,0.9)"
+            style={{ marginRight: 8 }}
+          />
+          <Text
+            style={{
+              fontFamily: 'Inter_500Medium',
+              fontSize: 13,
+              color: 'white',
+              flex: 1,
+            }}
+          >
+            Unlock Premium Features
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.9)" />
+        </TouchableOpacity>
+      )}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -207,6 +243,7 @@ export default function HomeScreen() {
       <SafeAreaView edges={['bottom']} style={{ backgroundColor: theme.surface }}>
         <BannerAdPlaceholder />
       </SafeAreaView>
+      <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />
     </View>
   );
 }
