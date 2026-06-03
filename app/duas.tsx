@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../src/lib/theme-context';
 import { usePremium } from '../src/hooks/usePremium';
+import { PremiumPaywall } from '../src/components/PremiumPaywall';
 
 const BASE_URL = 'https://khutbah-translate.replit.app';
 const DUA_CACHE_KEY = 'duas-cache-v1';
@@ -59,6 +60,7 @@ export default function DuasScreen() {
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -119,7 +121,13 @@ export default function DuasScreen() {
             return (
               <TouchableOpacity
                 key={cat.id}
-                onPress={() => setCategory(cat.id)}
+                onPress={() => {
+                if (isLocked) {
+                  setShowPaywall(true);
+                } else {
+                  setCategory(cat.id);
+                }
+              }}
                 style={{
                   paddingHorizontal: 16,
                   paddingTop: 8,
@@ -152,7 +160,11 @@ export default function DuasScreen() {
             <ActivityIndicator size="large" color={theme.primary} />
           </View>
         ) : !isPremium && !FREE_CATEGORY_IDS.includes(category) ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <TouchableOpacity
+            onPress={() => setShowPaywall(true)}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}
+            activeOpacity={0.8}
+          >
             <Ionicons name="lock-closed" size={48} color={theme.textMuted} />
             <Text
               style={{
@@ -175,9 +187,9 @@ export default function DuasScreen() {
                 lineHeight: 22,
               }}
             >
-              Upgrade to Premium to unlock all duas
+              Tap to upgrade to Premium
             </Text>
-          </View>
+          </TouchableOpacity>
         ) : (
           <FlatList
             data={filtered}
@@ -314,6 +326,7 @@ export default function DuasScreen() {
           />
         )}
       </View>
+        <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />
     </>
   );
 }

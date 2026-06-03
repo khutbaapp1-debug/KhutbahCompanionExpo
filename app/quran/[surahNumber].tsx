@@ -29,6 +29,7 @@ import { getSurahTranslation } from '../../src/lib/quran-translation';
 import type { AyahTranslation } from '../../src/lib/quran-translation';
 import { useTheme } from '../../src/lib/theme-context';
 import { usePremium } from '../../src/hooks/usePremium';
+import { PremiumPaywall } from '../../src/components/PremiumPaywall';
 
 type ViewMode = 'page' | 'detailed';
 type SoundInstance = { stopAsync(): Promise<unknown>; unloadAsync(): Promise<unknown> };
@@ -53,6 +54,7 @@ export default function SurahReader() {
   const [bookmarkedAyah, setBookmarkedAyah] = useState<number | null>(null);
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
@@ -181,10 +183,7 @@ const soundRef = useRef<SoundInstance | null>(null);
   const handleBookmarkAyah = useCallback(
     (ayahNumber: number) => {
       if (!isPremium) {
-        Alert.alert(
-          'Premium Feature',
-          'Bookmarks are a Premium feature. Upgrade to unlock.',
-        );
+        setShowPaywall(true);
         return;
       }
       if (bookmarkedAyah === ayahNumber) {
@@ -201,7 +200,7 @@ const soundRef = useRef<SoundInstance | null>(null);
         );
       }
     },
-    [bookmarkedAyah, surahNum, surah, fontSizeIdx, isPremium],
+    [bookmarkedAyah, surahNum, surah, fontSizeIdx, isPremium, setShowPaywall],
   );
 
   // Page view: tap verse marker → play + show active verse panel
@@ -781,6 +780,7 @@ const soundRef = useRef<SoundInstance | null>(null);
         />
       )}
 
+      <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />
     </View>
   );
 }
