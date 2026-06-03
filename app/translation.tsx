@@ -14,6 +14,8 @@ import {
   Modal,
   PermissionsAndroid,
   Platform,
+  ScrollView,
+  Share,
   Text,
   TouchableOpacity,
   View,
@@ -25,14 +27,43 @@ import {
   type RecorderState,
   type TranslationSegment,
 } from '../src/lib/audio-recorder';
+import { SummaryModal } from '../src/components/SummaryModal';
 import { uploadChunk } from '../src/lib/translation-upload';
 import { usePremium } from '../src/hooks/usePremium';
 import { useTheme } from '../src/lib/theme-context';
 
 const DISCLAIMER_KEY = 'translation-disclaimer-v1';
 const HISTORY_KEY = 'translation-history-v1';
+const LANG_SOURCE_KEY = 'translation-source-lang';
+const LANG_TARGET_KEY = 'translation-target-lang';
+const SUMMARISE_URL = 'https://khutbahtranslate-production.up.railway.app/api/summarise';
 const BACKGROUND_GRACE_MS = 30_000;
 const KEEP_AWAKE_TAG = 'translation';
+const FREE_SOURCE = 'ar';
+const FREE_TARGET = 'en';
+
+type LangOption = { code: string; label: string };
+const SOURCE_LANGUAGES: LangOption[] = [
+  { code: 'ar', label: 'Arabic' },
+  { code: 'fr', label: 'French' },
+  { code: 'tr', label: 'Turkish' },
+  { code: 'ur', label: 'Urdu' },
+  { code: 'bn', label: 'Bengali' },
+  { code: 'id', label: 'Indonesian' },
+  { code: 'en', label: 'English' },
+];
+const TARGET_LANGUAGES: LangOption[] = [
+  { code: 'en', label: 'English' },
+  { code: 'fr', label: 'French' },
+  { code: 'ur', label: 'Urdu' },
+  { code: 'ar', label: 'Arabic' },
+  { code: 'bn', label: 'Bengali' },
+  { code: 'tr', label: 'Turkish' },
+  { code: 'es', label: 'Spanish' },
+];
+const LANG_LABEL: Record<string, string> = Object.fromEntries(
+  [...SOURCE_LANGUAGES, ...TARGET_LANGUAGES].map((l) => [l.code, l.label]),
+);
 
 // `appOwnership === 'expo'` is only true inside Expo Go, where the native audio
 // module is unavailable. We still render the full UI + disclaimer there, but
@@ -124,6 +155,13 @@ export default function TranslationScreen() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [currentCard, setCurrentCard] = useState(0);
   const [isFirstChunkPending, setIsFirstChunkPending] = useState(false);
+  const [sourceLang, setSourceLang] = useState(FREE_SOURCE);
+  const [targetLang, setTargetLang] = useState(FREE_TARGET);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryText, setSummaryText] = useState<string | null>(null);
+  const [actionPoints, setActionPoints] = useState<string[]>([]);
 
   const recorderRef = useRef<AudioRecorderManager | null>(null);
   const segmentsRef = useRef<TranslationSegment[]>([]);
@@ -133,6 +171,8 @@ export default function TranslationScreen() {
   const backgroundTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoStoppedRef = useRef(false);
   const measuredRttRef = useRef<number | null>(null);
+  const sourceLangRef = useRef(FREE_SOURCE);
+  const targetLangRef = useRef(FREE_TARGET);
   // Mirror of recorderState so the AppState listener reads the latest value
   // without re-subscribing on every state change.
   const recorderStateRef = useRef<RecorderState>('idle');
@@ -152,6 +192,22 @@ export default function TranslationScreen() {
   useEffect(() => {
     segmentsRef.current = segments;
   }, [segments]);
+
+  // Keep lang refs in sync with state so callbacks always read the latest value.
+  useEffect(() => {
+    sourceLangRef.current = isPremium ? sourceLang : FREE_SOURCE;
+    targetLangRef.current = isPremium ? targetLang : FREE_TARGET;
+  }, [sourceLang, targetLang, isPremium]);
+
+  // Load persisted language preferences on mount.
+  useEffect(() => {
+    void (async () => {
+      const src = await AsyncStorage.getItem(LANG_SOURCE_KEY);
+      const tgt = await AsyncStorage.getItem(LANG_TARGET_KEY);
+      if (src) setSourceLang(src);
+      if (tgt) setTargetLang(tgt);
+    })();
+  }, []);
 
   // Load saved history once premium status is known; re-runs if the value flips
   // (e.g. user upgrades mid-session — unlikely but correct).
@@ -213,7 +269,7 @@ export default function TranslationScreen() {
     if (sequenceNumber === 0) setIsFirstChunkPending(true);
     const sentAt = Date.now();
     // Fire-and-forget: recording continues while the upload resolves.
-    void uploadChunk(wav, sequenceNumber).then((result) => {
+    void uploadChunk(wav, sequenceNumber, sourceLangRef.current, targetLangRef.current).then((result) => {
       if (sequenceNumber === 0) setIsFirstChunkPending(false);
       const rtt = Math.max(5, Math.round((Date.now() - sentAt) / 1000));
       measuredRttRef.current = rtt;
@@ -318,8 +374,36 @@ export default function TranslationScreen() {
     startCountdownTimer(12);
   }, [startElapsedTimer, startCountdownTimer]);
 
-  const handleStop = useCallback(() => {
+  const handleStop = useCallback(async () => {
     stopRecordingInternal();
+    if (isPremiumRef.current && segmentsRef.current.length > 0) {
+      const text = segmentsRef.current
+        .filter((s) => s.english && s.english !== '…')
+        .map((s) => s.english)
+        .join('\n\n');
+      if (text.length > 50) {
+        setSummaryText(null);
+        setActionPoints([]);
+        setSummaryLoading(true);
+        setShowSummary(true);
+        try {
+          const res = await fetch(SUMMARISE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+          });
+          if (res.ok) {
+            const data = (await res.json()) as { summary?: string; actionPoints?: string[] };
+            setSummaryText(data.summary ?? null);
+            setActionPoints(data.actionPoints ?? []);
+          }
+        } catch {
+          // Network failure — modal shows nothing; user can dismiss.
+        } finally {
+          setSummaryLoading(false);
+        }
+      }
+    }
   }, [stopRecordingInternal]);
 
   // --- mount: pre-warm recorder + check disclaimer ---
@@ -576,17 +660,36 @@ export default function TranslationScreen() {
             <Ionicons name="home-outline" size={24} color={theme.textSecondary} />
           </TouchableOpacity>
 
-          <Text
-            style={{
-              flex: 1,
-              textAlign: 'center',
-              fontFamily: 'Inter_600SemiBold',
-              fontSize: 18,
-              color: theme.text,
-            }}
+          <TouchableOpacity
+            style={{ flex: 1, alignItems: 'center' }}
+            onPress={() => setShowLangPicker(true)}
+            activeOpacity={0.7}
           >
-            Khutbah Translation
-          </Text>
+            <Text
+              style={{
+                textAlign: 'center',
+                fontFamily: 'Inter_600SemiBold',
+                fontSize: 17,
+                color: theme.text,
+              }}
+            >
+              Khutbah Translation
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_400Regular',
+                  fontSize: 12,
+                  color: theme.textMuted,
+                }}
+              >
+                {LANG_LABEL[isPremium ? sourceLang : FREE_SOURCE] ?? sourceLang}
+                {' → '}
+                {LANG_LABEL[isPremium ? targetLang : FREE_TARGET] ?? targetLang}
+              </Text>
+              <Ionicons name="chevron-down" size={11} color={theme.textMuted} />
+            </View>
+          </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
             {isRecording && (
@@ -596,13 +699,20 @@ export default function TranslationScreen() {
                   height: 10,
                   borderRadius: 5,
                   backgroundColor: '#EF4444',
-                  marginRight: 6,
+                  marginRight: 4,
                 }}
               />
             )}
             <TouchableOpacity
+              onPress={() => setShowLangPicker(true)}
+              style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}
+              accessibilityLabel="Language settings"
+            >
+              <Ionicons name="globe-outline" size={22} color={theme.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => router.push('/settings')}
-              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}
               accessibilityLabel="Settings"
             >
               <Ionicons name="settings-outline" size={22} color={theme.textSecondary} />
@@ -733,7 +843,7 @@ export default function TranslationScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleStop}
+                onPress={() => void handleStop()}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -845,6 +955,182 @@ export default function TranslationScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ── Language picker bottom sheet ─────────────────────────── */}
+      <Modal
+        visible={showLangPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLangPicker(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View
+            style={{
+              backgroundColor: theme.card,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingBottom: insets.bottom + 16,
+              maxHeight: '75%',
+            }}
+          >
+            {/* Handle */}
+            <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 4 }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: theme.border }} />
+            </View>
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 20,
+                paddingVertical: 12,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border,
+              }}
+            >
+              <Text style={{ flex: 1, fontFamily: 'Inter_700Bold', fontSize: 18, color: theme.text }}>
+                Translation Languages
+              </Text>
+              <TouchableOpacity onPress={() => setShowLangPicker(false)} hitSlop={12} style={{ padding: 4 }}>
+                <Ionicons name="close" size={22} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Source language */}
+              <Text
+                style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 12,
+                  color: theme.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  paddingHorizontal: 20,
+                  paddingTop: 16,
+                  paddingBottom: 8,
+                }}
+              >
+                Source Language
+              </Text>
+              {SOURCE_LANGUAGES.map((lang) => {
+                const locked = !isPremium && lang.code !== FREE_SOURCE;
+                const selected = (isPremium ? sourceLang : FREE_SOURCE) === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    onPress={() => {
+                      if (locked) return;
+                      setSourceLang(lang.code);
+                      void AsyncStorage.setItem(LANG_SOURCE_KEY, lang.code);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 20,
+                      paddingVertical: 14,
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.border,
+                      opacity: locked ? 0.45 : 1,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontFamily: selected ? 'Inter_600SemiBold' : 'Inter_400Regular',
+                        fontSize: 15,
+                        color: selected ? theme.primary : theme.text,
+                      }}
+                    >
+                      {lang.label}
+                    </Text>
+                    {locked && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 8 }}>
+                        <Ionicons name="lock-closed" size={12} color={theme.textMuted} />
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: theme.textMuted }}>
+                          Premium
+                        </Text>
+                      </View>
+                    )}
+                    {selected && !locked && (
+                      <Ionicons name="checkmark" size={18} color={theme.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Target language */}
+              <Text
+                style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 12,
+                  color: theme.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  paddingHorizontal: 20,
+                  paddingTop: 20,
+                  paddingBottom: 8,
+                }}
+              >
+                Target Language
+              </Text>
+              {TARGET_LANGUAGES.map((lang) => {
+                const locked = !isPremium && lang.code !== FREE_TARGET;
+                const selected = (isPremium ? targetLang : FREE_TARGET) === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    onPress={() => {
+                      if (locked) return;
+                      setTargetLang(lang.code);
+                      void AsyncStorage.setItem(LANG_TARGET_KEY, lang.code);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 20,
+                      paddingVertical: 14,
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.border,
+                      opacity: locked ? 0.45 : 1,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontFamily: selected ? 'Inter_600SemiBold' : 'Inter_400Regular',
+                        fontSize: 15,
+                        color: selected ? theme.primary : theme.text,
+                      }}
+                    >
+                      {lang.label}
+                    </Text>
+                    {locked && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 8 }}>
+                        <Ionicons name="lock-closed" size={12} color={theme.textMuted} />
+                        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: theme.textMuted }}>
+                          Premium
+                        </Text>
+                      </View>
+                    )}
+                    {selected && !locked && (
+                      <Ionicons name="checkmark" size={18} color={theme.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Khutbah Summary modal (premium, after recording stops) ── */}
+      <SummaryModal
+        visible={showSummary}
+        onDismiss={() => setShowSummary(false)}
+        isLoading={summaryLoading}
+        summary={summaryText}
+        actionPoints={actionPoints}
+      />
     </View>
   );
 }

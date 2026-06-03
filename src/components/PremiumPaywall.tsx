@@ -143,12 +143,13 @@ export function PremiumPaywall({ visible, onDismiss }: Props) {
             style={{
               fontFamily: 'Inter_400Regular',
               fontSize: 14,
-              color: theme.primary,
+              color: theme.textMuted,
               textAlign: 'center',
               marginBottom: 20,
+              lineHeight: 20,
             }}
           >
-            Sadaqah Jariyah – Support the app
+            Unlock all features and support the development of Khutbah Companion.
           </Text>
 
           {/* Feature list */}

@@ -59,6 +59,8 @@ function releaseSlot(): void {
 export async function uploadChunk(
   wav: Uint8Array,
   sequenceNumber: number,
+  sourceLanguage = 'ar',
+  targetLanguage = 'en',
 ): Promise<TranscribeResult | null> {
   await acquireSlot();
   console.log(`[TranslationUpload] seq=${sequenceNumber} upload started — ${activeUploads} concurrent upload(s) in flight`);
@@ -76,6 +78,8 @@ export async function uploadChunk(
       } as unknown as Blob,
     );
     formData.append('sequenceNumber', String(sequenceNumber));
+    formData.append('sourceLanguage', sourceLanguage);
+    formData.append('targetLanguage', targetLanguage);
 
     const response = await fetch(`${BASE_URL}/api/transcribe`, {
       method: 'POST',
