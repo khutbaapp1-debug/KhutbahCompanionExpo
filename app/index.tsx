@@ -61,6 +61,13 @@ const TILES: TileData[] = [
     title: 'Daily Duas',
   },
   {
+    href: '/my-duas',
+    imageSource: IMG_DUAS,
+    iconLibrary: 'ionicons',
+    iconName: 'heart-outline',
+    title: 'My Duas',
+  },
+  {
     href: '/hadith',
     imageSource: IMG_HADITH,
     iconName: 'book-open-page-variant',
