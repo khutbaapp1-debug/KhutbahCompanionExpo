@@ -96,6 +96,13 @@ const TILES: TileData[] = [
     iconLibrary: 'custom-salah',
     title: 'Salah Guide',
   },
+  {
+    href: '/ramadan',
+    imageSource: IMG_PRAYER_TIMES,
+    iconLibrary: 'ionicons',
+    iconName: 'moon-outline',
+    title: 'Ramadan',
+  },
 ];
 
 export default function HomeScreen() {
