@@ -190,7 +190,7 @@ export function PremiumPaywall({ visible, onDismiss }: Props) {
               marginBottom: 16,
             }}
           >
-            £2.99 / month
+            {pkg?.product.priceString ?? '£2.99'} / month
           </Text>
 
           {/* Subscribe button */}
@@ -216,7 +216,7 @@ export function PremiumPaywall({ visible, onDismiss }: Props) {
                   color: 'white',
                 }}
               >
-                Subscribe – £2.99/month
+                Subscribe – {pkg?.product.priceString ?? '£2.99'}/month
               </Text>
             )}
           </TouchableOpacity>
