@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePremium } from '../src/hooks/usePremium';
 import { useTheme } from '../src/lib/theme-context';
+import { PremiumPaywall } from '../src/components/PremiumPaywall';
 
 // Arabic copied verbatim from the original presets — not retyped.
 const DHIKR_PRESETS = [
@@ -49,6 +50,7 @@ export default function TasbihScreen() {
   const [sessionTotal, setSessionTotal] = useState(0);
   const [completedIds, setCompletedIds] = useState<DhikrId[]>([]);
   const [advancing, setAdvancing] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const preset = byId(selectedId);
@@ -247,7 +249,7 @@ export default function TasbihScreen() {
                   key={id}
                   onPress={() => {
                     if (isLocked) {
-                      Alert.alert('Premium Feature', 'Upgrade to Premium to unlock all dhikr options.');
+                      setShowPaywall(true);
                       return;
                     }
                     selectDhikr(id);
@@ -305,6 +307,7 @@ export default function TasbihScreen() {
           </ScrollView>
         </View>
       </View>
+      <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />
     </>
   );
 }
