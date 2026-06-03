@@ -72,6 +72,7 @@ function ThemedStack() {
       <Stack.Screen name="duas" options={{ title: 'Daily Duas' }} />
       <Stack.Screen name="my-duas" options={{ title: 'My Duas' }} />
       <Stack.Screen name="hadith" options={{ title: 'Daily Hadith' }} />
+      <Stack.Screen name="zakat" options={{ title: 'Zakat Calculator' }} />
       <Stack.Screen name="tasbih" options={{ title: 'Tasbih Counter' }} />
       <Stack.Screen name="names" options={{ title: '99 Names of Allah' }} />
       <Stack.Screen name="mosques" options={{ title: 'Mosque Finder' }} />
