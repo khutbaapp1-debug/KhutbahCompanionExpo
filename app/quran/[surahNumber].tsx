@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -55,12 +55,10 @@ export default function SurahReader() {
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [parchmentHeight, setParchmentHeight] = useState(0);
 const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
-  const verseRefs = useRef<Record<number, View | null>>({});
-  const pageScrollYRef = useRef(0);
+  const avgVerseHeightRef = useRef(0);
   const itemHeightsRef = useRef<Record<number, number>>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAyahRef = useRef(1);
@@ -70,25 +68,11 @@ const soundRef = useRef<SoundInstance | null>(null);
   const fontSize = FONT_SIZES[fontSizeIdx] ?? 24;
   const cardWidth = Dimensions.get('window').width - 32;
 
-  // Proportional Y-offset (0–1) for each verse within the parchment card,
-  // weighted by cumulative character count. Used to position the invisible
-  // measurement markers for bookmark scrolling.
-  const verseOffsets = useMemo<Record<number, number>>(() => {
-    if (!surah) return {};
-    const totalChars = surah.ayahs.reduce((sum, a) => sum + a.text.length, 0);
-    const offsets: Record<number, number> = {};
-    let cumulative = 0;
-    for (const ayah of surah.ayahs) {
-      offsets[ayah.numberInSurah] = totalChars > 0 ? cumulative / totalChars : 0;
-      cumulative += ayah.text.length;
-    }
-    return offsets;
-  }, [surah]);
-
   useEffect(() => {
     try {
       setSurah(getSurah(surahNum));
       void setLastSurah(surahNum);
+      avgVerseHeightRef.current = 0;
     } catch {
       router.back();
     }
@@ -228,10 +212,6 @@ const soundRef = useRef<SoundInstance | null>(null);
     [handlePlayAyah],
   );
 
-  // Scroll to a verse in either view mode.
-  // Detailed: index-based scrollToIndex (always accurate).
-  // Page: measureInWindow on the per-verse ref gives the exact current position regardless of
-  // font size at save time — font-size changes are handled automatically.
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (viewMode === 'detailed' && listRef.current) {
       listRef.current.scrollToIndex({
@@ -240,11 +220,8 @@ const soundRef = useRef<SoundInstance | null>(null);
         viewPosition: 0,
       });
     } else if (pageScrollRef.current) {
-      verseRefs.current[ayahNumber]?.measureInWindow((_, windowY, __, height) => {
-        const screenHeight = Dimensions.get('window').height;
-        const targetY = pageScrollYRef.current + windowY + height / 2 - screenHeight / 2;
-        pageScrollRef.current?.scrollTo({ y: Math.max(0, targetY), animated });
-      });
+      const offset = Math.max(0, (ayahNumber - 1) * avgVerseHeightRef.current);
+      pageScrollRef.current.scrollTo({ y: offset, animated });
     }
   }, [viewMode]);
 
@@ -476,8 +453,6 @@ const soundRef = useRef<SoundInstance | null>(null);
       {viewMode === 'page' ? (
         <ScrollView
           ref={pageScrollRef}
-          onScroll={(e) => { pageScrollYRef.current = e.nativeEvent.contentOffset.y; }}
-          scrollEventThrottle={16}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         >
           {/* Bismillah header above the parchment (not shown for surah 1 or 9) */}
@@ -499,6 +474,11 @@ const soundRef = useRef<SoundInstance | null>(null);
 
           {/* Parchment card */}
           <View
+            onLayout={(e) => {
+              if (avgVerseHeightRef.current === 0 && surah) {
+                avgVerseHeightRef.current = e.nativeEvent.layout.height / surah.ayahs.length;
+              }
+            }}
             style={{
               backgroundColor: themeMode === 'light' ? '#F5F0E8' : theme.card,
               borderRadius: 12,
