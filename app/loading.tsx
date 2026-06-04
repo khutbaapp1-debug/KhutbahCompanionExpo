@@ -121,7 +121,7 @@ function PermissionCard({
       toValue: 0,
       damping: 18,
       stiffness: 140,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   }, [translateY]);
 
@@ -366,48 +366,43 @@ export default function LoadingScreen() {
         return;
       }
 
-      // Step 1 — permissions
-      setStatusAnimated('Requesting permissions…');
-      const alreadyAsked =
+      // Persistent check — skip the entire onboarding on subsequent cold starts.
+      const alreadyOnboarded =
         (await AsyncStorage.getItem(PERMS_KEY).catch(() => null)) === 'true';
-
-      if (!alreadyAsked) {
-        await awaitCard(
-          'location',
-          async () => {
-            try {
-              await requestAndCacheLocation();
-            } catch {
-              // permission denied or device error — continue without coords
-            }
-          },
-          false,
-        );
-        if (cancelled) return;
-
-        await awaitCard('notifications', requestNotificationPerm, true);
-        if (cancelled) return;
-
-        await awaitCard('microphone', requestMicPerm, true);
-        if (cancelled) return;
-
-        await AsyncStorage.setItem(PERMS_KEY, 'true').catch(() => undefined);
+      if (alreadyOnboarded) {
+        hasShownLoading = true;
+        router.replace('/');
+        return;
       }
+
+      // Step 1 — permissions (first launch only)
+      setStatusAnimated('Requesting permissions…');
+
+      await awaitCard(
+        'location',
+        async () => {
+          try {
+            await requestAndCacheLocation();
+          } catch {
+            // permission denied or device error — continue without coords
+          }
+        },
+        true,
+      );
+      if (cancelled) return;
+
+      await awaitCard('notifications', requestNotificationPerm, true);
+      if (cancelled) return;
+
+      await awaitCard('microphone', requestMicPerm, true);
+      if (cancelled) return;
+
+      await AsyncStorage.setItem(PERMS_KEY, 'true').catch(() => undefined);
 
       await delay(800);
       if (cancelled) return;
 
-      // Step 2 — location
-      setStatusAnimated('Getting your location…');
-      if (alreadyAsked) {
-        try {
-          await requestAndCacheLocation();
-        } catch {
-          // permission since revoked — proceed without coords
-        }
-      }
-
-      // Step 3 — prayer times
+      // Step 2 — prayer times
       setStatusAnimated('Loading prayer times…');
       try {
         await cacheTodaysPrayerTimes();
@@ -417,12 +412,12 @@ export default function LoadingScreen() {
       await delay(500);
       if (cancelled) return;
 
-      // Step 4 — daily content
+      // Step 3 — daily content
       setStatusAnimated('Loading daily content…');
       await prefetchTodaysHadith();
       if (cancelled) return;
 
-      // Step 5 — done
+      // Step 4 — done
       setStatusAnimated('All done!');
       await delay(600);
       if (cancelled) return;
@@ -515,7 +510,7 @@ export default function LoadingScreen() {
           <PermissionCard
             kind={cardKind}
             onAllow={handleAllow}
-            onSkip={cardKind === 'location' ? undefined : handleSkip}
+            onSkip={handleSkip}
           />
         ) : null}
       </ImageBackground>
