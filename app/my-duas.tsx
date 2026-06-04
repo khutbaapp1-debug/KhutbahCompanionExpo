@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -155,7 +156,7 @@ export default function MyDuasScreen() {
       <Modal visible={showAddModal} animationType="slide" transparent onRequestClose={() => setShowAddModal(false)}>
         <KeyboardAvoidingView
           style={{ flex: 1, justifyContent: 'flex-end' }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View
             style={{
@@ -172,39 +173,45 @@ export default function MyDuasScreen() {
                 <Ionicons name="close" size={22} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
-            <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.textMuted, marginBottom: 6 }}>Title</Text>
-            <TextInput
-              value={newTitle}
-              onChangeText={setNewTitle}
-              placeholder="e.g. Dua for protection"
-              placeholderTextColor={theme.textMuted}
-              style={{
-                borderWidth: 1, borderColor: theme.border, borderRadius: 10, padding: 12,
-                fontFamily: 'Inter_400Regular', fontSize: 15, color: theme.text,
-                backgroundColor: theme.surface, marginBottom: 16,
-              }}
-            />
-            <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.textMuted, marginBottom: 6 }}>Dua Text</Text>
-            <TextInput
-              value={newText}
-              onChangeText={setNewText}
-              placeholder="Enter Arabic or transliteration..."
-              placeholderTextColor={theme.textMuted}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              style={{
-                borderWidth: 1, borderColor: theme.border, borderRadius: 10, padding: 12,
-                fontFamily: 'Inter_400Regular', fontSize: 15, color: theme.text,
-                backgroundColor: theme.surface, marginBottom: 20, minHeight: 100,
-              }}
-            />
-            <TouchableOpacity
-              onPress={handleAdd}
-              style={{ backgroundColor: theme.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
             >
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: 'white' }}>Save Dua</Text>
-            </TouchableOpacity>
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.textMuted, marginBottom: 6 }}>Title</Text>
+              <TextInput
+                value={newTitle}
+                onChangeText={setNewTitle}
+                placeholder="e.g. Dua for protection"
+                placeholderTextColor={theme.textMuted}
+                style={{
+                  borderWidth: 1, borderColor: theme.border, borderRadius: 10, padding: 12,
+                  fontFamily: 'Inter_400Regular', fontSize: 15, color: theme.text,
+                  backgroundColor: theme.surface, marginBottom: 16,
+                }}
+              />
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.textMuted, marginBottom: 6 }}>Dua Text</Text>
+              <TextInput
+                value={newText}
+                onChangeText={setNewText}
+                placeholder="Enter Arabic or transliteration..."
+                placeholderTextColor={theme.textMuted}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                style={{
+                  borderWidth: 1, borderColor: theme.border, borderRadius: 10, padding: 12,
+                  fontFamily: 'Inter_400Regular', fontSize: 15, color: theme.text,
+                  backgroundColor: theme.surface, marginBottom: 20, minHeight: 100,
+                }}
+              />
+              <TouchableOpacity
+                onPress={handleAdd}
+                style={{ backgroundColor: theme.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+              >
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: 'white' }}>Save Dua</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>

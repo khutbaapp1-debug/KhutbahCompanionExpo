@@ -18,15 +18,15 @@ export type PrayerFlowCard = {
 export type PrayerType = "2rakat" | "4rakat" | "maghrib" | "witr";
 
 const STEP_IMAGES = {
-  standing: require("../../assets/images/salah/salah-standing.png"),
-  takbir: require("../../assets/images/salah/salah-takbir.png"),
-  qiyam: require("../../assets/images/salah/salah-qiyam.png"),
-  ruku: require("../../assets/images/salah/salah-ruku.png"),
-  sujood: require("../../assets/images/salah/salah-sujood.png"),
-  jalsa: require("../../assets/images/salah/salah-jalsa.png"),
-  tashahhud: require("../../assets/images/salah/salah-tashahhud-finger.png"),
-  salamRight: require("../../assets/images/salah/salah-salam-right.png"),
-  salamLeft: require("../../assets/images/salah/salah-salam-left.png"),
+  standing: require("../../assets/images/salah/salah-standing.jpg"),
+  takbir: require("../../assets/images/salah/salah-takbir.jpg"),
+  qiyam: require("../../assets/images/salah/salah-qiyam.jpg"),
+  ruku: require("../../assets/images/salah/salah-ruku.jpg"),
+  sujood: require("../../assets/images/salah/salah-sujood.jpg"),
+  jalsa: require("../../assets/images/salah/salah-jalsa.jpg"),
+  tashahhud: require("../../assets/images/salah/salah-tashahhud-finger.jpg"),
+  salamRight: require("../../assets/images/salah/salah-salam-right.jpg"),
+  salamLeft: require("../../assets/images/salah/salah-salam-left.jpg"),
 } as const;
 
 function pickStepImage(title: string): number | null {

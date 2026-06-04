@@ -49,9 +49,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "fonts": [
-      "./assets/fonts/KFGQPCHafs.otf"
-    ],
     "plugins": [
       "expo-router",
       "expo-font",

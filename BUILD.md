@@ -99,3 +99,85 @@ Then reference them in `app.config.ts` via `process.env.REVENUECAT_API_KEY`.
 | `eas build:view <build-id>` | Inspect a specific build |
 | `npx expo doctor` | Check for configuration issues |
 | `npx tsc --noEmit` | TypeScript type-check |
+
+---
+
+## E2E Testing (Maestro)
+
+Maestro drives a real device or emulator via the app's UI, with no changes to app code required.
+
+### Install Maestro
+
+```bash
+curl -Ls "https://get.maestro.mobile.dev" | bash
+```
+
+Restart your shell after installation, then verify:
+
+```bash
+maestro --version
+```
+
+### Requirements
+
+- A connected Android device / emulator **or** iOS simulator with the app installed.
+- The app must be a **development** or **preview** build (not Expo Go) because Maestro needs the native layer.
+- Build and install a preview APK first:
+  ```bash
+  eas build --platform android --profile preview --local
+  adb install <path-to.apk>
+  ```
+
+### Run all tests
+
+```bash
+maestro test .maestro/
+```
+
+This auto-discovers every `.yaml` file in `.maestro/` and runs them.
+
+### Run a single flow
+
+```bash
+maestro test .maestro/05-tasbih.yaml
+```
+
+### Run the full suite via the orchestrator
+
+```bash
+maestro test .maestro/run-all.yaml
+```
+
+### Target iOS
+
+The flows default to the Android package `com.khutbahcompanion.app`. Pass your iOS bundle identifier via the `APP_ID` environment variable:
+
+```bash
+APP_ID=com.your.ios.bundle maestro test .maestro/
+```
+
+Find your iOS bundle identifier in the Expo dashboard under **Project → Credentials → iOS**.
+
+### Test flow index
+
+| File | Feature |
+|---|---|
+| `01-home.yaml` | Home screen — tiles, banner, header |
+| `02-prayer-times.yaml` | Prayer Times — location gate or live times |
+| `03-quran.yaml` | Quran — surah list, Al-Faatiha detail, verse markers |
+| `04-duas.yaml` | Daily Duas — categories, filtering |
+| `05-tasbih.yaml` | Tasbih Counter — tap 10×, verify count |
+| `06-qibla.yaml` | Qibla Compass — compass or location prompt |
+| `07-translation.yaml` | Live Translation — header, language picker |
+| `08-settings.yaml` | Settings — display, prayer, about sections |
+| `09-ramadan.yaml` | Ramadan — date banner, checklist, nafil guide |
+| `10-zakat.yaml` | Zakat Calculator — input, nisab check, result |
+| `11-my-duas.yaml` | My Duas — add dua, verify saved |
+| `12-99names.yaml` | 99 Names — list render, scroll, names |
+| `13-mosques.yaml` | Mosque Finder — map or location prompt |
+
+### Notes
+
+- **Premium gate**: flows assume `isPremium=true` (the current test mode in `src/lib/premium.ts`). The `08-settings.yaml` premium-card assertions are commented out and require `isPremium=false` to run.
+- **Location-dependent screens** (Prayer Times, Qibla, Mosques) use `runFlowIf` to handle both the granted and denied location states gracefully.
+- **Deep links**: Settings is navigated to via `khutbahcompanion://settings` because the settings gear icon has no accessible text. If the deep link does not resolve, prefix with an extra slash: `khutbahcompanion:///settings`.

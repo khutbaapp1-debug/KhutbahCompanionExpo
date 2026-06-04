@@ -438,7 +438,7 @@ function PrayersTab() {
                         style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
                       />
                       <Image
-                        source={require('../assets/images/salah/salah-salam-left.png')}
+                        source={require('../assets/images/salah/salah-salam-left.jpg')}
                         style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
                       />
                     </View>
@@ -453,7 +453,7 @@ function PrayersTab() {
                         style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
                       />
                       <Image
-                        source={require('../assets/images/salah/salah-sitting.png')}
+                        source={require('../assets/images/salah/salah-sitting.jpg')}
                         style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
                       />
                     </View>
@@ -464,7 +464,7 @@ function PrayersTab() {
                   return (
                     <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                       <Image
-                        source={require('../assets/images/salah/salah-jalsa.png')}
+                        source={require('../assets/images/salah/salah-jalsa.jpg')}
                         style={{ flex: 1, height: 200, resizeMode: 'contain', borderRadius: 8 }}
                       />
                       <Image

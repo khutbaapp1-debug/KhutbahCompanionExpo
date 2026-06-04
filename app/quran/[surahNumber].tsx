@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -55,6 +55,7 @@ export default function SurahReader() {
   const [fontSizeIdx, setFontSizeIdx] = useState(1);
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [parchmentHeight, setParchmentHeight] = useState(0);
 const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
@@ -68,6 +69,21 @@ const soundRef = useRef<SoundInstance | null>(null);
 
   const fontSize = FONT_SIZES[fontSizeIdx] ?? 24;
   const cardWidth = Dimensions.get('window').width - 32;
+
+  // Proportional Y-offset (0–1) for each verse within the parchment card,
+  // weighted by cumulative character count. Used to position the invisible
+  // measurement markers for bookmark scrolling.
+  const verseOffsets = useMemo<Record<number, number>>(() => {
+    if (!surah) return {};
+    const totalChars = surah.ayahs.reduce((sum, a) => sum + a.text.length, 0);
+    const offsets: Record<number, number> = {};
+    let cumulative = 0;
+    for (const ayah of surah.ayahs) {
+      offsets[ayah.numberInSurah] = totalChars > 0 ? cumulative / totalChars : 0;
+      cumulative += ayah.text.length;
+    }
+    return offsets;
+  }, [surah]);
 
   useEffect(() => {
     try {
@@ -259,7 +275,7 @@ const soundRef = useRef<SoundInstance | null>(null);
   if (!surah) return null;
 
   const showBasmalah = surahNum !== 1 && surahNum !== 9;
-  const basmalah = getSurah(1).ayahs[0].text;
+  const basmalah = getSurah(1).ayahs[0].text.replace(/^﻿/, '');
   // Defensive: strip Bismillah from verse 1 text if the data includes it as a prefix
   const firstAyahRaw = surah.ayahs[0].text;
   const startsWithBismillah = showBasmalah && firstAyahRaw.startsWith(basmalah.slice(0, 10));
@@ -500,7 +516,7 @@ const soundRef = useRef<SoundInstance | null>(null);
             <Text
               style={{
                 writingDirection: 'rtl',
-                textAlign: 'right',
+                textAlign: 'justify',
                 fontFamily: 'KFGQPCHafs',
                 fontSize,
                 lineHeight: fontSize * 2,
