@@ -220,7 +220,9 @@ const soundRef = useRef<SoundInstance | null>(null);
         viewPosition: 0,
       });
     } else if (pageScrollRef.current) {
-      const offset = Math.max(0, (ayahNumber - 1) * avgVerseHeightRef.current);
+      const screenHeight = Dimensions.get('window').height;
+      const rawOffset = (ayahNumber - 1) * avgVerseHeightRef.current;
+      const offset = Math.max(0, rawOffset - screenHeight / 2);
       pageScrollRef.current.scrollTo({ y: offset, animated });
     }
   }, [viewMode]);

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -20,7 +20,7 @@ import { getPrayerTimesForDate } from '../src/lib/prayer-times';
 
 const TEAL = '#0F766E';
 const BASE_URL = 'https://khutbah-translate.replit.app';
-const PERMS_KEY = 'permissions-requested';
+const ONBOARDING_KEY = 'onboarding-complete';
 const PRAYER_CACHE_KEY = 'cached-prayer-times-v1';
 const BISMILLAH = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -331,106 +331,108 @@ export default function LoadingScreen() {
     [statusOpacity],
   );
 
-  useEffect(() => {
-    let cancelled = false;
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
 
-    // Show one permission card and resolve once the user picks Allow or Skip.
-    // `onAllow` runs the actual system permission request, so the system
-    // dialog only appears after the user has read the explainer.
-    const awaitCard = (
-      kind: CardKind,
-      onAllow: () => Promise<void>,
-      allowSkip: boolean,
-    ): Promise<void> =>
-      new Promise<void>((resolve) => {
-        cardChoiceRef.current = {
-          allow: async () => {
-            await onAllow();
-            cardChoiceRef.current = null;
-            setCardKind(null);
-            resolve();
+      // Show one permission card and resolve once the user picks Allow or Skip.
+      // `onAllow` runs the actual system permission request, so the system
+      // dialog only appears after the user has read the explainer.
+      const awaitCard = (
+        kind: CardKind,
+        onAllow: () => Promise<void>,
+        allowSkip: boolean,
+      ): Promise<void> =>
+        new Promise<void>((resolve) => {
+          cardChoiceRef.current = {
+            allow: async () => {
+              await onAllow();
+              cardChoiceRef.current = null;
+              setCardKind(null);
+              resolve();
+            },
+            skip: () => {
+              if (!allowSkip) return;
+              cardChoiceRef.current = null;
+              setCardKind(null);
+              resolve();
+            },
+          };
+          setCardKind(kind);
+        });
+
+      async function run() {
+        if (hasShownLoading) {
+          router.replace('/');
+          return;
+        }
+
+        // Persistent check — skip the entire onboarding on subsequent cold starts.
+        const alreadyOnboarded =
+          (await AsyncStorage.getItem(ONBOARDING_KEY).catch(() => null)) === 'true';
+        if (alreadyOnboarded) {
+          hasShownLoading = true;
+          router.replace('/');
+          return;
+        }
+
+        // Step 1 — permissions (first launch only)
+        setStatusAnimated('Requesting permissions…');
+
+        await awaitCard(
+          'location',
+          async () => {
+            try {
+              await requestAndCacheLocation();
+            } catch {
+              // permission denied or device error — continue without coords
+            }
           },
-          skip: () => {
-            if (!allowSkip) return;
-            cardChoiceRef.current = null;
-            setCardKind(null);
-            resolve();
-          },
-        };
-        setCardKind(kind);
-      });
+          true,
+        );
+        if (cancelled) return;
 
-    async function run() {
-      if (hasShownLoading) {
-        router.replace('/');
-        return;
-      }
+        await awaitCard('notifications', requestNotificationPerm, true);
+        if (cancelled) return;
 
-      // Persistent check — skip the entire onboarding on subsequent cold starts.
-      const alreadyOnboarded =
-        (await AsyncStorage.getItem(PERMS_KEY).catch(() => null)) === 'true';
-      if (alreadyOnboarded) {
+        await awaitCard('microphone', requestMicPerm, true);
+        if (cancelled) return;
+
+        await AsyncStorage.setItem(ONBOARDING_KEY, 'true').catch(() => undefined);
+
+        await delay(800);
+        if (cancelled) return;
+
+        // Step 2 — prayer times
+        setStatusAnimated('Loading prayer times…');
+        try {
+          await cacheTodaysPrayerTimes();
+        } catch {
+          // missing coords / settings — non-fatal
+        }
+        await delay(500);
+        if (cancelled) return;
+
+        // Step 3 — daily content
+        setStatusAnimated('Loading daily content…');
+        await prefetchTodaysHadith();
+        if (cancelled) return;
+
+        // Step 4 — done
+        setStatusAnimated('All done!');
+        await delay(600);
+        if (cancelled) return;
+
         hasShownLoading = true;
         router.replace('/');
-        return;
       }
 
-      // Step 1 — permissions (first launch only)
-      setStatusAnimated('Requesting permissions…');
-
-      await awaitCard(
-        'location',
-        async () => {
-          try {
-            await requestAndCacheLocation();
-          } catch {
-            // permission denied or device error — continue without coords
-          }
-        },
-        true,
-      );
-      if (cancelled) return;
-
-      await awaitCard('notifications', requestNotificationPerm, true);
-      if (cancelled) return;
-
-      await awaitCard('microphone', requestMicPerm, true);
-      if (cancelled) return;
-
-      await AsyncStorage.setItem(PERMS_KEY, 'true').catch(() => undefined);
-
-      await delay(800);
-      if (cancelled) return;
-
-      // Step 2 — prayer times
-      setStatusAnimated('Loading prayer times…');
-      try {
-        await cacheTodaysPrayerTimes();
-      } catch {
-        // missing coords / settings — non-fatal
-      }
-      await delay(500);
-      if (cancelled) return;
-
-      // Step 3 — daily content
-      setStatusAnimated('Loading daily content…');
-      await prefetchTodaysHadith();
-      if (cancelled) return;
-
-      // Step 4 — done
-      setStatusAnimated('All done!');
-      await delay(600);
-      if (cancelled) return;
-
-      hasShownLoading = true;
-      router.replace('/');
-    }
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [setStatusAnimated]);
+      void run();
+      return () => {
+        cancelled = true;
+      };
+    }, [setStatusAnimated]),
+  );
 
   const handleAllow = () => cardChoiceRef.current?.allow();
   const handleSkip = () => cardChoiceRef.current?.skip();

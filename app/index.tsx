@@ -63,8 +63,7 @@ const TILES: TileData[] = [
   {
     href: '/my-duas',
     imageSource: IMG_DUAS,
-    iconLibrary: 'ionicons',
-    iconName: 'heart-outline',
+    iconName: 'bookmark-heart',
     title: 'My Duas',
   },
   {
