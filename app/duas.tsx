@@ -17,8 +17,8 @@ import { useTheme } from '../src/lib/theme-context';
 import { usePremium } from '../src/hooks/usePremium';
 import { PremiumPaywall } from '../src/components/PremiumPaywall';
 
-const BASE_URL = 'https://khutbah-translate.replit.app';
-const DUA_CACHE_KEY = 'duas-cache-v1';
+const BASE_URL = 'https://khutbahtranslate-production.up.railway.app';
+const DUA_CACHE_KEY = 'duas-cache-v2';
 
 type Dua = {
   id: string;

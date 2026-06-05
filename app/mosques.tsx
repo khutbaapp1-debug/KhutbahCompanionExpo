@@ -17,7 +17,7 @@ import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { ThemeColors } from '../src/lib/theme';
 import { useTheme } from '../src/lib/theme-context';
 
-const BASE_URL = 'https://khutbah-translate.replit.app';
+const BASE_URL = 'https://khutbahtranslate-production.up.railway.app';
 const TEAL = '#0F766E';
 
 type Mosque = {

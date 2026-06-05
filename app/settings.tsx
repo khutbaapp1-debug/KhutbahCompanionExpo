@@ -399,7 +399,7 @@ export default function SettingsScreen() {
             <Text className="font-sans-medium text-base text-gray-900">Privacy Policy</Text>
             <TouchableOpacity
               onPress={() =>
-                Linking.openURL('https://khutbah-translate.replit.app/privacy')
+                Linking.openURL('https://khutbahtranslate-production.up.railway.app/privacy')
               }
             >
               <Text className="text-primary font-sans-medium">View →</Text>

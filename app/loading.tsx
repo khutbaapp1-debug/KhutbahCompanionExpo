@@ -19,7 +19,7 @@ import { getPrayerSettings } from '../src/lib/prayer-settings';
 import { getPrayerTimesForDate } from '../src/lib/prayer-times';
 
 const TEAL = '#0F766E';
-const BASE_URL = 'https://khutbah-translate.replit.app';
+const BASE_URL = 'https://khutbahtranslate-production.up.railway.app';
 const ONBOARDING_KEY = 'onboarding-complete';
 const PRAYER_CACHE_KEY = 'cached-prayer-times-v1';
 const BISMILLAH = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
@@ -298,7 +298,7 @@ async function prefetchTodaysHadith(): Promise<void> {
   const cached = await AsyncStorage.getItem(key);
   if (cached) return;
   try {
-    const res = await fetch(`${BASE_URL}/api/hadiths/daily`);
+    const res = await fetch(`${BASE_URL}/api/hadith/daily`);
     if (!res.ok) return;
     const data: unknown = await res.json();
     await AsyncStorage.setItem(key, JSON.stringify(data));

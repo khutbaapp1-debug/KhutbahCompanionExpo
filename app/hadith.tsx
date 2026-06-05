@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../src/lib/theme-context';
 
-const BASE_URL = 'https://khutbah-translate.replit.app';
+const BASE_URL = 'https://khutbahtranslate-production.up.railway.app';
 
 type Hadith = {
   id: string;
@@ -51,7 +51,7 @@ export default function HadithScreen() {
       } catch {}
 
       try {
-        const res = await fetch(`${BASE_URL}/api/hadiths/daily`);
+        const res = await fetch(`${BASE_URL}/api/hadith/daily`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as Hadith;
         setHadith(data);

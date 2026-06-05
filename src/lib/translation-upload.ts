@@ -5,7 +5,7 @@
 // requests are in flight), but we cap concurrency at MAX_CONCURRENT so a slow
 // network can't pile up an unbounded number of simultaneous requests.
 
-const BASE_URL = 'https://khutbah-translate.replit.app';
+const BASE_URL = 'https://khutbahtranslate-production.up.railway.app';
 const MAX_CONCURRENT = 2;
 
 export type TranscribeResult = {
