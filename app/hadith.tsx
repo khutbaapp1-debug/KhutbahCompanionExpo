@@ -51,7 +51,7 @@ export default function HadithScreen() {
       } catch {}
 
       try {
-        const res = await fetch(`${BASE_URL}/api/hadith/daily`);
+        const res = await fetch(`${BASE_URL}/api/hadiths/daily`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as Hadith;
         setHadith(data);

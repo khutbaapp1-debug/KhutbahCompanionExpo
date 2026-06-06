@@ -298,7 +298,7 @@ async function prefetchTodaysHadith(): Promise<void> {
   const cached = await AsyncStorage.getItem(key);
   if (cached) return;
   try {
-    const res = await fetch(`${BASE_URL}/api/hadith/daily`);
+    const res = await fetch(`${BASE_URL}/api/hadiths/daily`);
     if (!res.ok) return;
     const data: unknown = await res.json();
     await AsyncStorage.setItem(key, JSON.stringify(data));
