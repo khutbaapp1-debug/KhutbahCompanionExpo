@@ -513,12 +513,13 @@ const soundRef = useRef<SoundInstance | null>(null);
                 <View
                   key={ayah.numberInSurah}
                   ref={(el) => { verseRefs.current[ayah.numberInSurah] = el; }}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', alignSelf: 'stretch' }}
                 >
                   <Text
                     style={{
                       writingDirection: 'rtl',
-                      textAlign: 'justify',
+                      textAlign: 'right',
+                      width: '100%',
                       fontFamily: 'KFGQPCHafs',
                       fontSize,
                       lineHeight: fontSize * 2,
