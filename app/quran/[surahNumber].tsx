@@ -513,6 +513,7 @@ const soundRef = useRef<SoundInstance | null>(null);
                 <View
                   key={ayah.numberInSurah}
                   ref={(el) => { verseRefs.current[ayah.numberInSurah] = el; }}
+                  style={{ width: '100%' }}
                 >
                   <Text
                     style={{
