@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { FlatList, ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -131,27 +131,33 @@ export default function HomeScreen() {
   const [locationChecked, setLocationChecked] = useState(false);
   const [requesting, setRequesting] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    getStoredLocation().then((cached) => {
-      if (!isMounted) return;
-      setCoords(cached);
-      setLocationChecked(true);
-      if (cached) {
-        // Permission already granted — refresh silently without prompting.
-        requestAndCacheLocation()
-          .then((fresh) => {
-            if (isMounted) setCoords(fresh);
-          })
-          .catch(() => {
-            /* keep the cached coordinates on failure */
-          });
-      }
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // Re-check the location cache every time the home screen comes into focus so
+  // that if the user grants permission in Prayer Times (or the loading screen)
+  // and then navigates back, the NextPrayerCard switches from "Enable Location"
+  // to live prayer times immediately — without needing an app restart.
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      getStoredLocation().then((cached) => {
+        if (!isMounted) return;
+        setCoords(cached);
+        setLocationChecked(true);
+        if (cached) {
+          // Permission already granted — refresh silently without prompting.
+          requestAndCacheLocation()
+            .then((fresh) => {
+              if (isMounted) setCoords(fresh);
+            })
+            .catch(() => {
+              /* keep the cached coordinates on failure */
+            });
+        }
+      });
+      return () => {
+        isMounted = false;
+      };
+    }, []),
+  );
 
   // Uses the same permission-request flow as LocationGate (the Prayer Times
   // screen). On success the card flips to live prayer times; on failure we stay
