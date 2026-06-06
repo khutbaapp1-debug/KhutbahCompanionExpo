@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -147,11 +147,13 @@ function MosqueCard({
 
 export default function MosquesScreen() {
   const { theme } = useTheme();
+  console.log('Maps API key:', 'AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_F');
   const [status, setStatus] = useState<Status>('checking');
   const [coords, setCoords] = useState<Coords | null>(null);
   const [mosques, setMosques] = useState<Mosque[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showMap, setShowMap] = useState(true);
+  const [mapError, setMapError] = useState(false);
 
   const loadMosques = useCallback(async (c: Coords) => {
     try {
@@ -188,6 +190,26 @@ export default function MosquesScreen() {
   useEffect(() => {
     void requestLocationAndLoad();
   }, [requestLocationAndLoad]);
+
+  // Detect map load failures: if the map hasn't fired onMapLoaded within
+  // 10 seconds of being shown, surface an error to the user.
+  const mapLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!showMap || !coords || status !== 'ready') return;
+    mapLoadedRef.current = false;
+    const timer = setTimeout(() => {
+      if (!mapLoadedRef.current) {
+        console.log('MapView onMapLoadError: map did not load within timeout');
+        setMapError(true);
+      }
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [showMap, coords, status]);
+
+  const handleMapLoaded = useCallback(() => {
+    mapLoadedRef.current = true;
+    setMapError(false);
+  }, []);
 
   const onRefresh = useCallback(async () => {
     if (!coords) {
@@ -284,53 +306,77 @@ export default function MosquesScreen() {
           <View style={{ flex: 1 }}>
             {showMap && coords ? (
               <View style={{ flex: 1 }}>
-                <MapView
-                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-                  style={{ flex: 1 }}
-                  initialRegion={{
-                    latitude: coords.latitude,
-                    longitude: coords.longitude,
-                    latitudeDelta: 0.05,
-                    longitudeDelta: 0.05,
-                  }}
-                  showsUserLocation
-                >
-                  {mosques.map((mosque) => (
-                    <Marker
-                      key={mosque.id}
-                      coordinate={{
-                        latitude: mosque.latitude,
-                        longitude: mosque.longitude,
+                {mapError ? (
+                  <View
+                    style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.background,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: 'Inter_400Regular',
+                        fontSize: 14,
+                        color: theme.textMuted,
+                        textAlign: 'center',
+                        paddingHorizontal: 32,
                       }}
-                      pinColor="green"
-                      title={mosque.name}
                     >
-                      <Callout onPress={() => openDirections(mosque)}>
-                        <View style={{ maxWidth: 220, padding: 4 }}>
-                          <Text
-                            style={{
-                              fontFamily: 'Inter_600SemiBold',
-                              fontSize: 14,
-                              color: '#111827',
-                            }}
-                          >
-                            {mosque.name}
-                          </Text>
-                          <Text
-                            style={{
-                              marginTop: 6,
-                              fontFamily: 'Inter_600SemiBold',
-                              fontSize: 13,
-                              color: TEAL,
-                            }}
-                          >
-                            Get Directions
-                          </Text>
-                        </View>
-                      </Callout>
-                    </Marker>
-                  ))}
-                </MapView>
+                      Map unavailable. Please check your internet connection.
+                    </Text>
+                  </View>
+                ) : (
+                  <MapView
+                    provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                    style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: coords.latitude,
+                      longitude: coords.longitude,
+                      latitudeDelta: 0.05,
+                      longitudeDelta: 0.05,
+                    }}
+                    showsUserLocation
+                    onMapLoaded={handleMapLoaded}
+                  >
+                    {mosques.map((mosque) => (
+                      <Marker
+                        key={mosque.id}
+                        coordinate={{
+                          latitude: mosque.latitude,
+                          longitude: mosque.longitude,
+                        }}
+                        pinColor="green"
+                        title={mosque.name}
+                      >
+                        <Callout onPress={() => openDirections(mosque)}>
+                          <View style={{ maxWidth: 220, padding: 4 }}>
+                            <Text
+                              style={{
+                                fontFamily: 'Inter_600SemiBold',
+                                fontSize: 14,
+                                color: '#111827',
+                              }}
+                            >
+                              {mosque.name}
+                            </Text>
+                            <Text
+                              style={{
+                                marginTop: 6,
+                                fontFamily: 'Inter_600SemiBold',
+                                fontSize: 13,
+                                color: TEAL,
+                              }}
+                            >
+                              Get Directions
+                            </Text>
+                          </View>
+                        </Callout>
+                      </Marker>
+                    ))}
+                  </MapView>
+                )}
               </View>
             ) : null}
             <ScrollView
