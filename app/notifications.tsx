@@ -1,6 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
-import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  FlatList,
+  ScrollView,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+  type ViewToken,
+} from 'react-native';
 
 import {
   PRAYERS,
@@ -15,7 +23,194 @@ import {
 
 const HADITH_TIME_KEY = 'hadith-notification-time';
 const DHIKR_TIME_KEY = 'dhikr-notification-time';
-const TIME_OPTIONS = ['06:00', '07:00', '08:00', '09:00', '20:00'];
+
+// ─── Scroll-wheel time picker ─────────────────────────────────────────────────
+
+const ITEM_HEIGHT = 44;
+const VISIBLE_ITEMS = 3; // one selected, one above, one below
+
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES = ['00', '15', '30', '45'];
+
+function WheelColumn({
+  items,
+  selected,
+  onSelect,
+}: {
+  items: string[];
+  selected: string;
+  onSelect: (value: string) => void;
+}) {
+  const listRef = useRef<FlatList<string>>(null);
+
+  // Scroll to selected item on mount / when selected changes externally.
+  useEffect(() => {
+    const idx = items.indexOf(selected);
+    if (idx >= 0) {
+      const timer = setTimeout(() => {
+        listRef.current?.scrollToOffset({ offset: idx * ITEM_HEIGHT, animated: false });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [selected, items]);
+
+  const handleViewableChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0) {
+        const middle = viewableItems[Math.floor(viewableItems.length / 2)];
+        if (middle?.item) onSelect(middle.item as string);
+      }
+    },
+  ).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 80,
+  }).current;
+
+  const initialIndex = items.indexOf(selected);
+
+  return (
+    <View
+      style={{
+        width: 64,
+        height: ITEM_HEIGHT * VISIBLE_ITEMS,
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      {/* Selection highlight behind the centre row */}
+      <View
+        style={{
+          position: 'absolute',
+          top: ITEM_HEIGHT,
+          left: 4,
+          right: 4,
+          height: ITEM_HEIGHT,
+          backgroundColor: '#F0FDF4',
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: '#0F766E',
+          zIndex: 0,
+        }}
+        pointerEvents="none"
+      />
+      <FlatList
+        ref={listRef}
+        data={items}
+        keyExtractor={(item) => item}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_HEIGHT}
+        decelerationRate="fast"
+        contentContainerStyle={{
+          paddingVertical: ITEM_HEIGHT, // one-item padding top and bottom
+        }}
+        onViewableItemsChanged={handleViewableChanged}
+        viewabilityConfig={viewabilityConfig}
+        getItemLayout={(_data, index) => ({
+          length: ITEM_HEIGHT,
+          offset: ITEM_HEIGHT * index + ITEM_HEIGHT, // +ITEM_HEIGHT for top padding
+          index,
+        })}
+        initialScrollIndex={initialIndex >= 0 ? initialIndex : 0}
+        renderItem={({ item }) => {
+          const isSelected = item === selected;
+          return (
+            <TouchableOpacity
+              style={{
+                height: ITEM_HEIGHT,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                const idx = items.indexOf(item);
+                listRef.current?.scrollToOffset({ offset: idx * ITEM_HEIGHT, animated: true });
+                onSelect(item);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={{
+                  fontFamily: isSelected ? 'Inter_600SemiBold' : 'Inter_400Regular',
+                  fontSize: isSelected ? 22 : 17,
+                  color: isSelected ? '#0F766E' : '#6B7280',
+                }}
+              >
+                {item}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
+    </View>
+  );
+}
+
+/** Parse an "HH:MM" string and return { hour, minute } as padded strings. */
+function parseTime(t: string): { hour: string; minute: string } {
+  const [h = '08', m = '00'] = t.split(':');
+  // Snap minute to nearest quarter
+  const mins = parseInt(m, 10);
+  const snapped = MINUTES.reduce((prev, curr) =>
+    Math.abs(parseInt(curr, 10) - mins) < Math.abs(parseInt(prev, 10) - mins) ? curr : prev,
+  );
+  return { hour: h.padStart(2, '0'), minute: snapped };
+}
+
+function ScrollWheelTimePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (t: string) => void;
+}) {
+  const { hour, minute } = parseTime(value);
+  const [selHour, setSelHour] = useState(hour);
+  const [selMinute, setSelMinute] = useState(minute);
+
+  // Sync internal state when parent value changes (e.g. loaded from storage).
+  useEffect(() => {
+    const { hour: h, minute: m } = parseTime(value);
+    setSelHour(h);
+    setSelMinute(m);
+  }, [value]);
+
+  const handleHourChange = (h: string) => {
+    setSelHour(h);
+    onChange(`${h}:${selMinute}`);
+  };
+
+  const handleMinuteChange = (m: string) => {
+    setSelMinute(m);
+    onChange(`${selHour}:${m}`);
+  };
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 4,
+      }}
+    >
+      <WheelColumn items={HOURS} selected={selHour} onSelect={handleHourChange} />
+      <Text
+        style={{
+          fontFamily: 'Inter_700Bold',
+          fontSize: 26,
+          color: '#111827',
+          marginHorizontal: 4,
+          marginTop: -4,
+        }}
+      >
+        :
+      </Text>
+      <WheelColumn items={MINUTES} selected={selMinute} onSelect={handleMinuteChange} />
+    </View>
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
   const [master, setMaster] = useState(true);
@@ -170,26 +365,10 @@ export default function NotificationsScreen() {
         </View>
         {hadith && (
           <View className="mt-3 pt-3 border-t border-gray-100">
-            <Text className="font-sans-medium text-sm text-gray-700 mb-2">Reminder time</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {TIME_OPTIONS.map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  onPress={() => pickTime(t)}
-                  className={`px-3 py-1.5 rounded-lg ${
-                    hadithTime === t ? 'bg-primary' : 'bg-gray-100'
-                  }`}
-                >
-                  <Text
-                    className={`text-sm font-sans-medium ${
-                      hadithTime === t ? 'text-white' : 'text-gray-700'
-                    }`}
-                  >
-                    {t}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text className="font-sans-medium text-sm text-gray-700 mb-1 text-center">
+              Reminder time
+            </Text>
+            <ScrollWheelTimePicker value={hadithTime} onChange={pickTime} />
           </View>
         )}
       </View>
@@ -216,26 +395,10 @@ export default function NotificationsScreen() {
         </View>
         {dhikr && (
           <View className="mt-3 pt-3 border-t border-gray-100">
-            <Text className="font-sans-medium text-sm text-gray-700 mb-2">Reminder time</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {TIME_OPTIONS.map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  onPress={() => pickDhikrTime(t)}
-                  className={`px-3 py-1.5 rounded-lg ${
-                    dhikrTime === t ? 'bg-primary' : 'bg-gray-100'
-                  }`}
-                >
-                  <Text
-                    className={`text-sm font-sans-medium ${
-                      dhikrTime === t ? 'text-white' : 'text-gray-700'
-                    }`}
-                  >
-                    {t}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text className="font-sans-medium text-sm text-gray-700 mb-1 text-center">
+              Reminder time
+            </Text>
+            <ScrollWheelTimePicker value={dhikrTime} onChange={pickDhikrTime} />
           </View>
         )}
       </View>
