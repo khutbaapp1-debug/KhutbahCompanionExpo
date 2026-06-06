@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Magnetometer } from 'expo-sensors';
+import type { Subscription } from 'expo-sensors/build/DeviceSensor';
 import { Stack } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -28,6 +29,7 @@ export default function QiblaScreen() {
   const [locState, setLocState] = useState<LocState>({ status: 'idle' });
   const headingAnim = useRef(new Animated.Value(0)).current;
   const lastRaw = useRef(0);
+  const magSubRef = useRef<Subscription | null>(null);
 
   const qiblaResult =
     locState.status === 'ready'
@@ -51,9 +53,7 @@ export default function QiblaScreen() {
     setLocState({ status: 'ready', lat: loc.coords.latitude, lng: loc.coords.longitude });
   };
 
-  useEffect(() => {
-    if (locState.status !== 'ready') return;
-
+  const subscribeMagnetometer = useCallback(() => {
     Magnetometer.setUpdateInterval(100);
     const sub = Magnetometer.addListener((data) => {
       let raw = (Math.atan2(data.y, data.x) * 180) / Math.PI;
@@ -70,9 +70,28 @@ export default function QiblaScreen() {
         useNativeDriver: true,
       }).start();
     });
+    magSubRef.current = sub;
+    return sub;
+  }, [headingAnim]);
 
-    return () => sub.remove();
-  }, [locState.status, headingAnim]);
+  useEffect(() => {
+    if (locState.status !== 'ready') return;
+
+    const sub = subscribeMagnetometer();
+
+    return () => {
+      sub.remove();
+      magSubRef.current = null;
+    };
+  }, [locState.status, subscribeMagnetometer]);
+
+  const handleRecalibrate = useCallback(() => {
+    if (magSubRef.current) {
+      magSubRef.current.remove();
+      magSubRef.current = null;
+    }
+    subscribeMagnetometer();
+  }, [subscribeMagnetometer]);
 
   // Compass rose rotates counter to heading so N always faces true North
   const roseRotation = headingAnim.interpolate({
@@ -270,6 +289,44 @@ export default function QiblaScreen() {
               >
                 Hold phone flat and face the green arrow toward Makkah
               </Text>
+
+              {/* Calibration notice */}
+              <Text
+                style={{
+                  fontFamily: 'Inter_400Regular',
+                  fontSize: 12,
+                  color: theme.textMuted,
+                  textAlign: 'center',
+                  maxWidth: 280,
+                  marginTop: 4,
+                  fontStyle: 'italic',
+                }}
+              >
+                If the compass is inaccurate, move your phone slowly in a figure-8 pattern to calibrate it.
+              </Text>
+
+              {/* Recalibrate button */}
+              <TouchableOpacity
+                onPress={handleRecalibrate}
+                style={{
+                  borderRadius: 10,
+                  paddingHorizontal: 20,
+                  paddingVertical: 10,
+                  borderWidth: 1,
+                  borderColor: theme.primary,
+                  marginTop: 4,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'Inter_600SemiBold',
+                    fontSize: 14,
+                    color: theme.primary,
+                  }}
+                >
+                  Recalibrate
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
