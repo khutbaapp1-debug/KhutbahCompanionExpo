@@ -26,11 +26,11 @@ const DHIKR_TIME_KEY = 'dhikr-notification-time';
 
 // ─── Scroll-wheel time picker ─────────────────────────────────────────────────
 
-const ITEM_HEIGHT = 44;
+const ITEM_HEIGHT = 40;
 const VISIBLE_ITEMS = 3; // one selected, one above, one below
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES = ['00', '15', '30', '45'];
+const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
 
 function WheelColumn({
   items,
@@ -148,7 +148,7 @@ function WheelColumn({
 /** Parse an "HH:MM" string and return { hour, minute } as padded strings. */
 function parseTime(t: string): { hour: string; minute: string } {
   const [h = '08', m = '00'] = t.split(':');
-  // Snap minute to nearest quarter
+  // Snap minute to nearest 5-minute interval
   const mins = parseInt(m, 10);
   const snapped = MINUTES.reduce((prev, curr) =>
     Math.abs(parseInt(curr, 10) - mins) < Math.abs(parseInt(prev, 10) - mins) ? curr : prev,
