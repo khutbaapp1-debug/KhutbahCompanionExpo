@@ -305,14 +305,14 @@ export default function MosquesScreen() {
         ) : (
           <View style={{ flex: 1 }}>
             {showMap && coords ? (
-              <View style={{ flex: 1 }}>
+              <View style={mapError ? undefined : { flex: 1 }}>
                 {mapError ? (
                   <View
                     style={{
-                      flex: 1,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: theme.background,
+                      paddingVertical: 24,
                     }}
                   >
                     <Text
@@ -325,6 +325,18 @@ export default function MosquesScreen() {
                       }}
                     >
                       Map unavailable. Please check your internet connection.
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: 'Inter_400Regular',
+                        fontSize: 14,
+                        color: theme.textMuted,
+                        textAlign: 'center',
+                        paddingHorizontal: 32,
+                        marginTop: 8,
+                      }}
+                    >
+                      Map loading issues? Mosque locations are shown in the list below.
                     </Text>
                   </View>
                 ) : (
