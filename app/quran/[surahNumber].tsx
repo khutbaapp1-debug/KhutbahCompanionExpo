@@ -58,7 +58,7 @@ export default function SurahReader() {
 const soundRef = useRef<SoundInstance | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
   const pageScrollRef = useRef<ScrollView>(null);
-  const avgVerseHeightRef = useRef(0);
+  const verseRefs = useRef<Record<number, View | null>>({});
   const itemHeightsRef = useRef<Record<number, number>>({});
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentAyahRef = useRef(1);
@@ -72,7 +72,7 @@ const soundRef = useRef<SoundInstance | null>(null);
     try {
       setSurah(getSurah(surahNum));
       void setLastSurah(surahNum);
-      avgVerseHeightRef.current = 0;
+      verseRefs.current = {};
     } catch {
       router.back();
     }
@@ -193,7 +193,7 @@ const soundRef = useRef<SoundInstance | null>(null);
         ]);
       } else {
         setBookmarkedAyah(ayahNumber);
-        void setBookmark(surahNum, ayahNumber, undefined, fontSizeIdx);
+        void setBookmark(surahNum, ayahNumber);
         Alert.alert(
           'Bookmark Saved',
           `Verse ${ayahNumber} of ${surah?.englishName ?? 'this surah'} bookmarked.`,
@@ -219,11 +219,11 @@ const soundRef = useRef<SoundInstance | null>(null);
         animated: false,
         viewPosition: 0,
       });
-    } else if (pageScrollRef.current) {
+    } else {
       const screenHeight = Dimensions.get('window').height;
-      const rawOffset = (ayahNumber - 1) * avgVerseHeightRef.current;
-      const offset = Math.max(0, rawOffset - screenHeight / 2);
-      pageScrollRef.current.scrollTo({ y: offset, animated });
+      verseRefs.current[ayahNumber]?.measureInWindow((_x, y) => {
+        pageScrollRef.current?.scrollTo({ y: y - screenHeight / 2, animated });
+      });
     }
   }, [viewMode]);
 
@@ -476,11 +476,6 @@ const soundRef = useRef<SoundInstance | null>(null);
 
           {/* Parchment card */}
           <View
-            onLayout={(e) => {
-              if (avgVerseHeightRef.current === 0 && surah) {
-                avgVerseHeightRef.current = e.nativeEvent.layout.height / surah.ayahs.length;
-              }
-            }}
             style={{
               backgroundColor: themeMode === 'light' ? '#F5F0E8' : theme.card,
               borderRadius: 12,
@@ -494,39 +489,41 @@ const soundRef = useRef<SoundInstance | null>(null);
               elevation: 3,
             }}
           >
-            {/* Continuous flowing RTL paragraph — verse markers are inline spans */}
-            <Text
-              style={{
-                writingDirection: 'rtl',
-                textAlign: 'justify',
-                fontFamily: 'KFGQPCHafs',
-                fontSize,
-                lineHeight: fontSize * 2,
-                color: themeMode === 'light' ? '#1a1a1a' : theme.text,
-              }}
-            >
-              {surah.ayahs.map((ayah) => {
-                const isPlaying = playingAyah === ayah.numberInSurah;
-                const isLoading = loadingAyah === ayah.numberInSurah;
-                const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
-                const textContent =
-                  ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
-                const markerContent = isLoading
-                  ? '○'
-                  : isPlaying
-                  ? '⏸'
-                  : isBookmarked
-                  ? `۞ ${ayah.numberInSurah}`
-                  : `۝ ${ayah.numberInSurah}`;
-                const markerColor = isLoading
-                  ? theme.textMuted
-                  : isPlaying
-                  ? theme.primary
-                  : isBookmarked
-                  ? '#C0392B'
-                  : theme.primary;
-                return (
-                  <Text key={ayah.numberInSurah}>
+            {surah.ayahs.map((ayah) => {
+              const isPlaying = playingAyah === ayah.numberInSurah;
+              const isLoading = loadingAyah === ayah.numberInSurah;
+              const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
+              const textContent =
+                ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
+              const markerContent = isLoading
+                ? '○'
+                : isPlaying
+                ? '⏸'
+                : isBookmarked
+                ? `۞ ${ayah.numberInSurah}`
+                : `۝ ${ayah.numberInSurah}`;
+              const markerColor = isLoading
+                ? theme.textMuted
+                : isPlaying
+                ? theme.primary
+                : isBookmarked
+                ? '#C0392B'
+                : theme.primary;
+              return (
+                <View
+                  key={ayah.numberInSurah}
+                  ref={(el) => { verseRefs.current[ayah.numberInSurah] = el; }}
+                >
+                  <Text
+                    style={{
+                      writingDirection: 'rtl',
+                      textAlign: 'justify',
+                      fontFamily: 'KFGQPCHafs',
+                      fontSize,
+                      lineHeight: fontSize * 2,
+                      color: themeMode === 'light' ? '#1a1a1a' : theme.text,
+                    }}
+                  >
                     {textContent}{' '}
                     <Text
                       onPress={() => handleVerseMarkerPress(ayah.numberInSurah)}
@@ -540,9 +537,9 @@ const soundRef = useRef<SoundInstance | null>(null);
                       {markerContent}{' '}
                     </Text>
                   </Text>
-                );
-              })}
-            </Text>
+                </View>
+              );
+            })}
           </View>
 
           {/* Active verse panel — shown when a verse marker is tapped */}
