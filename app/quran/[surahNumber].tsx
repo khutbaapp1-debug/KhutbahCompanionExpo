@@ -251,6 +251,11 @@ const soundRef = useRef<SoundInstance | null>(null);
     }),
   ).current;
 
+  if (isNaN(surahNum)) {
+    router.back();
+    return null;
+  }
+
   if (!surah) return null;
 
   const showBasmalah = surahNum !== 1 && surahNum !== 9;
