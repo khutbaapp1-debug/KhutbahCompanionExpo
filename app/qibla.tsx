@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Accelerometer, Magnetometer } from 'expo-sensors';
 import type { Subscription } from 'expo-sensors/build/DeviceSensor';
 import { Stack } from 'expo-router';
@@ -15,6 +14,7 @@ import {
 import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getStoredLocation } from '../src/lib/location';
 import { calculateQiblaDirection, getCardinalDirection } from '../src/lib/qibla';
 import { useTheme } from '../src/lib/theme-context';
 
@@ -43,7 +43,6 @@ try {
   // expo-camera not installed — AR mode unavailable, compass fallback used instead
 }
 
-const CACHED_LOCATION_KEY = 'cached-location-v1';
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
 
@@ -325,26 +324,15 @@ export default function QiblaScreen() {
   const accelSubRef = useRef<Subscription | null>(null);
   const accelRef = useRef({ x: 0, y: 0, z: -1 });
 
-  // ── Load cached location ──────────────────────────────────────────────────
+  // ── Load cached location (shared cache — no permission request) ──────────
   useEffect(() => {
     void (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(CACHED_LOCATION_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as {
-            coords: { latitude: number; longitude: number };
-          };
-          setLocState({
-            status: 'ready',
-            lat: parsed.coords.latitude,
-            lng: parsed.coords.longitude,
-          });
-          return;
-        }
-      } catch {
-        // fall through
+      const cached = await getStoredLocation();
+      if (cached) {
+        setLocState({ status: 'ready', lat: cached.latitude, lng: cached.longitude });
+      } else {
+        setLocState({ status: 'unavailable' });
       }
-      setLocState({ status: 'unavailable' });
     })();
   }, []);
 
