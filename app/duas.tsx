@@ -54,7 +54,7 @@ const CATEGORIES = [
 
 export default function DuasScreen() {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, mode } = useTheme();
   const { isPremium } = usePremium();
   const [duas, setDuas] = useState<Dua[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,12 +98,19 @@ export default function DuasScreen() {
   }, []);
 
   const filtered = useMemo(() => {
-    const freeIds = FREE_CATEGORY_IDS.filter((id) => id !== 'all');
-    if (!isPremium && category === 'all') {
-      return duas.filter((d) => freeIds.includes(d.category));
-    }
     return category === 'all' ? duas : duas.filter((d) => d.category === category);
-  }, [duas, category, isPremium]);
+  }, [duas, category]);
+
+  // Build a per-category index so we know whether a card is the first in its
+  // category within the currently filtered list (index 0 = first = never blurred).
+  const categoryIndexMap = useMemo(() => {
+    const counts: Record<string, number> = {};
+    return filtered.map((dua) => {
+      const current = counts[dua.category] ?? 0;
+      counts[dua.category] = current + 1;
+      return current;
+    });
+  }, [filtered]);
 
   const copyDua = async (dua: Dua) => {
     const text = `${dua.translation}\n\n${dua.transliteration}${dua.reference ? `\n— ${dua.reference}` : ''}`;
@@ -112,11 +119,13 @@ export default function DuasScreen() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const overlayBg = mode === 'dark' ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)';
+
   return (
     <>
       <Stack.Screen options={{ title: 'Daily Duas' }} />
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        {/* Category chips */}
+        {/* Category chips — all categories shown, no lock icon */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -129,80 +138,40 @@ export default function DuasScreen() {
             alignItems: 'center',
           }}
         >
-          {CATEGORIES.map((cat) => {
-            const isLocked = !isPremium && !FREE_CATEGORY_IDS.includes(cat.id);
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                onPress={() => {
-                if (isLocked) {
-                  setShowPaywall(true);
-                } else {
-                  setCategory(cat.id);
-                }
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              onPress={() => setCategory(cat.id)}
+              style={{
+                paddingHorizontal: 16,
+                paddingTop: 8,
+                paddingBottom: 10,
+                borderRadius: 20,
+                marginRight: 8,
+                alignSelf: 'center',
+                backgroundColor: category === cat.id ? theme.primary : theme.surface,
               }}
+            >
+              <Text
+                numberOfLines={1}
                 style={{
-                  paddingHorizontal: 16,
-                  paddingTop: 8,
-                  paddingBottom: 10,
-                  borderRadius: 20,
-                  marginRight: 8,
-                  alignSelf: 'center',
-                  backgroundColor: category === cat.id ? theme.primary : theme.surface,
+                  fontFamily: 'Inter_500Medium',
+                  fontSize: 13,
+                  lineHeight: 20,
+                  includeFontPadding: false,
+                  color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
                 }}
               >
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    fontFamily: 'Inter_500Medium',
-                    fontSize: 13,
-                    lineHeight: 20,
-                    includeFontPadding: false,
-                    color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
-                  }}
-                >
-                  {cat.label}{isLocked ? ' 🔒' : ''}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                {cat.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         {loading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator size="large" color={theme.primary} />
           </View>
-        ) : !isPremium && !FREE_CATEGORY_IDS.includes(category) ? (
-          <TouchableOpacity
-            onPress={() => setShowPaywall(true)}
-            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="lock-closed" size={48} color={theme.textMuted} />
-            <Text
-              style={{
-                fontFamily: 'Inter_600SemiBold',
-                fontSize: 17,
-                color: theme.text,
-                textAlign: 'center',
-                marginTop: 16,
-                marginBottom: 8,
-              }}
-            >
-              Premium Category
-            </Text>
-            <Text
-              style={{
-                fontFamily: 'Inter_400Regular',
-                fontSize: 14,
-                color: theme.textMuted,
-                textAlign: 'center',
-                lineHeight: 22,
-              }}
-            >
-              Tap to upgrade to Premium
-            </Text>
-          </TouchableOpacity>
         ) : (
           <FlatList
             data={filtered}
@@ -221,125 +190,169 @@ export default function DuasScreen() {
                 </Text>
               </View>
             }
-            renderItem={({ item: dua }) => (
-              <View
-                style={{
-                  backgroundColor: theme.card,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                }}
-              >
-                {/* Card header: badges + copy button */}
+            renderItem={({ item: dua, index }) => {
+              const isFreeCategory = FREE_CATEGORY_IDS.includes(dua.category);
+              const indexInCat = categoryIndexMap[index] ?? 0;
+              // Blur if premium category AND not the first card in that category
+              const shouldBlur = !isPremium && !isFreeCategory && indexInCat > 0;
+
+              const cardContent = (
                 <View
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    paddingHorizontal: 16,
-                    paddingTop: 12,
-                    paddingBottom: 8,
+                    backgroundColor: theme.card,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: theme.border,
                   }}
                 >
-                  <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 }}>
-                    <View
-                      style={{
-                        backgroundColor: theme.primaryContainer,
-                        borderRadius: 6,
-                        paddingHorizontal: 8,
-                        paddingVertical: 3,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_500Medium',
-                          fontSize: 11,
-                          color: theme.primary,
-                        }}
-                      >
-                        {dua.occasion ?? dua.category}
-                      </Text>
-                    </View>
-                    {dua.reference && (
+                  {/* Card header: badges + copy button */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      paddingHorizontal: 16,
+                      paddingTop: 12,
+                      paddingBottom: 8,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 }}>
                       <View
                         style={{
-                          backgroundColor: theme.surface,
+                          backgroundColor: theme.primaryContainer,
                           borderRadius: 6,
                           paddingHorizontal: 8,
                           paddingVertical: 3,
-                          borderWidth: 1,
-                          borderColor: theme.border,
                         }}
                       >
                         <Text
                           style={{
-                            fontFamily: 'Inter_400Regular',
+                            fontFamily: 'Inter_500Medium',
                             fontSize: 11,
-                            color: theme.textMuted,
+                            color: theme.primary,
                           }}
                         >
-                          {dua.reference}
+                          {dua.occasion ?? dua.category}
                         </Text>
                       </View>
-                    )}
+                      {dua.reference && (
+                        <View
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderRadius: 6,
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderWidth: 1,
+                            borderColor: theme.border,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: 'Inter_400Regular',
+                              fontSize: 11,
+                              color: theme.textMuted,
+                            }}
+                          >
+                            {dua.reference}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <TouchableOpacity onPress={() => void copyDua(dua)} style={{ padding: 4 }}>
+                      <Ionicons
+                        name={copiedId === dua.id ? 'checkmark-circle' : 'copy-outline'}
+                        size={20}
+                        color={copiedId === dua.id ? theme.primary : theme.textMuted}
+                      />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity onPress={() => void copyDua(dua)} style={{ padding: 4 }}>
-                    <Ionicons
-                      name={copiedId === dua.id ? 'checkmark-circle' : 'copy-outline'}
-                      size={20}
-                      color={copiedId === dua.id ? theme.primary : theme.textMuted}
-                    />
-                  </TouchableOpacity>
+
+                  {/* Arabic */}
+                  <Text
+                    style={{
+                      fontFamily: 'NotoNaskhArabic_400Regular',
+                      fontSize: 22,
+                      color: theme.text,
+                      lineHeight: 44,
+                      textAlign: 'right',
+                      paddingHorizontal: 16,
+                      paddingBottom: 8,
+                    }}
+                  >
+                    {dua.arabicText}
+                  </Text>
+
+                  {/* Transliteration */}
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 13,
+                      color: theme.textMuted,
+                      fontStyle: 'italic',
+                      paddingHorizontal: 16,
+                      paddingBottom: 8,
+                    }}
+                  >
+                    {dua.transliteration}
+                  </Text>
+
+                  {/* Translation */}
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 14,
+                      color: theme.textSecondary,
+                      lineHeight: 22,
+                      paddingHorizontal: 16,
+                      paddingBottom: 16,
+                    }}
+                  >
+                    {dua.translation}
+                  </Text>
                 </View>
+              );
 
-                {/* Arabic */}
-                <Text
-                  style={{
-                    fontFamily: 'NotoNaskhArabic_400Regular',
-                    fontSize: 22,
-                    color: theme.text,
-                    lineHeight: 44,
-                    textAlign: 'right',
-                    paddingHorizontal: 16,
-                    paddingBottom: 8,
-                  }}
-                >
-                  {dua.arabicText}
-                </Text>
+              if (shouldBlur) {
+                return (
+                  <View style={{ position: 'relative' }}>
+                    {cardContent}
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => setShowPaywall(true)}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: overlayBg,
+                        borderRadius: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Ionicons name="lock-closed" size={24} color={theme.primary} />
+                      <Text
+                        style={{
+                          fontFamily: 'Inter_600SemiBold',
+                          fontSize: 14,
+                          color: theme.primary,
+                          marginTop: 6,
+                        }}
+                      >
+                        Premium
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
 
-                {/* Transliteration */}
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 13,
-                    color: theme.textMuted,
-                    fontStyle: 'italic',
-                    paddingHorizontal: 16,
-                    paddingBottom: 8,
-                  }}
-                >
-                  {dua.transliteration}
-                </Text>
-
-                {/* Translation */}
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 14,
-                    color: theme.textSecondary,
-                    lineHeight: 22,
-                    paddingHorizontal: 16,
-                    paddingBottom: 16,
-                  }}
-                >
-                  {dua.translation}
-                </Text>
-              </View>
-            )}
+              return cardContent;
+            }}
           />
         )}
       </View>
-        <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />
+      <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />
     </>
   );
 }
