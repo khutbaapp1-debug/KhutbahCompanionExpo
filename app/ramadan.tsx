@@ -91,6 +91,7 @@ export default function RamadanScreen() {
       setHasLocation(true);
       const settings = await getPrayerSettings();
       const times = getPrayerTimesForDate(new Date(), location, settings);
+      if (!times) return; // null island or missing coordinates
       setFajrTime(times.fajr);
       setMaghribTime(times.maghrib);
     }

@@ -84,8 +84,12 @@ export function getPrayerTimesForDate(
   date: Date,
   coordinates: Coordinates,
   settings: PrayerSettings,
-): PrayerTimes {
-  const coords = new AdhanCoordinates(coordinates.latitude, coordinates.longitude);
+): PrayerTimes | null {
+  const { latitude, longitude } = coordinates;
+  if (!latitude || !longitude || (latitude === 0 && longitude === 0)) {
+    return null;
+  }
+  const coords = new AdhanCoordinates(latitude, longitude);
   const params = buildCalculationParameters(settings);
   const times = new AdhanPrayerTimes(coords, date, params);
 

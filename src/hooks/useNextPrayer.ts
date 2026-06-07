@@ -78,6 +78,7 @@ export function useNextPrayer(
 
         const applyNext = (referenceDate: Date) => {
           const times = getPrayerTimesForDate(referenceDate, location, settings);
+          if (!times) return; // null island or missing coordinates
           const next = getNextPrayer(times, referenceDate);
           targetRef.current = next.time;
           setNextPrayerName(next.name);

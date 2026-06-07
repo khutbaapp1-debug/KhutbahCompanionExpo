@@ -23,7 +23,7 @@ export const PRAYERS: { key: PrayerKey; label: string }[] = [
 
 const HADITH_TIME_KEY = 'hadith-notification-time';
 const DHIKR_TIME_KEY = 'dhikr-notification-time';
-const DAYS_AHEAD = 5; // schedule prayer reminders for the next few days
+const DAYS_AHEAD = 7; // schedule prayer reminders for the next few days
 
 // AsyncStorage keys (brief-specified shape).
 export const masterKey = 'notifications-master';
@@ -68,6 +68,12 @@ export async function scheduleAllNotifications(): Promise<void> {
   if (IS_EXPO_GO) return;
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Notifications = require('expo-notifications') as typeof import('expo-notifications');
+
+  // Only proceed if the user has granted notification permission.
+  type PermissionResult = { status: string; granted: boolean };
+  const permission = (await Notifications.getPermissionsAsync()) as unknown as PermissionResult;
+  if (permission.status !== 'granted' && !permission.granted) return;
+
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   // Master switch defaults on; if explicitly off, schedule nothing.
@@ -107,6 +113,7 @@ async function schedulePrayerNotifications(): Promise<void> {
     const date = new Date(now);
     date.setDate(now.getDate() + d);
     const times = getPrayerTimesForDate(date, location, settings);
+    if (!times) continue; // null island or missing coordinates
 
     for (const { key, label } of PRAYERS) {
       if (!enabled.includes(key)) continue;

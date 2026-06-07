@@ -274,6 +274,7 @@ async function cacheTodaysPrayerTimes(): Promise<void> {
   const settings = await getPrayerSettings();
   const today = new Date();
   const times = getPrayerTimesForDate(today, coords, settings);
+  if (!times) return; // null island or missing coordinates
   const serialised = {
     date: today.toISOString().slice(0, 10),
     coords,
