@@ -2,12 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   Switch,
   Text,
-  TouchableOpacity,
   View,
-  type ViewToken,
 } from 'react-native';
 
 import {
@@ -20,19 +20,20 @@ import {
   scheduleAllNotifications,
   type PrayerKey,
 } from '../src/lib/notifications';
+import { useTheme } from '../src/lib/theme-context';
 
 const HADITH_TIME_KEY = 'hadith-notification-time';
 const DHIKR_TIME_KEY = 'dhikr-notification-time';
 
-// ─── Scroll-wheel time picker ─────────────────────────────────────────────────
+// ─── FlatList-based time picker ───────────────────────────────────────────────
 
-const ITEM_HEIGHT = 40;
+const ITEM_HEIGHT = 50;
 const VISIBLE_ITEMS = 3; // one selected, one above, one below
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
 
-function WheelColumn({
+function FlatListColumn({
   items,
   selected,
   onSelect,
@@ -41,33 +42,28 @@ function WheelColumn({
   selected: string;
   onSelect: (value: string) => void;
 }) {
+  const { theme } = useTheme();
   const listRef = useRef<FlatList<string>>(null);
 
-  // Scroll to selected item on mount / when selected changes externally.
+  // Scroll to the initial selected item on mount.
   useEffect(() => {
     const idx = items.indexOf(selected);
     if (idx >= 0) {
       const timer = setTimeout(() => {
         listRef.current?.scrollToOffset({ offset: idx * ITEM_HEIGHT, animated: false });
-      }, 50);
+      }, 100);
       return () => clearTimeout(timer);
     }
-  }, [selected, items]);
+    // Only run on mount — intentionally omitting `selected` so external value
+    // changes don't fight a user's in-progress scroll.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
-  const handleViewableChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0) {
-        const middle = viewableItems[Math.floor(viewableItems.length / 2)];
-        if (middle?.item) onSelect(middle.item as string);
-      }
-    },
-  ).current;
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 80,
-  }).current;
-
-  const initialIndex = items.indexOf(selected);
+  const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+    const clamped = Math.max(0, Math.min(idx, items.length - 1));
+    onSelect(items[clamped]);
+  };
 
   return (
     <View
@@ -75,10 +71,9 @@ function WheelColumn({
         width: 64,
         height: ITEM_HEIGHT * VISIBLE_ITEMS,
         overflow: 'hidden',
-        position: 'relative',
       }}
     >
-      {/* Selection highlight behind the centre row */}
+      {/* Teal selection highlight behind the centre row */}
       <View
         style={{
           position: 'absolute',
@@ -86,10 +81,8 @@ function WheelColumn({
           left: 4,
           right: 4,
           height: ITEM_HEIGHT,
-          backgroundColor: '#F0FDF4',
+          backgroundColor: '#0F766E',
           borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#0F766E',
           zIndex: 0,
         }}
         pointerEvents="none"
@@ -101,43 +94,33 @@ function WheelColumn({
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_HEIGHT}
         decelerationRate="fast"
-        contentContainerStyle={{
-          paddingVertical: ITEM_HEIGHT, // one-item padding top and bottom
-        }}
-        onViewableItemsChanged={handleViewableChanged}
-        viewabilityConfig={viewabilityConfig}
+        contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         getItemLayout={(_data, index) => ({
           length: ITEM_HEIGHT,
           offset: ITEM_HEIGHT * index + ITEM_HEIGHT, // +ITEM_HEIGHT for top padding
           index,
         })}
-        initialScrollIndex={initialIndex >= 0 ? initialIndex : 0}
         renderItem={({ item }) => {
           const isSelected = item === selected;
           return (
-            <TouchableOpacity
+            <View
               style={{
                 height: ITEM_HEIGHT,
                 justifyContent: 'center',
                 alignItems: 'center',
               }}
-              onPress={() => {
-                const idx = items.indexOf(item);
-                listRef.current?.scrollToOffset({ offset: idx * ITEM_HEIGHT, animated: true });
-                onSelect(item);
-              }}
-              activeOpacity={0.7}
             >
               <Text
                 style={{
                   fontFamily: isSelected ? 'Inter_600SemiBold' : 'Inter_400Regular',
                   fontSize: isSelected ? 22 : 17,
-                  color: isSelected ? '#0F766E' : '#6B7280',
+                  color: isSelected ? 'white' : theme.text,
                 }}
               >
                 {item}
               </Text>
-            </TouchableOpacity>
+            </View>
           );
         }}
       />
@@ -156,13 +139,14 @@ function parseTime(t: string): { hour: string; minute: string } {
   return { hour: h.padStart(2, '0'), minute: snapped };
 }
 
-function ScrollWheelTimePicker({
+function FlatListTimePicker({
   value,
   onChange,
 }: {
   value: string;
   onChange: (t: string) => void;
 }) {
+  const { theme } = useTheme();
   const { hour, minute } = parseTime(value);
   const [selHour, setSelHour] = useState(hour);
   const [selMinute, setSelMinute] = useState(minute);
@@ -193,19 +177,19 @@ function ScrollWheelTimePicker({
         paddingVertical: 4,
       }}
     >
-      <WheelColumn items={HOURS} selected={selHour} onSelect={handleHourChange} />
+      <FlatListColumn items={HOURS} selected={selHour} onSelect={handleHourChange} />
       <Text
         style={{
           fontFamily: 'Inter_700Bold',
           fontSize: 26,
-          color: '#111827',
+          color: theme.text,
           marginHorizontal: 4,
           marginTop: -4,
         }}
       >
         :
       </Text>
-      <WheelColumn items={MINUTES} selected={selMinute} onSelect={handleMinuteChange} />
+      <FlatListColumn items={MINUTES} selected={selMinute} onSelect={handleMinuteChange} />
     </View>
   );
 }
@@ -368,7 +352,7 @@ export default function NotificationsScreen() {
             <Text className="font-sans-medium text-sm text-gray-700 mb-1 text-center">
               Reminder time
             </Text>
-            <ScrollWheelTimePicker value={hadithTime} onChange={pickTime} />
+            <FlatListTimePicker value={hadithTime} onChange={pickTime} />
           </View>
         )}
       </View>
@@ -398,7 +382,7 @@ export default function NotificationsScreen() {
             <Text className="font-sans-medium text-sm text-gray-700 mb-1 text-center">
               Reminder time
             </Text>
-            <ScrollWheelTimePicker value={dhikrTime} onChange={pickDhikrTime} />
+            <FlatListTimePicker value={dhikrTime} onChange={pickDhikrTime} />
           </View>
         )}
       </View>
