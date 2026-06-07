@@ -74,7 +74,7 @@ export default function NamesScreen() {
               {/* Arabic */}
               <Text
                 style={{
-                  fontFamily: 'KFGQPCHafs',
+                  fontFamily: 'NotoNaskhArabic_400Regular',
                   fontSize: 20,
                   color: theme.primary,
                   marginLeft: 10,

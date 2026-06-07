@@ -39,10 +39,14 @@ export default function HadithScreen() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
+
     async function load() {
       const key = todayKey();
       try {
         const cached = await AsyncStorage.getItem(key);
+        if (cancelled) return;
         if (cached) {
           setHadith(JSON.parse(cached) as Hadith);
           setLoading(false);
@@ -51,17 +55,25 @@ export default function HadithScreen() {
       } catch {}
 
       try {
-        const res = await fetch(`${BASE_URL}/api/hadiths/daily`);
+        const res = await fetch(`${BASE_URL}/api/hadiths/daily`, { signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as Hadith;
+        if (cancelled) return;
         setHadith(data);
         void AsyncStorage.setItem(key, JSON.stringify(data));
       } catch {
+        if (cancelled) return;
         setError(true);
       }
+      if (cancelled) return;
       setLoading(false);
     }
     void load();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, []);
 
   const shareHadith = async () => {
@@ -158,7 +170,7 @@ export default function HadithScreen() {
               >
                 <Text
                   style={{
-                    fontFamily: 'KFGQPCHafs',
+                    fontFamily: 'NotoNaskhArabic_400Regular',
                     fontSize: 22,
                     color: theme.text,
                     lineHeight: 44,
