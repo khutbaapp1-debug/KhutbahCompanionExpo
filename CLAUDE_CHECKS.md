@@ -1,5 +1,5 @@
 # Pre-Commit Audit Checks
-Run only checks relevant to files you modified. Report PASS or FAIL with line number before committing. Do not commit until all relevant checks PASS.
+Run only checks relevant to files you modified. Report PASS or FAIL with line number.
 
 ---
 
@@ -25,22 +25,24 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - All 16 feature tiles present: Live Translation, Prayer Times, Quran, Daily Duas, Daily Hadith, Tasbih, Qibla Compass, 99 Names, Mosque Finder, Salah Guide, Wudu Guide, Settings, Ramadan, Zakat Calculator, My Duas, Daily Worship Checklist
 - Location loading uses useFocusEffect not useEffect
 - Premium upgrade banner visible for free users below header
-- DailyWorshipChecklist is collapsed by default showing only title and progress
+- DailyWorshipChecklist is collapsed by default showing title, progress count, and chevron icon. Tapping expands and collapses it.
 
 ## app/duas.tsx
-- Free categories morning, evening, daily, food, protection, family appear FIRST in chip row
-- Locked premium categories appear AFTER free categories
-- FREE_CATEGORY_IDS contains all six: morning, evening, daily, food, protection, family
+- All 17 categories are visible to all users with no lock icons on chips
+- Free categories show all duas fully
+- Premium categories show first dua fully, remaining duas are blurred with overlay and lock icon
+- Tapping blurred dua opens PremiumPaywall
 - Arabic text uses NotoNaskhArabic font
 
 ## app/_layout.tsx
 - mobileAds().initialize() called in useEffect on mount
-- No BannerAd component rendered (banner removed)
-- Layout renders SafeAreaProvider > ThemeProvider > ThemedStack with no extra wrapping View
+- ThemedBanner wraps BannerAd in SafeAreaView with edges bottom
+- ThemedBanner uses theme.surface background colour
+- Zero gap between banner and navigation bar in light, dark, and high contrast modes
 
 ## src/lib/premium.ts
-- isPremium uses Purchases.getCustomerInfo() from RevenueCat
-- Not hardcoded to true or false
+- isPremium is currently hardcoded to return true for testing — MUST be reverted to RevenueCat before production build
+- Comment exists in file: TESTING — revert to RevenueCat before production build
 - Returns false in catch block
 
 ## src/lib/notifications.ts
@@ -84,7 +86,8 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - Audio plays from assets/audio/ files
 
 ## app/qibla.tsx
-- Reads from same AsyncStorage location cache as prayer times
+- Uses getStoredLocation() shared helper — same function used by prayer times and home screen
+- Does not parse location cache differently from other screens
 - Does not request location permission if valid cache exists
 - Camera permission requested lazily on screen open
 - Compass fallback shown if camera permission denied
@@ -122,4 +125,4 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 
 ---
 
-Before committing: read this file, run all checks for files you changed, report each as PASS or FAIL with line number, fix all FAILs, then commit.
+After committing and pushing: read this file, run all checks for files changed in this task, report each as PASS or FAIL with line number. If any FAILs are found create a new commit fixing them immediately and push again.
