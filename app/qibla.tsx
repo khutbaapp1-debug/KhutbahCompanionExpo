@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Accelerometer, Magnetometer } from 'expo-sensors';
 import type { Subscription } from 'expo-sensors/build/DeviceSensor';
 import { Stack } from 'expo-router';
@@ -18,33 +19,11 @@ import { getStoredLocation } from '../src/lib/location';
 import { calculateQiblaDirection, getCardinalDirection } from '../src/lib/qibla';
 import { useTheme } from '../src/lib/theme-context';
 
-// ─── Lazy-require expo-camera so we degrade gracefully if it is not installed ─
-
-type CameraPermission = { granted: boolean; canAskAgain: boolean };
-type RequestPermissionFn = () => Promise<{ granted: boolean }>;
-
-let CameraViewComponent: React.ComponentType<{
-  style?: object;
-  facing?: 'front' | 'back';
-  children?: React.ReactNode;
-}> | null = null;
-
-let useCameraPermissionsHook: (() => [CameraPermission | null, RequestPermissionFn]) | null = null;
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const cam = require('expo-camera') as {
-    CameraView: typeof CameraViewComponent;
-    useCameraPermissions: typeof useCameraPermissionsHook;
-  };
-  CameraViewComponent = cam.CameraView;
-  useCameraPermissionsHook = cam.useCameraPermissions;
-} catch {
-  // expo-camera not installed — AR mode unavailable, compass fallback used instead
-}
-
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
+
+// AR overlay green — fixed colour for visibility against any camera feed
+const AR_GREEN = '#4ADE80';
 
 type LocState =
   | { status: 'loading' }
@@ -198,7 +177,7 @@ function CompassFallback({
             fontStyle: 'italic',
           }}
         >
-          If the compass is inaccurate, move your phone slowly in a figure-8 pattern to calibrate it.
+          Move phone in a figure-8 pattern if direction seems inaccurate
         </Text>
 
         <TouchableOpacity
@@ -242,13 +221,10 @@ function ARView({
   handleRecalibrate,
   insets,
 }: ARViewProps) {
-  const CV = CameraViewComponent;
-  if (!CV) return null;
-
   return (
     <View style={{ flex: 1 }}>
-      {/* Live camera feed */}
-      <CV style={StyleSheet.absoluteFill} facing="back" />
+      {/* Live camera feed filling the screen */}
+      <CameraView style={StyleSheet.absoluteFill} facing="back" />
 
       {/* Transparent overlay */}
       <View style={[StyleSheet.absoluteFill, styles.arOverlay]}>
@@ -272,7 +248,7 @@ function ARView({
           {qiblaReady ? (
             <>
               <View style={styles.infoRow}>
-                <Ionicons name="compass-outline" size={18} color="#4ADE80" />
+                <Ionicons name="compass-outline" size={18} color={AR_GREEN} />
                 <Text style={styles.infoMainText}>
                   {Math.round(qiblaDeg)}° {cardinal} — Qibla direction
                 </Text>
@@ -280,11 +256,11 @@ function ARView({
               <Text style={styles.distanceText}>{distanceKm.toLocaleString()} km to Makkah</Text>
             </>
           ) : (
-            <ActivityIndicator size="small" color="#4ADE80" />
+            <ActivityIndicator size="small" color={AR_GREEN} />
           )}
 
           <Text style={styles.calibrationText}>
-            If the compass is inaccurate, move your phone slowly in a figure-8 pattern to calibrate it.
+            Move phone in a figure-8 pattern if direction seems inaccurate
           </Text>
 
           <TouchableOpacity onPress={handleRecalibrate} style={styles.recalibrateButton}>
@@ -305,12 +281,8 @@ export default function QiblaScreen() {
   // Location (read from AsyncStorage — do not re-request location permission)
   const [locState, setLocState] = useState<LocState>({ status: 'loading' });
 
-  // Camera permission (only relevant when expo-camera is available)
-  const permHookResult = useCameraPermissionsHook ? useCameraPermissionsHook() : null;
-  const cameraPermission: CameraPermission | null = permHookResult ? permHookResult[0] : null;
-  const requestCameraPermission: RequestPermissionFn = permHookResult
-    ? permHookResult[1]
-    : async () => ({ granted: false });
+  // Camera permission — useCameraPermissions returns [permission, requestFn, getFn]
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   // AR arrow angle (degrees, updated from magnetometer)
   const [arrowRotation, setArrowRotation] = useState(0);
@@ -338,12 +310,7 @@ export default function QiblaScreen() {
 
   // ── Request camera permission lazily on mount ─────────────────────────────
   useEffect(() => {
-    if (
-      useCameraPermissionsHook !== null &&
-      cameraPermission !== null &&
-      !cameraPermission.granted &&
-      cameraPermission.canAskAgain
-    ) {
+    if (cameraPermission !== null && !cameraPermission.granted && cameraPermission.canAskAgain) {
       void requestCameraPermission();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -394,9 +361,9 @@ export default function QiblaScreen() {
         // East vector = gravity × magnetometer (cross product components)
         const ex = gy * data.z - gz * data.y;
         const ey = gz * data.x - gx * data.z;
-        raw = (Math.atan2(ex, Math.sqrt(nx * nx + ny * ny)) * 180) / Math.PI;
-        // Better: full yaw from east & north projections
-        void ey; // suppress lint; use east-x and north magnitude for yaw
+        void ey; // suppress lint
+        void ny; // suppress lint
+        // Full yaw from east & north projections
         raw = (Math.atan2(ex, nx) * 180) / Math.PI;
       }
 
@@ -447,7 +414,8 @@ export default function QiblaScreen() {
   }, [subscribeAccelerometer, subscribeMagnetometer]);
 
   // ── Choose AR vs compass ─────────────────────────────────────────────────
-  const useAR = CameraViewComponent !== null && cameraPermission?.granted === true;
+  // AR mode when camera permission is granted; fallback to compass otherwise
+  const useAR = cameraPermission?.granted === true;
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -552,12 +520,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: ARROW_HALF * 2,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: '#4ADE80',
+    borderBottomColor: AR_GREEN,
   },
   arrowShaft: {
     width: 8,
     height: 100,
-    backgroundColor: '#4ADE80',
+    backgroundColor: AR_GREEN,
     borderRadius: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
@@ -585,7 +553,7 @@ const styles = StyleSheet.create({
   infoMainText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: '#4ADE80',
+    color: AR_GREEN,
   },
   distanceText: {
     fontFamily: 'Inter_400Regular',
@@ -605,13 +573,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#4ADE80',
+    borderColor: AR_GREEN,
     marginTop: 4,
     marginBottom: 4,
   },
   recalibrateButtonText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: '#4ADE80',
+    color: AR_GREEN,
   },
 });
