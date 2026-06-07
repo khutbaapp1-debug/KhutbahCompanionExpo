@@ -1,7 +1,10 @@
 import Constants from 'expo-constants';
 import { Text, View } from 'react-native';
+import { TestIds } from 'react-native-google-mobile-ads';
 
 import { AD_UNIT_IDS } from '../lib/ads';
+
+const adUnitId = __DEV__ ? TestIds.BANNER : AD_UNIT_IDS.banner;
 
 // react-native-google-mobile-ads ships a native module that isn't bundled into
 // Expo Go. Detect Expo Go and render an "Advertisement" placeholder, mirroring
@@ -27,7 +30,7 @@ export default function BannerAd() {
     return (
       <View>
         <NativeBannerAd
-          unitId={AD_UNIT_IDS.banner}
+          unitId={adUnitId}
           size={Ads.BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         />
       </View>

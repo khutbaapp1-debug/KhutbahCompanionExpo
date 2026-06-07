@@ -4,6 +4,7 @@ import '../global.css';
 import '../src/lib/text-defaults';
 
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -19,8 +20,10 @@ import {
   NotoNaskhArabic_700Bold,
 } from '@expo-google-fonts/noto-naskh-arabic';
 
+import mobileAds from 'react-native-google-mobile-ads';
 import Purchases from 'react-native-purchases';
 import { ThemeProvider, useTheme } from '../src/lib/theme-context';
+import BannerAd from '../src/components/BannerAd';
 
 // Initialise RevenueCat early so getCustomerInfo() is ready before any screen
 // calls isPremium(). Wrapped in try/catch so Expo Go (no native module) never
@@ -102,6 +105,12 @@ export default function RootLayout() {
     KFGQPCHafs: require('../assets/fonts/KFGQPCHafs.otf'),
   });
 
+  // Initialise the Google Mobile Ads SDK once on mount so ad requests can be
+  // served as soon as the first screen renders.
+  useEffect(() => {
+    mobileAds().initialize();
+  }, []);
+
   // Hide the native splash screen only once the fonts have finished loading, so
   // the splash stays up for the whole startup instead of flashing and then
   // showing a blank screen while fonts resolve.
@@ -122,7 +131,10 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ThemedStack />
+        <View style={{ flex: 1 }}>
+          <ThemedStack />
+          <BannerAd />
+        </View>
       </ThemeProvider>
     </SafeAreaProvider>
   );
