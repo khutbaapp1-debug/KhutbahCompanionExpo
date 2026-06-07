@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 import { Stack } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Image,
   type ImageSourcePropType,
   ScrollView,
@@ -44,9 +46,102 @@ const WUDU_IMAGES: Record<number, ImageSourcePropType> = {
   9: require('../assets/images/wudu/wudu-feet.jpg'),
 };
 
+// ─── Shared audio hook ────────────────────────────────────────────────────────
+
+/**
+ * Manages a single active Audio.Sound instance across the whole screen.
+ * Returns the currently playing recitation id and a toggle function.
+ * No local audio files exist yet — tapping play shows an alert and sets the
+ * playingId so the icon flips to pause. A second tap clears it.
+ * TODO: add audio file to assets/audio/{id}.mp3 and replace the Alert with
+ * a real Audio.Sound.createAsync({ uri: '' }) call.
+ */
+function useRecitationAudio() {
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  const stopCurrent = useCallback(async () => {
+    if (soundRef.current) {
+      await soundRef.current.stopAsync().catch(() => {});
+      await soundRef.current.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    }
+    setPlayingId(null);
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.stopAsync().catch(() => {});
+        soundRef.current.unloadAsync().catch(() => {});
+        soundRef.current = null;
+      }
+    };
+  }, []);
+
+  const togglePlay = useCallback(
+    async (id: string) => {
+      // Tapping the currently playing recitation → stop it
+      if (playingId === id) {
+        await stopCurrent();
+        return;
+      }
+
+      // Stop whatever was playing before
+      await stopCurrent();
+
+      // TODO: add audio file to assets/audio/{id}.mp3 and replace this alert
+      // with real Audio.Sound.createAsync({ uri: require(`../assets/audio/${id}.mp3`) })
+      Alert.alert('Audio coming soon', 'Audio recordings for this recitation will be added in a future update.');
+
+      // Show the pause icon so the user knows which card is "selected"
+      setPlayingId(id);
+    },
+    [playingId, stopCurrent],
+  );
+
+  return { playingId, togglePlay };
+}
+
+// ─── Play button ──────────────────────────────────────────────────────────────
+
+function PlayButton({
+  recitationId,
+  playingId,
+  onPress,
+  primaryColor,
+}: {
+  recitationId: string;
+  playingId: string | null;
+  onPress: (id: string) => void;
+  primaryColor: string;
+}) {
+  const isPlaying = playingId === recitationId;
+  return (
+    <TouchableOpacity
+      onPress={() => onPress(recitationId)}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      style={{ alignSelf: 'flex-end', marginBottom: 6 }}
+    >
+      <Ionicons
+        name={isPlaying ? 'pause-circle-outline' : 'play-circle-outline'}
+        size={28}
+        color={primaryColor}
+      />
+    </TouchableOpacity>
+  );
+}
+
 // ─── Wudu tab ─────────────────────────────────────────────────────────────────
 
-function WuduTab() {
+function WuduTab({
+  playingId,
+  onPlayRecitation,
+}: {
+  playingId: string | null;
+  onPlayRecitation: (id: string) => void;
+}) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const [stepIdx, setStepIdx] = useState(0);
@@ -142,60 +237,71 @@ function WuduTab() {
             )}
 
             {/* Recitations */}
-            {s.recitations?.map((r, ri) => (
-              <View
-                key={ri}
-                style={{
-                  backgroundColor: theme.primaryContainer,
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 10,
-                  borderWidth: 1,
-                  borderColor: theme.primary,
-                }}
-              >
-                <Text
+            {s.recitations?.map((r, ri) => {
+              const recitationId = `wudu-${s.number}-${ri}`;
+              return (
+                <View
+                  key={ri}
                   style={{
-                    fontFamily: 'Inter_500Medium',
-                    fontSize: 11,
-                    color: theme.primary,
-                    marginBottom: 8,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
+                    backgroundColor: theme.primaryContainer,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 10,
+                    borderWidth: 1,
+                    borderColor: theme.primary,
                   }}
                 >
-                  {r.name}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'KFGQPCHafs',
-                    fontSize: 22,
-                    color: theme.text,
-                    lineHeight: 44,
-                    textAlign: 'right',
-                    marginBottom: 8,
-                  }}
-                >
-                  {r.arabic}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 13,
-                    color: theme.textMuted,
-                    fontStyle: 'italic',
-                    marginBottom: 6,
-                  }}
-                >
-                  {r.transliteration}
-                </Text>
-                <Text
-                  style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.textSecondary, lineHeight: 20 }}
-                >
-                  {r.meaning}
-                </Text>
-              </View>
-            ))}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text
+                      style={{
+                        fontFamily: 'Inter_500Medium',
+                        fontSize: 11,
+                        color: theme.primary,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                        flex: 1,
+                      }}
+                    >
+                      {r.name}
+                    </Text>
+                    <PlayButton
+                      recitationId={recitationId}
+                      playingId={playingId}
+                      onPress={onPlayRecitation}
+                      primaryColor={theme.primary}
+                    />
+                  </View>
+                  <Text
+                    style={{
+                      fontFamily: 'KFGQPCHafs',
+                      fontSize: 22,
+                      color: theme.text,
+                      lineHeight: 44,
+                      textAlign: 'right',
+                      marginBottom: 8,
+                    }}
+                  >
+                    {r.arabic}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 13,
+                      color: theme.textMuted,
+                      fontStyle: 'italic',
+                      marginBottom: 6,
+                    }}
+                  >
+                    {r.transliteration}
+                  </Text>
+                  <Text
+                    style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.textSecondary, lineHeight: 20 }}
+                  >
+                    {r.meaning}
+                  </Text>
+                </View>
+              );
+            })}
           </ScrollView>
         ))}
       </PagerView>
@@ -298,7 +404,7 @@ function HowToPrayTab() {
         },
         {
           title: 'Congregation (Jama\'ah)',
-          body: "Praying in congregation carries a reward 27 times that of praying alone. When praying behind an imam, follow the imam's movements — do not start a position before the imam.",
+          body: "Praying in congregation carries a reward 27 times that of praying alone. When praying behind an imam in congregation, follow the imam's movements — do not start a position before the imam.",
         },
       ].map((item, i) => (
         <View
@@ -340,7 +446,13 @@ function HowToPrayTab() {
 
 // ─── Prayers tab ──────────────────────────────────────────────────────────────
 
-function PrayersTab() {
+function PrayersTab({
+  playingId,
+  onPlayRecitation,
+}: {
+  playingId: string | null;
+  onPlayRecitation: (id: string) => void;
+}) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const [prayerType, setPrayerType] = useState<PrayerTab>('2rakat');
@@ -568,65 +680,76 @@ function PrayersTab() {
             )}
 
             {/* Recitations */}
-            {card.recitations?.map((r, ri) => (
-              <View
-                key={ri}
-                style={{
-                  backgroundColor: theme.primaryContainer,
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 10,
-                  borderWidth: 1,
-                  borderColor: theme.primary,
-                }}
-              >
-                <Text
+            {card.recitations?.map((r, ri) => {
+              const recitationId = `prayer-${prayerType}-${card.number}-${ri}`;
+              return (
+                <View
+                  key={ri}
                   style={{
-                    fontFamily: 'Inter_500Medium',
-                    fontSize: 11,
-                    color: theme.primary,
-                    marginBottom: 4,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
+                    backgroundColor: theme.primaryContainer,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 10,
+                    borderWidth: 1,
+                    borderColor: theme.primary,
                   }}
                 >
-                  {r.label ?? r.name}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'KFGQPCHafs',
-                    fontSize: 22,
-                    color: theme.text,
-                    lineHeight: 44,
-                    textAlign: 'right',
-                    marginBottom: 8,
-                  }}
-                >
-                  {r.arabic}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 13,
-                    color: theme.textMuted,
-                    fontStyle: 'italic',
-                    marginBottom: 6,
-                  }}
-                >
-                  {r.transliteration}
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 13,
-                    color: theme.textSecondary,
-                    lineHeight: 20,
-                  }}
-                >
-                  {r.meaning}
-                </Text>
-              </View>
-            ))}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text
+                      style={{
+                        fontFamily: 'Inter_500Medium',
+                        fontSize: 11,
+                        color: theme.primary,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                        flex: 1,
+                      }}
+                    >
+                      {r.label ?? r.name}
+                    </Text>
+                    <PlayButton
+                      recitationId={recitationId}
+                      playingId={playingId}
+                      onPress={onPlayRecitation}
+                      primaryColor={theme.primary}
+                    />
+                  </View>
+                  <Text
+                    style={{
+                      fontFamily: 'KFGQPCHafs',
+                      fontSize: 22,
+                      color: theme.text,
+                      lineHeight: 44,
+                      textAlign: 'right',
+                      marginBottom: 8,
+                    }}
+                  >
+                    {r.arabic}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 13,
+                      color: theme.textMuted,
+                      fontStyle: 'italic',
+                      marginBottom: 6,
+                    }}
+                  >
+                    {r.transliteration}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 13,
+                      color: theme.textSecondary,
+                      lineHeight: 20,
+                    }}
+                  >
+                    {r.meaning}
+                  </Text>
+                </View>
+              );
+            })}
           </ScrollView>
         ))}
       </PagerView>
@@ -695,6 +818,7 @@ function PrayersTab() {
 export default function SalahGuideScreen() {
   const [activeTab, setActiveTab] = useState<MainTab>('wudu');
   const { theme } = useTheme();
+  const { playingId, togglePlay } = useRecitationAudio();
 
   return (
     <>
@@ -734,10 +858,14 @@ export default function SalahGuideScreen() {
         </View>
 
         {/* Tab content */}
-        {activeTab === 'wudu' && <WuduTab />}
+        {activeTab === 'wudu' && (
+          <WuduTab playingId={playingId} onPlayRecitation={togglePlay} />
+        )}
         {/* Tab 2 "How to Pray" shows the step-by-step prayer flows; tab 3 "Info"
             shows the general guidance (content swapped per design). */}
-        {activeTab === 'how-to-pray' && <PrayersTab />}
+        {activeTab === 'how-to-pray' && (
+          <PrayersTab playingId={playingId} onPlayRecitation={togglePlay} />
+        )}
         {activeTab === 'prayers' && <HowToPrayTab />}
       </View>
     </>
