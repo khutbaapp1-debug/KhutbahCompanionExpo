@@ -81,7 +81,7 @@ function FlatListColumn({
           left: 4,
           right: 4,
           height: ITEM_HEIGHT,
-          backgroundColor: '#0F766E',
+          backgroundColor: theme.primary,
           borderRadius: 8,
           zIndex: 0,
         }}
