@@ -11,6 +11,7 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Khutbah Companion uses your location to calculate accurate prayer times for your area.",
+        "NSCameraUsageDescription": "Khutbah Companion uses your camera to show the Qibla direction in augmented reality.",
         "NSMicrophoneUsageDescription": "Khutbah Companion uses your microphone to translate the khutbah live.",
         "NSUserTrackingUsageDescription": "Khutbah Companion uses your activity data to show relevant ads.",
         "UIBackgroundModes": [
@@ -26,6 +27,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
+        "CAMERA",
         "RECORD_AUDIO",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -52,6 +54,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-camera",
       "expo-notifications",
       [
         "expo-splash-screen",
