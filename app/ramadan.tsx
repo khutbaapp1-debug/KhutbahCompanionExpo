@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import DailyWorshipChecklist from '../src/components/DailyWorshipChecklist';
 import { PremiumPaywall } from '../src/components/PremiumPaywall';
 import { usePremium } from '../src/hooks/usePremium';
 import { getStoredLocation } from '../src/lib/location';
@@ -27,18 +28,14 @@ const QURAN_TOTAL_DAYS = 30;
 const PAGES_PER_DAY = 20;
 
 const CHECKLIST_ITEMS = [
-  { id: 'tahajjud',       label: 'Tahajjud prayed (last third of night)' },
-  { id: 'witr',           label: 'Witr prayed (before Fajr)' },
-  { id: 'morning-adhkar', label: 'Morning Adhkar completed (after Fajr)' },
-  { id: 'duha',           label: 'Duha prayer prayed (after sunrise)' },
-  { id: 'evening-adhkar', label: 'Evening Adhkar completed (after Asr)' },
-  { id: 'awwabin',        label: 'Awwabin prayed (6 rakats after Maghrib)' },
-  { id: 'iftar-share',    label: 'Gave Iftar to someone' },
-  { id: 'tarawih',        label: 'Tarawih prayed (after Isha)' },
-  { id: 'quran-juz',      label: 'Read 1 Juz today' },
-  { id: 'sadaqah',        label: 'Gave Sadaqah today' },
-  { id: 'istighfar',      label: 'Istighfar ×100' },
-  { id: 'family',         label: 'Called or checked on family' },
+  { id: 'witr',        label: 'Witr prayed (before Fajr)' },
+  { id: 'fast',        label: 'Fasted today (made intention for Suhoor)' },
+  { id: 'iftar-dua',   label: 'Recited Iftar dua at Maghrib' },
+  { id: 'iftar-share', label: 'Gave Iftar to someone' },
+  { id: 'tarawih',     label: 'Tarawih prayed (after Isha)' },
+  { id: 'quran-juz',   label: 'Read 1 Juz today' },
+  { id: 'sadaqah',     label: 'Gave Sadaqah today' },
+  { id: 'family',      label: 'Called or checked on family' },
 ] as const;
 
 const NAFIL_GUIDE = [
@@ -291,16 +288,19 @@ export default function RamadanScreen() {
           </View>
         </View>
 
-        {/* Daily acts of worship checklist — resets at midnight via date-keyed storage */}
+        {/* Daily worship — non-Ramadan items (shared free component) */}
+        <DailyWorshipChecklist />
+
+        {/* Ramadan-specific checklist — resets at midnight via date-keyed storage */}
         <View
           style={{
             backgroundColor: theme.card, borderRadius: 16, padding: 20,
-            borderWidth: 1, borderColor: theme.border,
+            marginTop: 16, borderWidth: 1, borderColor: theme.border,
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
             <Text style={{ flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 16, color: theme.text }}>
-              Daily Acts of Worship
+              Ramadan Goals
             </Text>
             <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.textMuted }}>
               {CHECKLIST_ITEMS.filter((item) => checklist[item.id]).length} of {CHECKLIST_ITEMS.length} completed
