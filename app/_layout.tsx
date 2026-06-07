@@ -4,10 +4,11 @@ import '../global.css';
 import '../src/lib/text-defaults';
 
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -22,6 +23,7 @@ import {
 import mobileAds from 'react-native-google-mobile-ads';
 import Purchases from 'react-native-purchases';
 import { ThemeProvider, useTheme } from '../src/lib/theme-context';
+import BannerAd from '../src/components/BannerAd';
 
 // Initialise RevenueCat early so getCustomerInfo() is ready before any screen
 // calls isPremium(). Wrapped in try/catch so Expo Go (no native module) never
@@ -46,6 +48,18 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 export const unstable_settings = {
   initialRouteName: 'loading',
 };
+
+// Banner ad rendered on every screen, flush against the navigation bar.
+// SafeAreaView with edges={['bottom']} absorbs the bottom inset so there is
+// zero gap between the ad and the system navigation bar across all themes.
+function ThemedBanner() {
+  const { theme } = useTheme();
+  return (
+    <SafeAreaView edges={['bottom']} style={{ backgroundColor: theme.surface }}>
+      <BannerAd />
+    </SafeAreaView>
+  );
+}
 
 // Inner navigator: consumes the theme so the native header bars and default
 // screen background follow the selected light/dark/high-contrast theme.
@@ -129,7 +143,10 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ThemedStack />
+        <View style={{ flex: 1 }}>
+          <ThemedStack />
+          <ThemedBanner />
+        </View>
       </ThemeProvider>
     </SafeAreaProvider>
   );
