@@ -198,7 +198,6 @@ export default function MosquesScreen() {
     mapLoadedRef.current = false;
     const timer = setTimeout(() => {
       if (!mapLoadedRef.current) {
-        console.log('MapView onMapLoadError: map did not load within timeout');
         setMapError(true);
       }
     }, 10000);

@@ -63,7 +63,6 @@ export async function uploadChunk(
   targetLanguage = 'en',
 ): Promise<TranscribeResult | null> {
   await acquireSlot();
-  console.log(`[TranslationUpload] seq=${sequenceNumber} upload started — ${activeUploads} concurrent upload(s) in flight`);
   try {
     const base64 = uint8ArrayToBase64(wav);
 
@@ -106,7 +105,6 @@ export async function uploadChunk(
     // Network / parse failure — stay silent, the recorder keeps going.
     return null;
   } finally {
-    console.log(`[TranslationUpload] seq=${sequenceNumber} upload finished`);
     releaseSlot();
   }
 }
