@@ -30,7 +30,7 @@ type Dua = {
   reference: string | null;
 };
 
-const FREE_CATEGORY_IDS = ['all', 'morning', 'evening'];
+const FREE_CATEGORY_IDS = ['all', 'morning', 'evening', 'daily', 'food', 'protection', 'family'];
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
@@ -63,9 +63,13 @@ export default function DuasScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
+
     async function load() {
       try {
         const cached = await AsyncStorage.getItem(DUA_CACHE_KEY);
+        if (cancelled) return;
         if (cached) {
           setDuas(JSON.parse(cached) as Dua[]);
           setLoading(false);
@@ -73,21 +77,30 @@ export default function DuasScreen() {
       } catch {}
 
       try {
-        const res = await fetch(`${BASE_URL}/api/duas`);
+        const res = await fetch(`${BASE_URL}/api/duas`, { signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as Dua[];
+        if (cancelled) return;
         if (Array.isArray(data)) {
           setDuas(data);
           void AsyncStorage.setItem(DUA_CACHE_KEY, JSON.stringify(data));
         }
       } catch {}
+      if (cancelled) return;
       setLoading(false);
     }
     void load();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, []);
 
   const filtered = useMemo(() => {
+    const freeIds = FREE_CATEGORY_IDS.filter((id) => id !== 'all');
     if (!isPremium && category === 'all') {
-      return duas.filter((d) => d.category === 'morning' || d.category === 'evening');
+      return duas.filter((d) => freeIds.includes(d.category));
     }
     return category === 'all' ? duas : duas.filter((d) => d.category === category);
   }, [duas, category, isPremium]);
@@ -282,7 +295,7 @@ export default function DuasScreen() {
                 {/* Arabic */}
                 <Text
                   style={{
-                    fontFamily: 'KFGQPCHafs',
+                    fontFamily: 'NotoNaskhArabic_400Regular',
                     fontSize: 22,
                     color: theme.text,
                     lineHeight: 44,
