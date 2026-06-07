@@ -5,6 +5,7 @@ import { FlatList, ImageSourcePropType, ScrollView, Text, TouchableOpacity, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BannerAdPlaceholder from '../src/components/BannerAdPlaceholder';
+import DailyWorshipChecklist from '../src/components/DailyWorshipChecklist';
 import FeaturedBanner from '../src/components/FeaturedBanner';
 import GridTile from '../src/components/GridTile';
 import HomeHeader from '../src/components/HomeHeader';
@@ -241,6 +242,9 @@ export default function HomeScreen() {
             requesting={requesting}
             onEnableLocation={handleEnableLocation}
           />
+        </View>
+        <View className="mt-3 px-6">
+          <DailyWorshipChecklist />
         </View>
         <View className="mt-3 px-6">
           <FeaturedBanner />
