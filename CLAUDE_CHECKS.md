@@ -3,6 +3,14 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 
 ---
 
+## UNCONDITIONAL CHECKS — ALWAYS RUN THESE REGARDLESS OF WHICH FILES WERE CHANGED
+- app/quran/[surahNumber].tsx: page view verse Text has textAlign 'right', writingDirection 'rtl', width '100%'
+- app/quran/[surahNumber].tsx: parent View has width '100%' and alignSelf 'stretch'
+- src/lib/premium.ts: isPremium status matches current development phase (true for testing, RevenueCat for production)
+- No console.log statements exist anywhere in app/ or src/ directories
+
+---
+
 ## ANY FILE IN app/ OR src/components/
 - Theme colours come from useTheme() not hardcoded hex values
 - Arabic text uses NotoNaskhArabic (non-Quran screens) or KFGQPCHafs (Quran screens)
@@ -12,10 +20,6 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - isPremium checks use usePremium hook not a direct function call
 
 ## app/quran/[surahNumber].tsx
-- Page view verse Text component has textAlign: 'right'
-- Page view verse Text component has writingDirection: 'rtl'
-- Page view verse Text component has width: '100%'
-- Page view verse parent View has width: '100%' and alignSelf: 'stretch'
 - Bookmark uses measureInWindow on verseRefs not an estimate or calculation
 - Detailed view uses scrollToIndex on FlatList
 - Bismillah shown as separate centred header on every surah except 1 and 9
