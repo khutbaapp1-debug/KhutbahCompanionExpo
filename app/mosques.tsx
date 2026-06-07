@@ -147,7 +147,6 @@ function MosqueCard({
 
 export default function MosquesScreen() {
   const { theme } = useTheme();
-  console.log('Maps API key:', 'AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_F');
   const [status, setStatus] = useState<Status>('checking');
   const [coords, setCoords] = useState<Coords | null>(null);
   const [mosques, setMosques] = useState<Mosque[]>([]);
