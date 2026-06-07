@@ -23,6 +23,7 @@ function todayKey(): string {
 export default function DailyWorshipChecklist() {
   const { theme } = useTheme();
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     AsyncStorage.getItem(CHECKLIST_KEY_PREFIX + todayKey()).then((raw) => {
@@ -40,73 +41,96 @@ export default function DailyWorshipChecklist() {
 
   const completedCount = WORSHIP_ITEMS.filter((item) => checklist[item.id]).length;
 
-  return (
-    <View
+  const cardStyle = {
+    backgroundColor: theme.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.border,
+  };
+
+  const headerRow = (
+    <TouchableOpacity
+      onPress={() => setCollapsed((c) => !c)}
+      activeOpacity={0.7}
       style={{
-        backgroundColor: theme.card,
-        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
         padding: 20,
-        borderWidth: 1,
-        borderColor: theme.border,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-        <Text
-          style={{
-            flex: 1,
-            fontFamily: 'Inter_600SemiBold',
-            fontSize: 16,
-            color: theme.text,
-          }}
-        >
-          Today's Worship
-        </Text>
-        <Text
-          style={{
-            fontFamily: 'Inter_400Regular',
-            fontSize: 13,
-            color: theme.textMuted,
-          }}
-        >
-          {completedCount} of {WORSHIP_ITEMS.length} completed
-        </Text>
-      </View>
-      {WORSHIP_ITEMS.map((item, idx) => {
-        const checked = !!checklist[item.id];
-        const isLast = idx === WORSHIP_ITEMS.length - 1;
-        return (
-          <TouchableOpacity
-            key={item.id}
-            onPress={() => toggleItem(item.id)}
-            activeOpacity={0.7}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: 12,
-              borderBottomWidth: isLast ? 0 : 1,
-              borderBottomColor: theme.border,
-              gap: 12,
-            }}
-          >
-            <Ionicons
-              name={checked ? 'checkmark-circle' : 'ellipse-outline'}
-              size={22}
-              color={checked ? theme.primary : theme.textMuted}
-            />
-            <Text
+      <Text
+        style={{
+          flex: 1,
+          fontFamily: 'Inter_600SemiBold',
+          fontSize: 16,
+          color: theme.text,
+        }}
+      >
+        Today's Worship
+      </Text>
+      <Text
+        style={{
+          fontFamily: 'Inter_400Regular',
+          fontSize: 13,
+          color: theme.textMuted,
+          marginRight: 8,
+        }}
+      >
+        {completedCount} of {WORSHIP_ITEMS.length} completed
+      </Text>
+      <Ionicons
+        name={collapsed ? 'chevron-down-outline' : 'chevron-up-outline'}
+        size={20}
+        color={theme.primary}
+      />
+    </TouchableOpacity>
+  );
+
+  if (collapsed) {
+    return <View style={cardStyle}>{headerRow}</View>;
+  }
+
+  return (
+    <View style={cardStyle}>
+      {headerRow}
+      <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+        {WORSHIP_ITEMS.map((item, idx) => {
+          const checked = !!checklist[item.id];
+          const isLast = idx === WORSHIP_ITEMS.length - 1;
+          return (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => toggleItem(item.id)}
+              activeOpacity={0.7}
               style={{
-                flex: 1,
-                fontFamily: checked ? 'Inter_500Medium' : 'Inter_400Regular',
-                fontSize: 14,
-                color: checked ? theme.text : theme.textSecondary,
-                textDecorationLine: checked ? 'line-through' : 'none',
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 12,
+                borderBottomWidth: isLast ? 0 : 1,
+                borderBottomColor: theme.border,
+                gap: 12,
               }}
             >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+              <Ionicons
+                name={checked ? 'checkmark-circle' : 'ellipse-outline'}
+                size={22}
+                color={checked ? theme.primary : theme.textMuted}
+              />
+              <Text
+                style={{
+                  flex: 1,
+                  fontFamily: checked ? 'Inter_500Medium' : 'Inter_400Regular',
+                  fontSize: 14,
+                  color: checked ? theme.text : theme.textSecondary,
+                  textDecorationLine: checked ? 'line-through' : 'none',
+                }}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }

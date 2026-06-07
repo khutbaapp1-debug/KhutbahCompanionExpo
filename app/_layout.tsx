@@ -4,7 +4,6 @@ import '../global.css';
 import '../src/lib/text-defaults';
 
 import { useEffect } from 'react';
-import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -23,7 +22,6 @@ import {
 import mobileAds from 'react-native-google-mobile-ads';
 import Purchases from 'react-native-purchases';
 import { ThemeProvider, useTheme } from '../src/lib/theme-context';
-import BannerAd from '../src/components/BannerAd';
 
 // Initialise RevenueCat early so getCustomerInfo() is ready before any screen
 // calls isPremium(). Wrapped in try/catch so Expo Go (no native module) never
@@ -131,10 +129,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <View style={{ flex: 1 }}>
-          <ThemedStack />
-          <BannerAd />
-        </View>
+        <ThemedStack />
       </ThemeProvider>
     </SafeAreaProvider>
   );

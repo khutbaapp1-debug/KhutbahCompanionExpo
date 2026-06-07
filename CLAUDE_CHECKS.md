@@ -35,9 +35,8 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 
 ## app/_layout.tsx
 - mobileAds().initialize() called in useEffect on mount
-- AppBannerAd rendered at bottom of layout immediately above navigation bar
-- Zero gap between banner and navigation bar
-- paddingBottom on content area accounts for banner height plus safe area inset
+- No BannerAd component rendered (banner removed)
+- Layout renders SafeAreaProvider > ThemeProvider > ThemedStack with no extra wrapping View
 
 ## src/lib/premium.ts
 - isPremium uses Purchases.getCustomerInfo() from RevenueCat
