@@ -180,6 +180,8 @@ export default function TranslationScreen() {
   // handleStart) can read the latest value without adding it to their deps arrays.
   const { isPremium } = usePremium();
   const isPremiumRef = useRef(isPremium);
+  // Unmount guard — prevents setState calls from async fetches firing after navigation.
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     recorderStateRef.current = recorderState;
@@ -188,6 +190,8 @@ export default function TranslationScreen() {
   useEffect(() => {
     isPremiumRef.current = isPremium;
   }, [isPremium]);
+
+  useEffect(() => () => { isMountedRef.current = false; }, []);
 
   useEffect(() => {
     segmentsRef.current = segments;
@@ -394,12 +398,14 @@ export default function TranslationScreen() {
           });
           if (res.ok) {
             const data = (await res.json()) as { summary?: string; actionPoints?: string[] };
+            if (!isMountedRef.current) return;
             setSummaryText(data.summary ?? null);
             setActionPoints(data.actionPoints ?? []);
           }
         } catch {
           // Network failure — modal shows nothing; user can dismiss.
         } finally {
+          if (!isMountedRef.current) return;
           setSummaryLoading(false);
         }
       }
