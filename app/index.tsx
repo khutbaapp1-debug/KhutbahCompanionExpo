@@ -4,7 +4,6 @@ import { useCallback, useState } from 'react';
 import { FlatList, ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import BannerAdPlaceholder from '../src/components/BannerAdPlaceholder';
 import DailyWorshipChecklist from '../src/components/DailyWorshipChecklist';
 import FeaturedBanner from '../src/components/FeaturedBanner';
 import GridTile from '../src/components/GridTile';
@@ -270,9 +269,6 @@ export default function HomeScreen() {
           />
         </View>
       </ScrollView>
-      <SafeAreaView edges={['bottom']} style={{ backgroundColor: theme.surface }}>
-        <BannerAdPlaceholder />
-      </SafeAreaView>
       <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />
     </View>
   );
