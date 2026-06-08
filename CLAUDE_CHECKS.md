@@ -24,6 +24,8 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - Detailed view uses scrollToIndex on FlatList
 - Bismillah shown as separate centred header on every surah except 1 and 9
 - Bismillah removed from verse 1 text when shown as a header
+- Page view Arabic text: textAlign 'justify', writingDirection 'rtl', width '100%'
+- Detailed view Arabic text: textAlign 'justify', writingDirection 'rtl'
 
 ## app/index.tsx
 - All 16 feature tiles present: Live Translation, Prayer Times, Quran, Daily Duas, Daily Hadith, Tasbih, Qibla Compass, 99 Names, Mosque Finder, Salah Guide, Wudu Guide, Settings, Ramadan, Zakat Calculator, My Duas, Daily Worship Checklist
