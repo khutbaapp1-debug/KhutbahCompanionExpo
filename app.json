@@ -77,6 +77,12 @@
           "androidAppId": "ca-app-pub-6514143339893635~7248812544",
           "iosAppId": "ca-app-pub-6514143339893635~4866191788"
         }
+      ],
+      [
+        "react-native-maps",
+        {
+          "googleMapsApiKey": "AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_F"
+        }
       ]
     ],
     "extra": {
