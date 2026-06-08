@@ -19,6 +19,7 @@ const BASE_URL = 'https://khutbahtranslate-production.up.railway.app';
 type Hadith = {
   id: string;
   arabicText: string;
+  transliteration?: string | null;
   englishTranslation: string;
   narrator: string;
   collection: string;
@@ -78,8 +79,15 @@ export default function HadithScreen() {
 
   const shareHadith = async () => {
     if (!hadith) return;
-    const text = `${hadith.arabicText}\n\n${hadith.englishTranslation}\n\n— ${hadith.narrator}, ${hadith.collection} (${hadith.reference})`;
-    await Share.share({ message: text });
+    if (__DEV__ && !hadith.transliteration) {
+      // eslint-disable-next-line no-console
+      console.log('[HadithScreen] transliteration field missing from hadith data');
+    }
+    const parts: string[] = [hadith.arabicText];
+    if (hadith.transliteration) parts.push(hadith.transliteration);
+    parts.push(hadith.englishTranslation);
+    parts.push(`— ${hadith.narrator}, ${hadith.collection} (${hadith.reference})`);
+    await Share.share({ message: parts.join('\n\n') });
   };
 
   const dateLabel = new Date().toLocaleDateString('en-US', {

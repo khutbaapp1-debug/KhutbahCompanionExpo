@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Stack, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Component, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -143,7 +143,30 @@ function PulsingMic() {
   );
 }
 
-export default function TranslationScreen() {
+class TranslationErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error): void {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[TranslationErrorBoundary] caught:', error);
+    }
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
+function TranslationScreenContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
@@ -379,8 +402,8 @@ export default function TranslationScreen() {
   }, [startElapsedTimer, startCountdownTimer]);
 
   const handleStop = useCallback(async () => {
-    stopRecordingInternal();
     try {
+      stopRecordingInternal();
       if (isPremiumRef.current && segmentsRef.current.length > 0) {
         const text = segmentsRef.current
           .filter((s) => s.english && s.english !== '…')
@@ -404,8 +427,11 @@ export default function TranslationScreen() {
           }
         }
       }
-    } catch {
-      // Silently swallow any error — do not crash or show the summary modal.
+    } catch (err) {
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[TranslationScreen] handleStop error:', err);
+      }
     } finally {
       if (isMountedRef.current) setSummaryLoading(false);
     }
@@ -1137,5 +1163,13 @@ export default function TranslationScreen() {
         actionPoints={actionPoints}
       />
     </View>
+  );
+}
+
+export default function TranslationScreen() {
+  return (
+    <TranslationErrorBoundary>
+      <TranslationScreenContent />
+    </TranslationErrorBoundary>
   );
 }

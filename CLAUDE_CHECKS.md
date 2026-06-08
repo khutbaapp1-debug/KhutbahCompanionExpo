@@ -28,7 +28,7 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - Detailed view Arabic text: textAlign 'justify', writingDirection 'rtl'
 
 ## app/index.tsx
-- All 16 feature tiles present: Live Translation, Prayer Times, Quran, Daily Duas, Daily Hadith, Tasbih, Qibla Compass, 99 Names, Mosque Finder, Salah Guide, Wudu Guide, Settings, Ramadan, Zakat Calculator, My Duas, Daily Worship Checklist
+- All 13 feature tiles present: Live Translation, Prayer Times, Quran, Daily Duas, Daily Hadith, Tasbih, Qibla Compass, 99 Names, Mosque Finder, Salah Guide, Ramadan, Zakat Calculator, My Duas
 - Location loading uses useFocusEffect not useEffect
 - Premium upgrade banner visible for free users below header
 - DailyWorshipChecklist is collapsed by default showing title, progress count, and chevron icon. Tapping expands and collapses it.
@@ -58,7 +58,7 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 
 ## app/mosques.tsx
 - Google Maps API key read from environment variable not hardcoded in source
-- No console.log of the API key or any part of it
+- No console.log of the API key except inside if (__DEV__) guards for temporary debugging
 - Fallback message shown when map fails: "Map loading issues? Mosque locations are shown in the list below."
 - Mosque list renders even when map fails
 

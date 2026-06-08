@@ -149,6 +149,8 @@ export default function DuasScreen() {
                 borderRadius: 20,
                 marginRight: 8,
                 alignSelf: 'center',
+                minHeight: 44,
+                justifyContent: 'center',
                 backgroundColor: category === cat.id ? theme.primary : theme.surface,
               }}
             >
@@ -156,9 +158,9 @@ export default function DuasScreen() {
                 style={{
                   fontFamily: 'Inter_500Medium',
                   fontSize: 12,
-                  lineHeight: 20,
+                  lineHeight: 12 * 1.6,
                   includeFontPadding: false,
-                  paddingBottom: 6,
+                  paddingBottom: 8,
                   color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
                 }}
               >

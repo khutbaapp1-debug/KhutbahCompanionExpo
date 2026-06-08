@@ -149,7 +149,7 @@ function MosqueCard({
 if (__DEV__) {
   const mapsKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey as string | undefined;
   // eslint-disable-next-line no-console
-  console.log('[MosquesScreen] Google Maps API key prefix:', mapsKey ? mapsKey.slice(0, 8) : 'undefined');
+  console.log('[MosquesScreen] Google Maps API key:', mapsKey ?? 'undefined');
 }
 
 export default function MosquesScreen() {

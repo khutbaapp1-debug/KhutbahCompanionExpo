@@ -312,17 +312,19 @@ export default function QiblaScreen() {
     })();
   }, []);
 
-  // ── Request camera permission on mount (and re-check when status updates) ──
+  // ── Request camera permission immediately on mount ───────────────────────
   useEffect(() => {
-    if (cameraPermission === null) return; // hook not yet initialised
+    void requestCameraPermission();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Log permission status at every state change ──────────────────────────
+  useEffect(() => {
     if (__DEV__) {
       // eslint-disable-next-line no-console
-      console.log('[QiblaScreen] camera permission status:', cameraPermission.status, '| granted:', cameraPermission.granted);
+      console.log('[QiblaScreen] camera permission status:', cameraPermission?.status, '| granted:', cameraPermission?.granted);
     }
-    if (!cameraPermission.granted && cameraPermission.canAskAgain) {
-      void requestCameraPermission();
-    }
-  }, [cameraPermission, requestCameraPermission]);
+  }, [cameraPermission]);
 
   // ── Derived Qibla values ─────────────────────────────────────────────────
   const qiblaResult =

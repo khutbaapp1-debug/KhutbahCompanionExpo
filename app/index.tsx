@@ -99,12 +99,6 @@ const TILE_ROWS: TileData[][] = [
     { href: '/zakat', imageSource: IMG_NAMES, iconLibrary: 'ionicons', iconName: 'calculator-outline', title: 'Zakat Calculator' },
     { href: '/ramadan', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'ionicons', iconName: 'moon-outline', title: 'Ramadan' },
   ],
-  // Row 6
-  [
-    { href: '/settings', imageSource: IMG_NAMES, iconLibrary: 'ionicons', iconName: 'settings-outline', title: 'Settings' },
-    { href: '/salah-guide', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'ionicons', iconName: 'water-outline', title: 'Wudu Guide' },
-    { href: '/hadith', imageSource: IMG_HADITH, iconLibrary: 'ionicons', iconName: 'checkmark-circle-outline', title: 'Daily Worship' },
-  ],
 ];
 
 export default function HomeScreen() {

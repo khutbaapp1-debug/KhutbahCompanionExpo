@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -494,43 +494,44 @@ const soundRef = useRef<SoundInstance | null>(null);
               elevation: 3,
             }}
           >
-            {surah.ayahs.map((ayah) => {
-              const isPlaying = playingAyah === ayah.numberInSurah;
-              const isLoading = loadingAyah === ayah.numberInSurah;
-              const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
-              const textContent =
-                ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
-              const markerContent = isLoading
-                ? '○'
-                : isPlaying
-                ? '⏸'
-                : isBookmarked
-                ? `۞ ${ayah.numberInSurah}`
-                : `۝ ${ayah.numberInSurah}`;
-              const markerColor = isLoading
-                ? theme.textMuted
-                : isPlaying
-                ? theme.primary
-                : isBookmarked
-                ? '#C0392B'
-                : theme.primary;
-              return (
-                <View
-                  key={ayah.numberInSurah}
-                  ref={(el) => { verseRefs.current[ayah.numberInSurah] = el; }}
-                  style={{ width: '100%', alignSelf: 'stretch' }}
-                >
-                  <Text
-                    style={{
-                      writingDirection: 'rtl',
-                      textAlign: 'justify',
-                      width: '100%',
-                      fontFamily: 'KFGQPCHafs',
-                      fontSize,
-                      lineHeight: fontSize * 2,
-                      color: themeMode === 'light' ? '#1a1a1a' : theme.text,
-                    }}
-                  >
+            <Text
+              style={{
+                writingDirection: 'rtl',
+                textAlign: 'justify',
+                width: '100%',
+                fontFamily: 'KFGQPCHafs',
+                fontSize,
+                lineHeight: fontSize * 2,
+                color: themeMode === 'light' ? '#1a1a1a' : theme.text,
+              }}
+            >
+              {surah.ayahs.map((ayah) => {
+                const isPlaying = playingAyah === ayah.numberInSurah;
+                const isLoading = loadingAyah === ayah.numberInSurah;
+                const isBookmarked = bookmarkedAyah === ayah.numberInSurah;
+                const textContent =
+                  ayah.numberInSurah === 1 && startsWithBismillah ? firstAyahText : ayah.text;
+                const markerContent = isLoading
+                  ? '○'
+                  : isPlaying
+                  ? '⏸'
+                  : isBookmarked
+                  ? `۞ ${ayah.numberInSurah}`
+                  : `۝ ${ayah.numberInSurah}`;
+                const markerColor = isLoading
+                  ? theme.textMuted
+                  : isPlaying
+                  ? theme.primary
+                  : isBookmarked
+                  ? '#C0392B'
+                  : theme.primary;
+                return (
+                  <Fragment key={ayah.numberInSurah}>
+                    {/* Zero-size ref marker for measureInWindow bookmark scrolling */}
+                    <View
+                      ref={(el) => { verseRefs.current[ayah.numberInSurah] = el; }}
+                      style={{ height: 0, width: 0 }}
+                    />
                     {textContent}{' '}
                     <Text
                       onPress={() => handleVerseMarkerPress(ayah.numberInSurah)}
@@ -543,10 +544,10 @@ const soundRef = useRef<SoundInstance | null>(null);
                     >
                       {markerContent}{' '}
                     </Text>
-                  </Text>
-                </View>
-              );
-            })}
+                  </Fragment>
+                );
+              })}
+            </Text>
           </View>
 
           {/* Active verse panel — shown when a verse marker is tapped */}
