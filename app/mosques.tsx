@@ -356,6 +356,12 @@ export default function MosquesScreen() {
                     }}
                     showsUserLocation
                     onMapLoaded={handleMapLoaded}
+                    onMapReady={() => {
+                      if (__DEV__) {
+                        // eslint-disable-next-line no-console
+                        console.log('[MosquesScreen] map ready');
+                      }
+                    }}
                   >
                     {mosques.map((mosque) => (
                       <Marker

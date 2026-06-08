@@ -54,6 +54,7 @@ interface CompassProps {
   handleRecalibrate: () => void;
   theme: ReturnType<typeof useTheme>['theme'];
   insets: { bottom: number };
+  cameraPermDenied?: boolean;
 }
 
 function CompassFallback({
@@ -65,6 +66,7 @@ function CompassFallback({
   handleRecalibrate,
   theme,
   insets,
+  cameraPermDenied,
 }: CompassProps) {
   const roseRotation = headingAnim.interpolate({
     inputRange: [-360, 0, 360],
@@ -195,6 +197,21 @@ function CompassFallback({
             Recalibrate
           </Text>
         </TouchableOpacity>
+
+        {cameraPermDenied && (
+          <Text
+            style={{
+              fontFamily: 'Inter_400Regular',
+              fontSize: 12,
+              color: theme.textMuted,
+              textAlign: 'center',
+              maxWidth: 280,
+              marginTop: 12,
+            }}
+          >
+            Camera permission denied. Enable it in Settings to use AR mode.
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -424,20 +441,16 @@ export default function QiblaScreen() {
   }, [subscribeAccelerometer, subscribeMagnetometer]);
 
   // ── Choose AR vs compass ─────────────────────────────────────────────────
-  // AR mode when camera permission is granted; fallback to compass otherwise
+  const permPending = cameraPermission === null || cameraPermission.status === 'undetermined';
   const useAR = cameraPermission?.granted === true;
+  const cameraPermDenied = cameraPermission !== null && !cameraPermission.granted && !permPending;
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <>
       <Stack.Screen options={{ title: 'Qibla Finder' }} />
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: useAR ? 'black' : theme.background,
-          alignItems: 'center',
-        }}
-      >
+      {/* No alignItems here — AR branch needs the full unconstrained width */}
+      <View style={{ flex: 1, backgroundColor: useAR ? 'black' : theme.background }}>
         {locState.status === 'loading' ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <ActivityIndicator size="large" color={theme.primary} />
@@ -477,6 +490,13 @@ export default function QiblaScreen() {
               Open the Prayer Times screen first so your location can be saved, then return here.
             </Text>
           </View>
+        ) : permPending ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textMuted }}>
+              Requesting camera permission…
+            </Text>
+          </View>
         ) : useAR ? (
           <ARView
             arrowRotation={arrowRotation}
@@ -497,6 +517,7 @@ export default function QiblaScreen() {
             handleRecalibrate={handleRecalibrate}
             theme={theme}
             insets={insets}
+            cameraPermDenied={cameraPermDenied}
           />
         )}
       </View>
