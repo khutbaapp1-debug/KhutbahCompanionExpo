@@ -380,17 +380,16 @@ export default function TranslationScreen() {
 
   const handleStop = useCallback(async () => {
     stopRecordingInternal();
-    if (isPremiumRef.current && segmentsRef.current.length > 0) {
-      const text = segmentsRef.current
-        .filter((s) => s.english && s.english !== '…')
-        .map((s) => s.english)
-        .join('\n\n');
-      if (text.length > 50) {
-        setSummaryText(null);
-        setActionPoints([]);
-        setSummaryLoading(true);
-        setShowSummary(true);
-        try {
+    try {
+      if (isPremiumRef.current && segmentsRef.current.length > 0) {
+        const text = segmentsRef.current
+          .filter((s) => s.english && s.english !== '…')
+          .map((s) => s.english)
+          .join('\n\n');
+        if (text.length > 50) {
+          setSummaryText(null);
+          setActionPoints([]);
+          setSummaryLoading(true);
           const res = await fetch(SUMMARISE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -401,14 +400,14 @@ export default function TranslationScreen() {
             if (!isMountedRef.current) return;
             setSummaryText(data.summary ?? null);
             setActionPoints(data.actionPoints ?? []);
+            setShowSummary(true);
           }
-        } catch {
-          // Network failure — modal shows nothing; user can dismiss.
-        } finally {
-          if (!isMountedRef.current) return;
-          setSummaryLoading(false);
         }
       }
+    } catch {
+      // Silently swallow any error — do not crash or show the summary modal.
+    } finally {
+      if (isMountedRef.current) setSummaryLoading(false);
     }
   }, [stopRecordingInternal]);
 

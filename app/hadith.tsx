@@ -78,7 +78,7 @@ export default function HadithScreen() {
 
   const shareHadith = async () => {
     if (!hadith) return;
-    const text = `${hadith.arabicText}\n\n${hadith.englishTranslation}\n\n— ${hadith.narrator}, ${hadith.reference}`;
+    const text = `${hadith.arabicText}\n\n${hadith.englishTranslation}\n\n— ${hadith.narrator}, ${hadith.collection} (${hadith.reference})`;
     await Share.share({ message: text });
   };
 

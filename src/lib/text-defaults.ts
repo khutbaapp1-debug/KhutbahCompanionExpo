@@ -18,7 +18,7 @@ import { Platform, Text, type TextProps } from 'react-native';
  * an array style resolves left-to-right.
  */
 const androidTextDefaults = Platform.select({
-  android: { includeFontPadding: false, textAlignVertical: 'auto' as const, paddingBottom: 2 },
+  android: { includeFontPadding: false, textAlignVertical: 'auto' as const, paddingBottom: 4 },
   default: undefined,
 });
 

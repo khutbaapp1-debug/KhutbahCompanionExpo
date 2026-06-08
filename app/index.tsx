@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ImageBackground, ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import DailyWorshipChecklist from '../src/components/DailyWorshipChecklist';
@@ -26,6 +27,37 @@ const IMG_NAMES = require('../assets/images/Islamic_geometric_pattern_teal_gold_
 const IMG_MOSQUES = require('../assets/images/mosque_aerial_city_view.png');
 const IMG_HADITH = require('../assets/images/hadith_books_row.png');
 
+// Full-width Live Translation hero tile rendered above the 3-column grid.
+function LiveTranslationTile() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => router.push('/translation')}
+      style={{ marginBottom: 12 }}
+    >
+      <ImageBackground
+        source={IMG_PRAYER_TIMES}
+        resizeMode="cover"
+        style={{ borderRadius: 16, overflow: 'hidden', height: 110 }}
+      >
+        <LinearGradient
+          colors={['rgba(15,118,110,0.25)', 'rgba(15,118,110,0.55)', 'rgba(15,118,110,0.75)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 12 }}
+        >
+          <Ionicons name="mic" size={36} color="white" />
+          <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 20, color: 'white' }}>
+            Live Translation
+          </Text>
+        </LinearGradient>
+      </ImageBackground>
+    </TouchableOpacity>
+  );
+}
+
 type TileData = {
   href: string;
   imageSource: ImageSourcePropType;
@@ -41,81 +73,38 @@ type TileData = {
   title: string;
 };
 
-const TILES: TileData[] = [
-  {
-    href: '/prayer-times',
-    imageSource: IMG_PRAYER_TIMES,
-    iconLibrary: 'custom-prayer-times',
-    title: 'Prayer Times',
-  },
-  {
-    href: '/quran',
-    imageSource: IMG_QURAN,
-    iconName: 'book-open-variant',
-    title: 'Quran',
-  },
-  {
-    href: '/duas',
-    imageSource: IMG_DUAS,
-    iconLibrary: 'custom-dua',
-    title: 'Daily Duas',
-  },
-  {
-    href: '/my-duas',
-    imageSource: IMG_DUAS,
-    iconName: 'bookmark-heart',
-    title: 'My Duas',
-  },
-  {
-    href: '/hadith',
-    imageSource: IMG_HADITH,
-    iconName: 'book-open-page-variant',
-    title: 'Daily Hadith',
-  },
-  {
-    href: '/zakat',
-    imageSource: IMG_NAMES,
-    iconLibrary: 'ionicons',
-    iconName: 'calculator-outline',
-    title: 'Zakat',
-  },
-  {
-    href: '/tasbih',
-    imageSource: IMG_TASBIH,
-    iconLibrary: 'custom-tasbih',
-    title: 'Tasbih',
-  },
-  {
-    href: '/qibla',
-    imageSource: IMG_QIBLA,
-    iconName: 'compass-outline',
-    title: 'Qibla Compass',
-  },
-  {
-    href: '/names',
-    imageSource: IMG_NAMES,
-    textOverlay: '99',
-    title: '99 Names',
-  },
-  {
-    href: '/mosques',
-    imageSource: IMG_MOSQUES,
-    iconName: 'map-marker-radius',
-    title: 'Mosque Finder',
-  },
-  {
-    href: '/salah-guide',
-    imageSource: IMG_PRAYER_TIMES,
-    iconLibrary: 'custom-salah',
-    title: 'Salah Guide',
-  },
-  {
-    href: '/ramadan',
-    imageSource: IMG_PRAYER_TIMES,
-    iconLibrary: 'ionicons',
-    iconName: 'moon-outline',
-    title: 'Ramadan',
-  },
+// Rows 2-6: three tiles each in the order requested.
+const TILE_ROWS: TileData[][] = [
+  // Row 2
+  [
+    { href: '/prayer-times', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'custom-prayer-times', title: 'Prayer Times' },
+    { href: '/quran', imageSource: IMG_QURAN, iconName: 'book-open-variant', title: 'Quran' },
+    { href: '/hadith', imageSource: IMG_HADITH, iconName: 'book-open-page-variant', title: 'Daily Hadith' },
+  ],
+  // Row 3
+  [
+    { href: '/duas', imageSource: IMG_DUAS, iconLibrary: 'custom-dua', title: 'Daily Duas' },
+    { href: '/my-duas', imageSource: IMG_DUAS, iconName: 'bookmark-heart', title: 'My Duas' },
+    { href: '/tasbih', imageSource: IMG_TASBIH, iconLibrary: 'custom-tasbih', title: 'Tasbih' },
+  ],
+  // Row 4
+  [
+    { href: '/mosques', imageSource: IMG_MOSQUES, iconName: 'map-marker-radius', title: 'Mosque Finder' },
+    { href: '/qibla', imageSource: IMG_QIBLA, iconName: 'compass-outline', title: 'Qibla Compass' },
+    { href: '/names', imageSource: IMG_NAMES, textOverlay: '99', title: '99 Names' },
+  ],
+  // Row 5
+  [
+    { href: '/salah-guide', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'custom-salah', title: 'Salah Guide' },
+    { href: '/zakat', imageSource: IMG_NAMES, iconLibrary: 'ionicons', iconName: 'calculator-outline', title: 'Zakat Calculator' },
+    { href: '/ramadan', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'ionicons', iconName: 'moon-outline', title: 'Ramadan' },
+  ],
+  // Row 6
+  [
+    { href: '/settings', imageSource: IMG_NAMES, iconLibrary: 'ionicons', iconName: 'settings-outline', title: 'Settings' },
+    { href: '/salah-guide', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'ionicons', iconName: 'water-outline', title: 'Wudu Guide' },
+    { href: '/hadith', imageSource: IMG_HADITH, iconLibrary: 'ionicons', iconName: 'checkmark-circle-outline', title: 'Daily Worship' },
+  ],
 ];
 
 export default function HomeScreen() {
@@ -130,6 +119,8 @@ export default function HomeScreen() {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [locationChecked, setLocationChecked] = useState(false);
   const [requesting, setRequesting] = useState(false);
+  // Incremented on focus so prayer times recalculate when settings change.
+  const [prayerRefreshKey, setPrayerRefreshKey] = useState(0);
 
   // Re-check the location cache every time the home screen comes into focus so
   // that if the user grants permission in Prayer Times (or the loading screen)
@@ -153,6 +144,7 @@ export default function HomeScreen() {
             });
         }
       });
+      setPrayerRefreshKey((k) => k + 1);
       return () => {
         isMounted = false;
       };
@@ -174,7 +166,7 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const { nextPrayerName, nextPrayerTime, countdown } = useNextPrayer(coords);
+  const { nextPrayerName, nextPrayerTime, countdown } = useNextPrayer(coords, prayerRefreshKey);
   const needsLocation = locationChecked && !coords;
 
   const cycleTheme = () => {
@@ -249,24 +241,25 @@ export default function HomeScreen() {
           <FeaturedBanner />
         </View>
         <View className="mt-3 px-6">
-          <FlatList
-            data={TILES}
-            keyExtractor={(item) => item.href}
-            numColumns={3}
-            scrollEnabled={false}
-            columnWrapperStyle={{ gap: 12 }}
-            ItemSeparatorComponent={() => <View className="h-3" />}
-            renderItem={({ item }) => (
-              <GridTile
-                href={item.href}
-                imageSource={item.imageSource}
-                iconName={item.iconName as React.ComponentProps<typeof GridTile>['iconName']}
-                iconLibrary={item.iconLibrary}
-                textOverlay={item.textOverlay}
-                title={item.title}
-              />
-            )}
-          />
+          {/* Row 1: full-width Live Translation tile */}
+          <LiveTranslationTile />
+
+          {/* Rows 2-6: three tiles per row */}
+          {TILE_ROWS.map((row, rowIdx) => (
+            <View key={rowIdx} style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+              {row.map((tile) => (
+                <GridTile
+                  key={tile.href + tile.title}
+                  href={tile.href}
+                  imageSource={tile.imageSource}
+                  iconName={tile.iconName as React.ComponentProps<typeof GridTile>['iconName']}
+                  iconLibrary={tile.iconLibrary}
+                  textOverlay={tile.textOverlay}
+                  title={tile.title}
+                />
+              ))}
+            </View>
+          ))}
         </View>
       </ScrollView>
       <PremiumPaywall visible={showPaywall} onDismiss={() => setShowPaywall(false)} />

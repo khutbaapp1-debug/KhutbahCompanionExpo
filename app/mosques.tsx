@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
@@ -143,6 +144,12 @@ function MosqueCard({
       </Pressable>
     </View>
   );
+}
+
+if (__DEV__) {
+  const mapsKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey as string | undefined;
+  // eslint-disable-next-line no-console
+  console.log('[MosquesScreen] Google Maps API key prefix:', mapsKey ? mapsKey.slice(0, 8) : 'undefined');
 }
 
 export default function MosquesScreen() {
@@ -339,7 +346,7 @@ export default function MosquesScreen() {
                   </View>
                 ) : (
                   <MapView
-                    provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                    provider={PROVIDER_GOOGLE}
                     style={{ flex: 1 }}
                     initialRegion={{
                       latitude: coords.latitude,

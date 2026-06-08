@@ -1,12 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
 import {
-  FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   ScrollView,
   Switch,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -25,171 +24,108 @@ import { useTheme } from '../src/lib/theme-context';
 const HADITH_TIME_KEY = 'hadith-notification-time';
 const DHIKR_TIME_KEY = 'dhikr-notification-time';
 
-// ─── FlatList-based time picker ───────────────────────────────────────────────
+// ─── Up/down arrow time picker ────────────────────────────────────────────────
 
-const ITEM_HEIGHT = 50;
-const VISIBLE_ITEMS = 3; // one selected, one above, one below
+const HOUR_VALUES = Array.from({ length: 24 }, (_, i) => i);
+const MINUTE_VALUES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+function pad2(n: number) {
+  return String(n).padStart(2, '0');
+}
 
-function FlatListColumn({
-  items,
-  selected,
-  onSelect,
+function parseTimeInts(t: string): { hour: number; minute: number } {
+  const parts = t.split(':');
+  const h = parseInt(parts[0] ?? '8', 10);
+  const m = parseInt(parts[1] ?? '0', 10);
+  const hour = isNaN(h) ? 8 : Math.max(0, Math.min(23, h));
+  const minute = MINUTE_VALUES.reduce((prev, curr) =>
+    Math.abs(curr - (isNaN(m) ? 0 : m)) < Math.abs(prev - (isNaN(m) ? 0 : m)) ? curr : prev,
+  );
+  return { hour, minute };
+}
+
+function ArrowColumn({
+  label,
+  value,
+  values,
+  onChange,
 }: {
-  items: string[];
-  selected: string;
-  onSelect: (value: string) => void;
+  label: string;
+  value: number;
+  values: number[];
+  onChange: (v: number) => void;
 }) {
   const { theme } = useTheme();
-  const listRef = useRef<FlatList<string>>(null);
-
-  // Scroll to the initial selected item on mount.
-  useEffect(() => {
-    const idx = items.indexOf(selected);
-    if (idx >= 0) {
-      const timer = setTimeout(() => {
-        listRef.current?.scrollToOffset({ offset: idx * ITEM_HEIGHT, animated: false });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-    // Only run on mount — intentionally omitting `selected` so external value
-    // changes don't fight a user's in-progress scroll.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
-
-  const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
-    const clamped = Math.max(0, Math.min(idx, items.length - 1));
-    onSelect(items[clamped]);
-  };
+  const idx = values.indexOf(value);
+  const increment = () => onChange(values[(idx + 1) % values.length]);
+  const decrement = () => onChange(values[(idx - 1 + values.length) % values.length]);
 
   return (
-    <View
-      style={{
-        width: 64,
-        height: ITEM_HEIGHT * VISIBLE_ITEMS,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Teal selection highlight behind the centre row */}
+    <View style={{ alignItems: 'center', width: 72 }}>
+      <Text
+        style={{
+          fontFamily: 'Inter_400Regular',
+          fontSize: 11,
+          color: theme.textMuted,
+          marginBottom: 4,
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+        }}
+      >
+        {label}
+      </Text>
+      <TouchableOpacity onPress={increment} hitSlop={8} style={{ padding: 8 }}>
+        <Ionicons name="chevron-up" size={24} color={theme.primary} />
+      </TouchableOpacity>
       <View
         style={{
-          position: 'absolute',
-          top: ITEM_HEIGHT,
-          left: 4,
-          right: 4,
-          height: ITEM_HEIGHT,
           backgroundColor: theme.primary,
-          borderRadius: 8,
-          zIndex: 0,
+          borderRadius: 10,
+          paddingVertical: 10,
+          minWidth: 60,
+          alignItems: 'center',
         }}
-        pointerEvents="none"
-      />
-      <FlatList
-        ref={listRef}
-        data={items}
-        keyExtractor={(item) => item}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_HEIGHT}
-        decelerationRate="fast"
-        contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
-        getItemLayout={(_data, index) => ({
-          length: ITEM_HEIGHT,
-          offset: ITEM_HEIGHT * index + ITEM_HEIGHT, // +ITEM_HEIGHT for top padding
-          index,
-        })}
-        renderItem={({ item }) => {
-          const isSelected = item === selected;
-          return (
-            <View
-              style={{
-                height: ITEM_HEIGHT,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: isSelected ? 'Inter_600SemiBold' : 'Inter_400Regular',
-                  fontSize: isSelected ? 22 : 17,
-                  color: isSelected ? 'white' : theme.text,
-                }}
-              >
-                {item}
-              </Text>
-            </View>
-          );
-        }}
-      />
+      >
+        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 26, color: 'white' }}>
+          {pad2(value)}
+        </Text>
+      </View>
+      <TouchableOpacity onPress={decrement} hitSlop={8} style={{ padding: 8 }}>
+        <Ionicons name="chevron-down" size={24} color={theme.primary} />
+      </TouchableOpacity>
     </View>
   );
 }
 
-/** Parse an "HH:MM" string and return { hour, minute } as padded strings. */
-function parseTime(t: string): { hour: string; minute: string } {
-  const [h = '08', m = '00'] = t.split(':');
-  // Snap minute to nearest 5-minute interval
-  const mins = parseInt(m, 10);
-  const snapped = MINUTES.reduce((prev, curr) =>
-    Math.abs(parseInt(curr, 10) - mins) < Math.abs(parseInt(prev, 10) - mins) ? curr : prev,
-  );
-  return { hour: h.padStart(2, '0'), minute: snapped };
-}
-
-function FlatListTimePicker({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (t: string) => void;
-}) {
+function TimePicker({ value, onChange }: { value: string; onChange: (t: string) => void }) {
   const { theme } = useTheme();
-  const { hour, minute } = parseTime(value);
-  const [selHour, setSelHour] = useState(hour);
-  const [selMinute, setSelMinute] = useState(minute);
-
-  // Sync internal state when parent value changes (e.g. loaded from storage).
-  useEffect(() => {
-    const { hour: h, minute: m } = parseTime(value);
-    setSelHour(h);
-    setSelMinute(m);
-  }, [value]);
-
-  const handleHourChange = (h: string) => {
-    setSelHour(h);
-    onChange(`${h}:${selMinute}`);
-  };
-
-  const handleMinuteChange = (m: string) => {
-    setSelMinute(m);
-    onChange(`${selHour}:${m}`);
-  };
+  const { hour, minute } = parseTimeInts(value);
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 4,
-      }}
-    >
-      <FlatListColumn items={HOURS} selected={selHour} onSelect={handleHourChange} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <ArrowColumn
+        label="Hour"
+        value={hour}
+        values={HOUR_VALUES}
+        onChange={(h) => onChange(`${pad2(h)}:${pad2(minute)}`)}
+      />
       <Text
         style={{
           fontFamily: 'Inter_700Bold',
-          fontSize: 26,
+          fontSize: 30,
           color: theme.text,
+          marginTop: 24,
           marginHorizontal: 4,
-          marginTop: -4,
         }}
       >
         :
       </Text>
-      <FlatListColumn items={MINUTES} selected={selMinute} onSelect={handleMinuteChange} />
+      <ArrowColumn
+        label="Minute"
+        value={minute}
+        values={MINUTE_VALUES}
+        onChange={(m) => onChange(`${pad2(hour)}:${pad2(m)}`)}
+      />
     </View>
   );
 }
@@ -352,7 +288,7 @@ export default function NotificationsScreen() {
             <Text className="font-sans-medium text-sm text-gray-700 mb-1 text-center">
               Reminder time
             </Text>
-            <FlatListTimePicker value={hadithTime} onChange={pickTime} />
+            <TimePicker value={hadithTime} onChange={pickTime} />
           </View>
         )}
       </View>
@@ -382,7 +318,7 @@ export default function NotificationsScreen() {
             <Text className="font-sans-medium text-sm text-gray-700 mb-1 text-center">
               Reminder time
             </Text>
-            <FlatListTimePicker value={dhikrTime} onChange={pickDhikrTime} />
+            <TimePicker value={dhikrTime} onChange={pickDhikrTime} />
           </View>
         )}
       </View>

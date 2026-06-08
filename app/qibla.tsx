@@ -221,6 +221,10 @@ function ARView({
   handleRecalibrate,
   insets,
 }: ARViewProps) {
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.log('[ARView] CameraView mounting');
+  }
   return (
     <View style={{ flex: 1 }}>
       {/* Live camera feed filling the screen */}
@@ -308,13 +312,17 @@ export default function QiblaScreen() {
     })();
   }, []);
 
-  // ── Request camera permission lazily on mount ─────────────────────────────
+  // ── Request camera permission on mount (and re-check when status updates) ──
   useEffect(() => {
-    if (cameraPermission !== null && !cameraPermission.granted && cameraPermission.canAskAgain) {
+    if (cameraPermission === null) return; // hook not yet initialised
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[QiblaScreen] camera permission status:', cameraPermission.status, '| granted:', cameraPermission.granted);
+    }
+    if (!cameraPermission.granted && cameraPermission.canAskAgain) {
       void requestCameraPermission();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [cameraPermission, requestCameraPermission]);
 
   // ── Derived Qibla values ─────────────────────────────────────────────────
   const qiblaResult =

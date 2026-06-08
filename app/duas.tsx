@@ -143,7 +143,7 @@ export default function DuasScreen() {
               key={cat.id}
               onPress={() => setCategory(cat.id)}
               style={{
-                paddingHorizontal: 16,
+                paddingHorizontal: 12,
                 paddingTop: 8,
                 paddingBottom: 10,
                 borderRadius: 20,
@@ -153,12 +153,12 @@ export default function DuasScreen() {
               }}
             >
               <Text
-                numberOfLines={1}
                 style={{
                   fontFamily: 'Inter_500Medium',
-                  fontSize: 13,
+                  fontSize: 12,
                   lineHeight: 20,
                   includeFontPadding: false,
+                  paddingBottom: 6,
                   color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
                 }}
               >
