@@ -4,8 +4,7 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 ---
 
 ## UNCONDITIONAL CHECKS — ALWAYS RUN THESE REGARDLESS OF WHICH FILES WERE CHANGED
-- app/quran/[surahNumber].tsx: page view verse Text has textAlign 'justify', writingDirection 'rtl', width '100%'
-- app/quran/[surahNumber].tsx: parent View has width '100%' and alignSelf 'stretch'
+- app/quran/[surahNumber].tsx: page view parent Text has textAlign 'justify', writingDirection 'rtl', width '100%'
 - src/lib/premium.ts: isPremium status matches current development phase (true for testing, RevenueCat for production)
 - No console.log statements exist anywhere in app/ or src/ directories EXCEPT dev-only diagnostic logs inside if (__DEV__) guards that are explicitly temporary
 
@@ -24,7 +23,8 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - Detailed view uses scrollToIndex on FlatList
 - Bismillah shown as separate centred header on every surah except 1 and 9
 - Bismillah removed from verse 1 text when shown as a header
-- Page view Arabic text: textAlign 'justify', writingDirection 'rtl', width '100%'
+- Page view: single parent Text wraps all verses inline; parent Text has textAlign 'justify', writingDirection 'rtl', width '100%'
+- Page view: each verse rendered as Fragment with zero-size View ref marker + inline text
 - Detailed view Arabic text: textAlign 'justify', writingDirection 'rtl'
 
 ## app/index.tsx
