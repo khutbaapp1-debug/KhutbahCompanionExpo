@@ -7,7 +7,7 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - app/quran/[surahNumber].tsx: page view verse Text has textAlign 'right', writingDirection 'rtl', width '100%'
 - app/quran/[surahNumber].tsx: parent View has width '100%' and alignSelf 'stretch'
 - src/lib/premium.ts: isPremium status matches current development phase (true for testing, RevenueCat for production)
-- No console.log statements exist anywhere in app/ or src/ directories
+- No console.log statements exist anywhere in app/ or src/ directories EXCEPT dev-only diagnostic logs inside if (__DEV__) guards that are explicitly temporary
 
 ---
 
