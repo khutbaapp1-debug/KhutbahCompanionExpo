@@ -523,7 +523,7 @@ const soundRef = useRef<SoundInstance | null>(null);
                   <Text
                     style={{
                       writingDirection: 'rtl',
-                      textAlign: 'right',
+                      textAlign: 'justify',
                       width: '100%',
                       fontFamily: 'KFGQPCHafs',
                       fontSize,
@@ -631,7 +631,7 @@ const soundRef = useRef<SoundInstance | null>(null);
                     style={{
                       fontFamily: 'KFGQPCHafs',
                       fontSize,
-                      textAlign: 'right',
+                      textAlign: 'justify',
                       writingDirection: 'rtl',
                       lineHeight: fontSize * 1.8,
                       color: theme.text,
