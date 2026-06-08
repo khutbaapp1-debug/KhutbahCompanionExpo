@@ -156,12 +156,26 @@ class TranslationErrorBoundary extends Component<
   componentDidCatch(error: Error): void {
     if (__DEV__) {
       // eslint-disable-next-line no-console
-      console.log('[TranslationErrorBoundary] caught:', error);
+      console.log('[TranslationErrorBoundary] caught:', error?.stack ?? String(error));
     }
   }
 
   render(): ReactNode {
-    if (this.state.hasError) return null;
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 15, color: '#6B7280', textAlign: 'center' }}>
+            Something went wrong. Go back and try again.
+          </Text>
+          <TouchableOpacity
+            onPress={() => this.setState({ hasError: false })}
+            style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#0F766E', borderRadius: 10 }}
+          >
+            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: 'white' }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     return this.props.children;
   }
 }
@@ -185,6 +199,7 @@ function TranslationScreenContent() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const [actionPoints, setActionPoints] = useState<string[]>([]);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const recorderRef = useRef<AudioRecorderManager | null>(null);
   const segmentsRef = useRef<TranslationSegment[]>([]);
@@ -428,9 +443,12 @@ function TranslationScreenContent() {
         }
       }
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (isMountedRef.current) setSummaryError(msg);
       if (__DEV__) {
         // eslint-disable-next-line no-console
-        console.log('[TranslationScreen] handleStop error:', err);
+        console.log('[TranslationScreen] handleStop error stack:', err instanceof Error ? err.stack : err);
+        Alert.alert('handleStop error (__DEV__)', msg);
       }
     } finally {
       if (isMountedRef.current) setSummaryLoading(false);

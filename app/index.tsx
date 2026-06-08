@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ImageBackground, ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import DailyWorshipChecklist from '../src/components/DailyWorshipChecklist';
@@ -27,36 +26,7 @@ const IMG_NAMES = require('../assets/images/Islamic_geometric_pattern_teal_gold_
 const IMG_MOSQUES = require('../assets/images/mosque_aerial_city_view.png');
 const IMG_HADITH = require('../assets/images/hadith_books_row.png');
 
-// Full-width Live Translation hero tile rendered above the 3-column grid.
-function LiveTranslationTile() {
-  const router = useRouter();
-  const { theme } = useTheme();
-  return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={() => router.push('/translation')}
-      style={{ marginBottom: 12 }}
-    >
-      <ImageBackground
-        source={IMG_PRAYER_TIMES}
-        resizeMode="cover"
-        style={{ borderRadius: 16, overflow: 'hidden', height: 110 }}
-      >
-        <LinearGradient
-          colors={['rgba(15,118,110,0.25)', 'rgba(15,118,110,0.55)', 'rgba(15,118,110,0.75)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 12 }}
-        >
-          <Ionicons name="mic" size={36} color="white" />
-          <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 20, color: 'white' }}>
-            Live Translation
-          </Text>
-        </LinearGradient>
-      </ImageBackground>
-    </TouchableOpacity>
-  );
-}
+
 
 type TileData = {
   href: string;
@@ -235,10 +205,7 @@ export default function HomeScreen() {
           <FeaturedBanner />
         </View>
         <View className="mt-3 px-6">
-          {/* Row 1: full-width Live Translation tile */}
-          <LiveTranslationTile />
-
-          {/* Rows 2-6: three tiles per row */}
+          {/* Rows 2-5: three tiles per row */}
           {TILE_ROWS.map((row, rowIdx) => (
             <View key={rowIdx} style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
               {row.map((tile) => (

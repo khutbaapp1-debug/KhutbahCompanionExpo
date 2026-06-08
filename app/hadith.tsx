@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import * as Sharing from 'expo-sharing';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -11,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { captureRef } from 'react-native-view-shot';
 
 import { useTheme } from '../src/lib/theme-context';
 
@@ -38,6 +40,7 @@ export default function HadithScreen() {
   const [hadith, setHadith] = useState<Hadith | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const cardRef = useRef<View>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -79,6 +82,23 @@ export default function HadithScreen() {
 
   const shareHadith = async () => {
     if (!hadith) return;
+    // Try image capture first
+    try {
+      const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share Hadith' });
+        return;
+      }
+      await Share.share({ url: uri });
+      return;
+    } catch (captureErr) {
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[HadithScreen] image capture failed, falling back to text:', captureErr);
+      }
+    }
+    // Text fallback
     if (__DEV__ && !hadith.transliteration) {
       // eslint-disable-next-line no-console
       console.log('[HadithScreen] transliteration field missing from hadith data');
@@ -156,6 +176,7 @@ export default function HadithScreen() {
 
             {/* Card */}
             <View
+              ref={cardRef}
               style={{
                 backgroundColor: theme.card,
                 borderRadius: 16,
