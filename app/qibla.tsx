@@ -439,31 +439,33 @@ export default function QiblaScreen() {
     Magnetometer.setUpdateInterval(100);
     const sub = Magnetometer.addListener((data) => {
       const { x: ax, y: ay, z: az } = accelRef.current;
-      const gNorm = Math.sqrt(ax * ax + ay * ay + az * az) || 1;
-      const gz = az / gNorm; // normalised gravity z-component
+      const { x: mx, y: my, z: mz } = data;
 
-      let raw: number;
+      // Normalize gravity vector
+      const gMag = Math.sqrt(ax * ax + ay * ay + az * az) || 1;
+      const nx = ax / gMag;
+      const ny = ay / gMag;
+      const nz = az / gMag;
 
-      if (Math.abs(gz) > 0.85) {
-        // Phone nearly flat — simple 2-D magnetometer heading
-        raw = (Math.atan2(-data.y, data.x) * 180) / Math.PI;
-      } else {
-        // Phone tilted — tilt-compensated heading
-        const gx = ax / gNorm;
-        const gy = ay / gNorm;
-        // Project magnetometer onto horizontal plane
-        const dot = data.x * gx + data.y * gy + data.z * gz;
-        const nx = data.x - dot * gx; // north vector x
-        const ny = data.y - dot * gy; // north vector y
-        // East vector = gravity × magnetometer (cross product components)
-        const ex = gy * data.z - gz * data.y;
-        const ey = gz * data.x - gx * data.z;
-        void ey; // suppress lint
-        void ny; // suppress lint
-        // Full yaw from east & north projections
-        raw = (Math.atan2(ex, nx) * 180) / Math.PI;
-      }
+      // East = gravity × magnetic north
+      const ex = ny * mz - nz * my;
+      const ey = nz * mx - nx * mz;
+      const ez = nx * my - ny * mx;
 
+      // Normalize east
+      const eMag = Math.sqrt(ex * ex + ey * ey + ez * ez) || 1;
+      const enx = ex / eMag;
+      const eny = ey / eMag;
+      const enz = ez / eMag;
+
+      // North = east × gravity
+      const northX = eny * nz - enz * ny;
+      const northY = enz * nx - enx * nz;
+      const northZ = enx * ny - eny * nx;
+      void northY;
+      void northZ;
+
+      let raw = (Math.atan2(enx, northX) * 180) / Math.PI;
       raw = (raw + 360) % 360;
 
       // Shortest-arc smoothing

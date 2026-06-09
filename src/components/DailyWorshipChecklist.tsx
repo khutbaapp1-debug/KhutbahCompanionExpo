@@ -46,6 +46,11 @@ export default function DailyWorshipChecklist() {
     borderRadius: 16,
     borderWidth: 1,
     borderColor: theme.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   };
 
   const headerRow = (

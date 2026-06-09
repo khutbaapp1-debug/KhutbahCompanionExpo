@@ -40,6 +40,7 @@ type TileData = {
     | 'custom-dua'
     | 'custom-salah';
   textOverlay?: string;
+  gradientColors?: string[];
   title: string;
 };
 
@@ -54,7 +55,7 @@ const TILE_ROWS: TileData[][] = [
   // Row 3
   [
     { href: '/duas', imageSource: IMG_DUAS, iconLibrary: 'custom-dua', title: 'Daily Duas' },
-    { href: '/my-duas', imageSource: IMG_DUAS, iconLibrary: 'ionicons', iconName: 'pencil-outline', title: 'My Duas' },
+    { href: '/my-duas', imageSource: IMG_DUAS, iconLibrary: 'ionicons', iconName: 'pencil-outline', gradientColors: ['#7C3AED', '#A855F7'], title: 'My Duas' },
     { href: '/tasbih', imageSource: IMG_TASBIH, iconLibrary: 'custom-tasbih', title: 'Tasbih' },
   ],
   // Row 4
@@ -65,9 +66,9 @@ const TILE_ROWS: TileData[][] = [
   ],
   // Row 5
   [
-    { href: '/salah-guide', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'custom-salah', title: 'Salah Guide' },
-    { href: '/zakat', imageSource: IMG_NAMES, iconLibrary: 'ionicons', iconName: 'calculator-outline', title: 'Zakat Calculator' },
-    { href: '/ramadan', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'ionicons', iconName: 'moon-outline', title: 'Ramadan' },
+    { href: '/salah-guide', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'custom-salah', gradientColors: ['#14532D', '#16A34A'], title: 'Salah Guide' },
+    { href: '/zakat', imageSource: IMG_NAMES, iconLibrary: 'ionicons', iconName: 'calculator-outline', gradientColors: ['#B45309', '#D97706'], title: 'Zakat Calculator' },
+    { href: '/ramadan', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'ionicons', iconName: 'moon-outline', gradientColors: ['#1E3A5F', '#0F766E'], title: 'Ramadan' },
   ],
 ];
 
@@ -216,6 +217,7 @@ export default function HomeScreen() {
                   iconName={tile.iconName as React.ComponentProps<typeof GridTile>['iconName']}
                   iconLibrary={tile.iconLibrary}
                   textOverlay={tile.textOverlay}
+                  gradientColors={tile.gradientColors}
                   title={tile.title}
                 />
               ))}

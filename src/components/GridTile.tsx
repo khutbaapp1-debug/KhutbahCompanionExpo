@@ -21,6 +21,7 @@ type Props = {
     | 'custom-dua'
     | 'custom-salah';
   textOverlay?: string;
+  gradientColors?: string[];
   title: string;
 };
 
@@ -32,6 +33,7 @@ export default function GridTile({
   iconName,
   iconLibrary = 'mci',
   textOverlay,
+  gradientColors,
   title,
 }: Props) {
   const { theme } = useTheme();
@@ -72,22 +74,33 @@ export default function GridTile({
       <Link href={href as never} asChild>
         <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
           <View style={{ aspectRatio: 1 }} className="rounded-2xl overflow-hidden">
-            <ImageBackground source={imageSource} resizeMode="cover" style={{ flex: 1 }}>
+            {gradientColors ? (
               <LinearGradient
-                colors={[
-                  'rgba(15,118,110,0.2)',
-                  'rgba(15,118,110,0.4)',
-                  'rgba(15,118,110,0.6)',
-                ]}
+                colors={gradientColors as [string, string, ...string[]]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={{ flex: 1 }}
+                style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
               >
-                <View className="absolute inset-0 items-center justify-center">
-                  {renderOverlay()}
-                </View>
+                {renderOverlay()}
               </LinearGradient>
-            </ImageBackground>
+            ) : (
+              <ImageBackground source={imageSource} resizeMode="cover" style={{ flex: 1 }}>
+                <LinearGradient
+                  colors={[
+                    'rgba(15,118,110,0.2)',
+                    'rgba(15,118,110,0.4)',
+                    'rgba(15,118,110,0.6)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ flex: 1 }}
+                >
+                  <View className="absolute inset-0 items-center justify-center">
+                    {renderOverlay()}
+                  </View>
+                </LinearGradient>
+              </ImageBackground>
+            )}
           </View>
           <Text
             className="font-sans-semibold text-sm text-center mt-1.5"
