@@ -25,6 +25,10 @@ const IMG_QIBLA = require('../assets/images/Kaaba_aerial_view_Makkah_b34ddcc4.pn
 const IMG_NAMES = require('../assets/images/Islamic_geometric_pattern_teal_gold_8c3ad41f.png');
 const IMG_MOSQUES = require('../assets/images/mosque_aerial_city_view.png');
 const IMG_HADITH = require('../assets/images/hadith_books_row.png');
+const IMG_RAMADAN = require('../assets/images/Ramadan_crescent_moon_lanterns_7acbaea8.png');
+const IMG_SALAH = require('../assets/images/empty_mosque_minbar_interior.png');
+const IMG_ZAKAT = require('../assets/images/analytics_spiritual_dashboard.png');
+const IMG_MY_DUAS = require('../assets/images/reflection_journal_writing_setup.png');
 
 
 
@@ -55,7 +59,7 @@ const TILE_ROWS: TileData[][] = [
   // Row 3
   [
     { href: '/duas', imageSource: IMG_DUAS, iconLibrary: 'custom-dua', title: 'Daily Duas' },
-    { href: '/my-duas', imageSource: IMG_DUAS, iconLibrary: 'ionicons', iconName: 'pencil-outline', gradientColors: ['#7C3AED', '#A855F7'], title: 'My Duas' },
+    { href: '/my-duas', imageSource: IMG_MY_DUAS, iconLibrary: 'ionicons', iconName: 'pencil-outline', title: 'My Duas' },
     { href: '/tasbih', imageSource: IMG_TASBIH, iconLibrary: 'custom-tasbih', title: 'Tasbih' },
   ],
   // Row 4
@@ -66,9 +70,9 @@ const TILE_ROWS: TileData[][] = [
   ],
   // Row 5
   [
-    { href: '/salah-guide', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'custom-salah', gradientColors: ['#14532D', '#16A34A'], title: 'Salah Guide' },
-    { href: '/zakat', imageSource: IMG_NAMES, iconLibrary: 'ionicons', iconName: 'calculator-outline', gradientColors: ['#B45309', '#D97706'], title: 'Zakat Calculator' },
-    { href: '/ramadan', imageSource: IMG_PRAYER_TIMES, iconLibrary: 'ionicons', iconName: 'moon-outline', gradientColors: ['#1E3A5F', '#0F766E'], title: 'Ramadan' },
+    { href: '/salah-guide', imageSource: IMG_SALAH, iconLibrary: 'custom-salah', title: 'Salah Guide' },
+    { href: '/zakat', imageSource: IMG_ZAKAT, iconLibrary: 'ionicons', iconName: 'calculator-outline', title: 'Zakat Calculator' },
+    { href: '/ramadan', imageSource: IMG_RAMADAN, iconLibrary: 'ionicons', iconName: 'moon-outline', title: 'Ramadan' },
   ],
 ];
 
