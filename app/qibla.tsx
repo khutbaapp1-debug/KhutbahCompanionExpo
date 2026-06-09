@@ -225,80 +225,104 @@ interface ARViewProps {
 }
 
 function ARView({ arrowRotation, distanceKm, qiblaReady, headingAnim, insets }: ARViewProps) {
-  if (__DEV__) {
-    // eslint-disable-next-line no-console
-    console.log('[ARView] CameraView mounting');
-  }
-
-  const isAligned = arrowRotation < 5 || arrowRotation > 355;
-  const deviation = arrowRotation <= 180 ? arrowRotation : 360 - arrowRotation;
-  // 0 when facing Qibla, 1 at 60+ degrees off
-  const prominence = Math.min(deviation / 60, 1);
+  const isAligned = arrowRotation < 10 || arrowRotation > 350;
   const turnRight = !isAligned && arrowRotation <= 180;
+  const degrees = arrowRotation <= 180 ? arrowRotation : 360 - arrowRotation;
+  const directionText = isAligned
+    ? 'Facing Mecca'
+    : `Turn ${Math.round(degrees)}° ${turnRight ? 'right' : 'left'}`;
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isAligned) {
+      const anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 0.35, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ]),
+      );
+      anim.start();
+      return () => anim.stop();
+    } else {
+      Animated.timing(pulseAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAligned]);
 
   const compassRotation = headingAnim.interpolate({
     inputRange: [-360, 0, 360],
     outputRange: ['360deg', '0deg', '-360deg'],
   });
 
+  const arrowColor = isAligned ? '#22C55E' : 'white';
+  const circleBorderColor = isAligned ? '#3B82F6' : 'rgba(255,255,255,0.6)';
+
   return (
     <View style={{ flex: 1 }}>
       {/* Camera background */}
       <CameraView style={StyleSheet.absoluteFill} facing="back" />
 
-      {/* Centered content: arrows + circle + distance */}
+      {/* Centered content */}
       <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-        {/* Row: left curved arrow | white circle | right curved arrow */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          {/* Left curved arrow — turn counter-clockwise */}
-          <View style={{ width: 50, height: 120, opacity: !isAligned && !turnRight ? prominence : 0 }}>
-            <Svg width={50} height={120} viewBox="0 0 50 120">
-              <Path
-                d="M 40 108 C 5 84, 5 36, 40 12"
-                stroke="white"
-                strokeWidth={4}
-                fill="none"
-                strokeLinecap="round"
-              />
-              <Polygon points="40,12 30,28 50,28" fill="white" />
-            </Svg>
-          </View>
-
-          {/* White circle */}
-          <View
+        {/* White circle with rotating arrow inside */}
+        <View
+          style={{
+            width: 110,
+            height: 110,
+            borderRadius: 55,
+            backgroundColor: 'rgba(255,255,255,0.15)',
+            borderWidth: 3,
+            borderColor: circleBorderColor,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Animated.View
             style={{
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-              backgroundColor: 'white',
-              borderWidth: 3,
-              borderColor: isAligned ? '#3B82F6' : 'white',
+              transform: [{ rotate: `${arrowRotation}deg` }],
+              opacity: isAligned ? pulseAnim : 1,
             }}
-          />
-
-          {/* Right curved arrow — turn clockwise */}
-          <View style={{ width: 50, height: 120, opacity: !isAligned && turnRight ? prominence : 0 }}>
-            <Svg width={50} height={120} viewBox="0 0 50 120">
-              <Path
-                d="M 10 108 C 45 84, 45 36, 10 12"
-                stroke="white"
-                strokeWidth={4}
-                fill="none"
-                strokeLinecap="round"
-              />
-              <Polygon points="10,12 0,28 20,28" fill="white" />
+          >
+            <Svg width={60} height={60} viewBox="0 0 60 60">
+              {/* Arrow head */}
+              <Polygon points="30,4 44,28 16,28" fill={arrowColor} />
+              {/* Arrow body */}
+              <Path d="M 24 26 L 24 56 L 36 56 L 36 26 Z" fill={arrowColor} />
             </Svg>
-          </View>
+          </Animated.View>
+        </View>
+
+        {/* Direction label */}
+        <View
+          style={{
+            marginTop: 14,
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            borderRadius: 10,
+            paddingHorizontal: 16,
+            paddingVertical: 7,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: 'Inter_600SemiBold',
+              fontSize: 15,
+              color: isAligned ? '#22C55E' : 'white',
+              textAlign: 'center',
+            }}
+          >
+            {directionText}
+          </Text>
         </View>
 
         {/* Distance to Makkah */}
         {qiblaReady && (
           <Text
             style={{
-              marginTop: 18,
+              marginTop: 8,
               fontFamily: 'Inter_400Regular',
-              fontSize: 15,
-              color: 'white',
+              fontSize: 14,
+              color: 'rgba(255,255,255,0.9)',
               textShadowColor: 'rgba(0,0,0,0.8)',
               textShadowRadius: 4,
               textShadowOffset: { width: 0, height: 1 },
@@ -309,7 +333,7 @@ function ARView({ arrowRotation, distanceKm, qiblaReady, headingAnim, insets }: 
         )}
       </View>
 
-      {/* Blue Qibla line — rendered after circle so it appears on top */}
+      {/* Blue Qibla line when aligned */}
       {isAligned && (
         <View style={[StyleSheet.absoluteFill, { alignItems: 'center' }]}>
           <View style={{ flex: 1, width: 3, backgroundColor: '#3B82F6' }} />
