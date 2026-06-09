@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Line, Path, Polygon, Text as SvgText } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getStoredLocation } from '../src/lib/location';
@@ -21,9 +21,6 @@ import { useTheme } from '../src/lib/theme-context';
 
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
-
-// AR overlay green — fixed colour for visibility against any camera feed
-const AR_GREEN = '#4ADE80';
 
 type LocState =
   | { status: 'loading' }
@@ -217,77 +214,150 @@ function CompassFallback({
   );
 }
 
-// ─── AR view (camera + live arrow overlay) ───────────────────────────────────
+// ─── AR view (Google Qibla Finder-style) ─────────────────────────────────────
 
 interface ARViewProps {
   arrowRotation: number;
-  qiblaDeg: number;
   distanceKm: number;
-  cardinal: string;
   qiblaReady: boolean;
-  handleRecalibrate: () => void;
+  headingAnim: Animated.Value;
   insets: { bottom: number };
 }
 
-function ARView({
-  arrowRotation,
-  qiblaDeg,
-  distanceKm,
-  cardinal,
-  qiblaReady,
-  handleRecalibrate,
-  insets,
-}: ARViewProps) {
+function ARView({ arrowRotation, distanceKm, qiblaReady, headingAnim, insets }: ARViewProps) {
   if (__DEV__) {
     // eslint-disable-next-line no-console
     console.log('[ARView] CameraView mounting');
   }
+
+  const isAligned = arrowRotation < 5 || arrowRotation > 355;
+  const deviation = arrowRotation <= 180 ? arrowRotation : 360 - arrowRotation;
+  // 0 when facing Qibla, 1 at 60+ degrees off
+  const prominence = Math.min(deviation / 60, 1);
+  const turnRight = !isAligned && arrowRotation <= 180;
+
+  const compassRotation = headingAnim.interpolate({
+    inputRange: [-360, 0, 360],
+    outputRange: ['360deg', '0deg', '-360deg'],
+  });
+
   return (
     <View style={{ flex: 1 }}>
-      {/* Live camera feed filling the screen */}
+      {/* Camera background */}
       <CameraView style={StyleSheet.absoluteFill} facing="back" />
 
-      {/* Transparent overlay */}
-      <View style={[StyleSheet.absoluteFill, styles.arOverlay]}>
-        {/* Rotating directional arrow */}
-        <View
-          style={[
-            styles.arrowWrapper,
-            { transform: [{ rotate: `${arrowRotation}deg` }] },
-          ]}
-        >
-          {/* Kaaba emoji at the tip */}
-          <Text style={styles.arrowKaaba}>🕋</Text>
-          {/* Triangle arrowhead */}
-          <View style={styles.arrowHead} />
-          {/* Shaft */}
-          <View style={styles.arrowShaft} />
+      {/* Centered content: arrows + circle + distance */}
+      <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+        {/* Row: left curved arrow | white circle | right curved arrow */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {/* Left curved arrow — turn counter-clockwise */}
+          <View style={{ width: 50, height: 120, opacity: !isAligned && !turnRight ? prominence : 0 }}>
+            <Svg width={50} height={120} viewBox="0 0 50 120">
+              <Path
+                d="M 40 108 C 5 84, 5 36, 40 12"
+                stroke="white"
+                strokeWidth={4}
+                fill="none"
+                strokeLinecap="round"
+              />
+              <Polygon points="40,12 30,28 50,28" fill="white" />
+            </Svg>
+          </View>
+
+          {/* White circle */}
+          <View
+            style={{
+              width: 100,
+              height: 100,
+              borderRadius: 50,
+              backgroundColor: 'white',
+              borderWidth: 3,
+              borderColor: isAligned ? '#3B82F6' : 'white',
+            }}
+          />
+
+          {/* Right curved arrow — turn clockwise */}
+          <View style={{ width: 50, height: 120, opacity: !isAligned && turnRight ? prominence : 0 }}>
+            <Svg width={50} height={120} viewBox="0 0 50 120">
+              <Path
+                d="M 10 108 C 45 84, 45 36, 10 12"
+                stroke="white"
+                strokeWidth={4}
+                fill="none"
+                strokeLinecap="round"
+              />
+              <Polygon points="10,12 0,28 20,28" fill="white" />
+            </Svg>
+          </View>
         </View>
 
-        {/* Bottom info strip */}
-        <View style={[styles.infoStrip, { paddingBottom: insets.bottom + 16 }]}>
-          {qiblaReady ? (
-            <>
-              <View style={styles.infoRow}>
-                <Ionicons name="compass-outline" size={18} color={AR_GREEN} />
-                <Text style={styles.infoMainText}>
-                  {Math.round(qiblaDeg)}° {cardinal} — Qibla direction
-                </Text>
-              </View>
-              <Text style={styles.distanceText}>{distanceKm.toLocaleString()} km to Makkah</Text>
-            </>
-          ) : (
-            <ActivityIndicator size="small" color={AR_GREEN} />
-          )}
-
-          <Text style={styles.calibrationText}>
-            Move phone in a figure-8 pattern if direction seems inaccurate
+        {/* Distance to Makkah */}
+        {qiblaReady && (
+          <Text
+            style={{
+              marginTop: 18,
+              fontFamily: 'Inter_400Regular',
+              fontSize: 15,
+              color: 'white',
+              textShadowColor: 'rgba(0,0,0,0.8)',
+              textShadowRadius: 4,
+              textShadowOffset: { width: 0, height: 1 },
+            }}
+          >
+            {distanceKm.toLocaleString()} km to Makkah
           </Text>
+        )}
+      </View>
 
-          <TouchableOpacity onPress={handleRecalibrate} style={styles.recalibrateButton}>
-            <Text style={styles.recalibrateButtonText}>Recalibrate</Text>
-          </TouchableOpacity>
+      {/* Blue Qibla line — rendered after circle so it appears on top */}
+      {isAligned && (
+        <View style={[StyleSheet.absoluteFill, { alignItems: 'center' }]}>
+          <View style={{ flex: 1, width: 3, backgroundColor: '#3B82F6' }} />
         </View>
+      )}
+
+      {/* Kaaba icon — top centre when aligned */}
+      {isAligned && (
+        <View style={{ position: 'absolute', top: 52, left: 0, right: 0, alignItems: 'center' }}>
+          <Text style={{ fontSize: 36 }}>🕋</Text>
+        </View>
+      )}
+
+      {/* Compass rose — bottom left */}
+      <View style={{ position: 'absolute', bottom: insets.bottom + 72, left: 16 }}>
+        <Animated.View style={{ transform: [{ rotate: compassRotation }] }}>
+          <Svg width={52} height={52} viewBox="0 0 52 52">
+            <Circle cx="26" cy="26" r="24" fill="rgba(0,0,0,0.55)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+            <Polygon points="26,5 30,24 22,24" fill="#EF4444" />
+            <Polygon points="26,47 30,28 22,28" fill="rgba(255,255,255,0.5)" />
+            <Circle cx="26" cy="26" r="3" fill="white" />
+            <SvgText x="26" y="16" textAnchor="middle" fontSize="9" fill="white">N</SvgText>
+          </Svg>
+        </Animated.View>
+      </View>
+
+      {/* Calibration hint — bottom centre */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: insets.bottom + 16,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          paddingHorizontal: 32,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: 'Inter_400Regular',
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.75)',
+            textAlign: 'center',
+            fontStyle: 'italic',
+          }}
+        >
+          Move phone in a figure-8 pattern if direction seems inaccurate
+        </Text>
       </View>
     </View>
   );
@@ -500,11 +570,9 @@ export default function QiblaScreen() {
         ) : useAR ? (
           <ARView
             arrowRotation={arrowRotation}
-            qiblaDeg={qiblaDeg}
             distanceKm={distanceKm}
-            cardinal={cardinal}
             qiblaReady={qiblaResult !== null}
-            handleRecalibrate={handleRecalibrate}
+            headingAnim={headingAnim}
             insets={insets}
           />
         ) : (
@@ -525,92 +593,3 @@ export default function QiblaScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const ARROW_HALF = 22;
-
-const styles = StyleSheet.create({
-  // AR overlay container
-  arOverlay: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Arrow (points toward Qibla)
-  arrowWrapper: {
-    alignItems: 'center',
-  },
-  arrowKaaba: {
-    fontSize: 24,
-    marginBottom: 2,
-  },
-  arrowHead: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: ARROW_HALF,
-    borderRightWidth: ARROW_HALF,
-    borderBottomWidth: ARROW_HALF * 2,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: AR_GREEN,
-  },
-  arrowShaft: {
-    width: 8,
-    height: 100,
-    backgroundColor: AR_GREEN,
-    borderRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  // Bottom info strip (AR mode)
-  infoStrip: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    gap: 6,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  infoMainText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 15,
-    color: AR_GREEN,
-  },
-  distanceText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  calibrationText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.65)',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  recalibrateButton: {
-    borderRadius: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: AR_GREEN,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  recalibrateButtonText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: AR_GREEN,
-  },
-});

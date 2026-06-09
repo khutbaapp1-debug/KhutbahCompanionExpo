@@ -54,7 +54,7 @@ const TILE_ROWS: TileData[][] = [
   // Row 3
   [
     { href: '/duas', imageSource: IMG_DUAS, iconLibrary: 'custom-dua', title: 'Daily Duas' },
-    { href: '/my-duas', imageSource: IMG_DUAS, iconName: 'bookmark-heart', title: 'My Duas' },
+    { href: '/my-duas', imageSource: IMG_DUAS, iconLibrary: 'ionicons', iconName: 'pencil-outline', title: 'My Duas' },
     { href: '/tasbih', imageSource: IMG_TASBIH, iconLibrary: 'custom-tasbih', title: 'Tasbih' },
   ],
   // Row 4
