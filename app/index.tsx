@@ -4,7 +4,6 @@ import { useCallback, useState } from 'react';
 import { ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import DailyWorshipChecklist from '../src/components/DailyWorshipChecklist';
 import FeaturedBanner from '../src/components/FeaturedBanner';
 import GridTile from '../src/components/GridTile';
 import HomeHeader from '../src/components/HomeHeader';
@@ -203,9 +202,7 @@ export default function HomeScreen() {
             onEnableLocation={handleEnableLocation}
           />
         </View>
-        <View className="mt-3 px-6">
-          <DailyWorshipChecklist />
-        </View>
+        {/* Daily Worship Checklist removed — needs persistent tracking before re-adding */}
         <View className="mt-3 px-6">
           <FeaturedBanner />
         </View>
