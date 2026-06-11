@@ -1,11 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  FlatList,
   ScrollView,
   Switch,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -24,10 +23,11 @@ import { useTheme } from '../src/lib/theme-context';
 const HADITH_TIME_KEY = 'hadith-notification-time';
 const DHIKR_TIME_KEY = 'dhikr-notification-time';
 
-// ─── Up/down arrow time picker ────────────────────────────────────────────────
+// ─── Scrollable wheel time picker ────────────────────────────────────────────
 
 const HOUR_VALUES = Array.from({ length: 24 }, (_, i) => i);
 const MINUTE_VALUES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+const WHEEL_ITEM_H = 44;
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
@@ -44,7 +44,10 @@ function parseTimeInts(t: string): { hour: number; minute: number } {
   return { hour, minute };
 }
 
-function ArrowColumn({
+// Three-row scroll wheel: the middle row is the selected value.
+// paddingTop/Bottom = WHEEL_ITEM_H centres item[0] at scroll offset 0,
+// and item[n] at scroll offset n * WHEEL_ITEM_H.
+function WheelColumn({
   label,
   value,
   values,
@@ -56,12 +59,25 @@ function ArrowColumn({
   onChange: (v: number) => void;
 }) {
   const { theme } = useTheme();
-  const idx = values.indexOf(value);
-  const increment = () => onChange(values[(idx + 1) % values.length]);
-  const decrement = () => onChange(values[(idx - 1 + values.length) % values.length]);
+  const ref = useRef<FlatList<number>>(null);
+  const idx = Math.max(0, values.indexOf(value));
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      ref.current?.scrollToOffset({ offset: idx * WHEEL_ITEM_H, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [idx]);
+
+  const handleScrollEnd = (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+    const newIdx = Math.round(e.nativeEvent.contentOffset.y / WHEEL_ITEM_H);
+    const clamped = Math.max(0, Math.min(newIdx, values.length - 1));
+    const v = values[clamped];
+    if (v !== undefined) onChange(v);
+  };
 
   return (
-    <View style={{ alignItems: 'center', width: 72 }}>
+    <View style={{ alignItems: 'center' }}>
       <Text
         style={{
           fontFamily: 'Inter_400Regular',
@@ -74,25 +90,50 @@ function ArrowColumn({
       >
         {label}
       </Text>
-      <TouchableOpacity onPress={increment} hitSlop={8} style={{ padding: 8 }}>
-        <Ionicons name="chevron-up" size={24} color={theme.primary} />
-      </TouchableOpacity>
-      <View
-        style={{
-          backgroundColor: theme.primary,
-          borderRadius: 10,
-          paddingVertical: 10,
-          minWidth: 60,
-          alignItems: 'center',
-        }}
-      >
-        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 26, color: 'white' }}>
-          {pad2(value)}
-        </Text>
+      <View style={{ height: WHEEL_ITEM_H * 3, width: 64, overflow: 'hidden' }}>
+        {/* Selection highlight in the middle row */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: WHEEL_ITEM_H,
+            height: WHEEL_ITEM_H,
+            left: 0,
+            right: 0,
+            backgroundColor: theme.primaryContainer,
+            borderRadius: 10,
+          }}
+        />
+        <FlatList
+          ref={ref}
+          data={values}
+          keyExtractor={(_, i) => String(i)}
+          renderItem={({ item }) => (
+            <View style={{ height: WHEEL_ITEM_H, alignItems: 'center', justifyContent: 'center' }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_700Bold',
+                  fontSize: 24,
+                  color: item === value ? theme.primary : theme.textMuted,
+                }}
+              >
+                {pad2(item)}
+              </Text>
+            </View>
+          )}
+          snapToInterval={WHEEL_ITEM_H}
+          decelerationRate="fast"
+          showsVerticalScrollIndicator={false}
+          onMomentumScrollEnd={handleScrollEnd}
+          onScrollEndDrag={handleScrollEnd}
+          contentContainerStyle={{ paddingTop: WHEEL_ITEM_H, paddingBottom: WHEEL_ITEM_H }}
+          getItemLayout={(_, index) => ({
+            length: WHEEL_ITEM_H,
+            offset: WHEEL_ITEM_H * (index + 1),
+            index,
+          })}
+        />
       </View>
-      <TouchableOpacity onPress={decrement} hitSlop={8} style={{ padding: 8 }}>
-        <Ionicons name="chevron-down" size={24} color={theme.primary} />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -103,7 +144,7 @@ function TimePicker({ value, onChange }: { value: string; onChange: (t: string) 
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-      <ArrowColumn
+      <WheelColumn
         label="Hour"
         value={hour}
         values={HOUR_VALUES}
@@ -114,13 +155,13 @@ function TimePicker({ value, onChange }: { value: string; onChange: (t: string) 
           fontFamily: 'Inter_700Bold',
           fontSize: 30,
           color: theme.text,
-          marginTop: 24,
+          marginTop: 0,
           marginHorizontal: 4,
         }}
       >
         :
       </Text>
-      <ArrowColumn
+      <WheelColumn
         label="Minute"
         value={minute}
         values={MINUTE_VALUES}

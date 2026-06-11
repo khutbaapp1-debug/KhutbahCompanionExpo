@@ -31,7 +31,6 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - All 13 feature tiles present: Live Translation, Prayer Times, Quran, Daily Duas, Daily Hadith, Tasbih, Qibla Compass, 99 Names, Mosque Finder, Salah Guide, Ramadan, Zakat Calculator, My Duas
 - Location loading uses useFocusEffect not useEffect
 - Premium upgrade banner visible for free users below header
-- DailyWorshipChecklist is collapsed by default showing title, progress count, and chevron icon. Tapping expands and collapses it.
 
 ## app/duas.tsx
 - All 17 categories are visible to all users with no lock icons on chips
@@ -116,7 +115,9 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 ## app/settings.tsx
 - Sadaqah Jariyah text completely absent
 - Premium upgrade card visible for free users at top
-- Notification time picker is scrollable WheelPicker not fixed buttons
+
+## app/notifications.tsx
+- Notification time picker is scrollable WheelPicker (WheelColumn FlatList with snapToInterval) not fixed buttons
 
 ## BRANDING CHECKS (any screen changed)
 - Primary colour is #0F766E
