@@ -19,7 +19,6 @@ type Props = {
   visible: boolean;
   onDismiss: () => void;
   summaryData: SummarySchema | null;
-  khutbahText: string;
 };
 
 // Returns a flat array of non-empty strings from a string, string[], or unknown.
@@ -93,7 +92,7 @@ class SummaryErrorBoundary extends Component<
 
 // ── Inner modal content ───────────────────────────────────────────────────────
 
-function SummaryContent({ summaryData, khutbahText, onDismiss }: Omit<Props, 'visible'>) {
+function SummaryContent({ summaryData, onDismiss }: Omit<Props, 'visible'>) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const cardRef = useRef<View>(null);
@@ -386,47 +385,6 @@ function SummaryContent({ summaryData, khutbahText, onDismiss }: Omit<Props, 'vi
           </TouchableOpacity>
         )}
 
-        {/* ── Full khutbah translation ─────────────────────────────────── */}
-        {khutbahText.trim().length > 0 && (
-          <View style={{ marginTop: 28 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: 14,
-                gap: 8,
-              }}
-            >
-              <View style={{ flex: 1, height: 1, backgroundColor: theme.border }} />
-              <Text
-                style={{
-                  fontFamily: 'Inter_600SemiBold',
-                  fontSize: 12,
-                  color: theme.textMuted,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.8,
-                }}
-              >
-                Full Khutbah Translation
-              </Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: theme.border }} />
-            </View>
-            {khutbahText.split('\n\n').map((para, i) => (
-              <Text
-                key={i}
-                style={{
-                  fontFamily: 'Inter_400Regular',
-                  fontSize: 15,
-                  color: theme.text,
-                  lineHeight: 24,
-                  marginBottom: 14,
-                }}
-              >
-                {para}
-              </Text>
-            ))}
-          </View>
-        )}
       </ScrollView>
     </View>
   );
@@ -434,14 +392,13 @@ function SummaryContent({ summaryData, khutbahText, onDismiss }: Omit<Props, 'vi
 
 // ── Public export ─────────────────────────────────────────────────────────────
 
-export function SummaryModal({ visible, onDismiss, summaryData, khutbahText }: Props) {
+export function SummaryModal({ visible, onDismiss, summaryData }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <SummaryErrorBoundary onDismiss={onDismiss}>
           <SummaryContent
             summaryData={summaryData}
-            khutbahText={khutbahText}
             onDismiss={onDismiss}
           />
         </SummaryErrorBoundary>

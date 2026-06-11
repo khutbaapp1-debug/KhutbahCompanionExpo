@@ -203,7 +203,6 @@ function TranslationScreenContent() {
   const [showSummary, setShowSummary] = useState(false);
   const [summaryGenerating, setSummaryGenerating] = useState(false);
   const [summaryData, setSummaryData] = useState<SummarySchema | null>(null);
-  const [khutbahText, setKhutbahText] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
 
   const recorderRef = useRef<AudioRecorderManager | null>(null);
@@ -494,7 +493,6 @@ function TranslationScreenContent() {
       .join('\n\n');
     if (text.length <= 50) return;
 
-    setKhutbahText(text);
     setSummaryData(null);
     await generateSummary(text);
   }, [stopRecordingInternal, generateSummary]);
@@ -1253,7 +1251,6 @@ function TranslationScreenContent() {
         visible={showSummary}
         onDismiss={() => setShowSummary(false)}
         summaryData={summaryData}
-        khutbahText={khutbahText}
       />
     </View>
   );
