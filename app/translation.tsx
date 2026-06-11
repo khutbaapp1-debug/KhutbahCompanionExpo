@@ -5,6 +5,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Stack, useRouter } from 'expo-router';
 import { Component, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   AppState,
@@ -15,7 +16,6 @@ import {
   PermissionsAndroid,
   Platform,
   ScrollView,
-  Share,
   Text,
   TouchableOpacity,
   View,
@@ -28,7 +28,11 @@ import {
   type TranslationSegment,
 } from '../src/lib/audio-recorder';
 import { SummaryModal } from '../src/components/SummaryModal';
-import { uploadChunk } from '../src/lib/translation-upload';
+import {
+  enqueueChunk,
+  retryPendingChunks,
+  subscribePendingCount,
+} from '../src/lib/translation-upload';
 import { usePremium } from '../src/hooks/usePremium';
 import { useTheme } from '../src/lib/theme-context';
 
@@ -196,10 +200,10 @@ function TranslationScreenContent() {
   const [targetLang, setTargetLang] = useState(FREE_TARGET);
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryGenerating, setSummaryGenerating] = useState(false);
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const [actionPoints, setActionPoints] = useState<string[]>([]);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const recorderRef = useRef<AudioRecorderManager | null>(null);
   const segmentsRef = useRef<TranslationSegment[]>([]);
@@ -211,6 +215,7 @@ function TranslationScreenContent() {
   const measuredRttRef = useRef<number | null>(null);
   const sourceLangRef = useRef(FREE_SOURCE);
   const targetLangRef = useRef(FREE_TARGET);
+  const summaryAbortRef = useRef<AbortController | null>(null);
   // Mirror of recorderState so the AppState listener reads the latest value
   // without re-subscribing on every state change.
   const recorderStateRef = useRef<RecorderState>('idle');
@@ -229,7 +234,13 @@ function TranslationScreenContent() {
     isPremiumRef.current = isPremium;
   }, [isPremium]);
 
-  useEffect(() => () => { isMountedRef.current = false; }, []);
+  useEffect(() => () => {
+    isMountedRef.current = false;
+    summaryAbortRef.current?.abort();
+  }, []);
+
+  // Subscribe to upload pending-count so the badge stays current.
+  useEffect(() => subscribePendingCount(setPendingCount), []);
 
   useEffect(() => {
     segmentsRef.current = segments;
@@ -306,34 +317,40 @@ function TranslationScreenContent() {
     }
   }, []);
 
-  // --- chunk -> upload -> segment ---
-  const handleChunk = useCallback((wav: Uint8Array, sequenceNumber: number) => {
-    if (sequenceNumber === 0) setIsFirstChunkPending(true);
-    const sentAt = Date.now();
-    // Fire-and-forget: recording continues while the upload resolves.
-    void uploadChunk(wav, sequenceNumber, sourceLangRef.current, targetLangRef.current).then((result) => {
-      if (sequenceNumber === 0) setIsFirstChunkPending(false);
-      const rtt = Math.max(5, Math.round((Date.now() - sentAt) / 1000));
-      measuredRttRef.current = rtt;
-      if (!result) return; // 429 / 500 / network — silently skipped
+  // --- chunk -> upload queue -> segment ---
+  const handleChunk = useCallback((wav: Uint8Array, chunkIndex: number) => {
+    if (chunkIndex === 0) setIsFirstChunkPending(true);
+    enqueueChunk(
+      wav,
+      chunkIndex,
+      sourceLangRef.current,
+      targetLangRef.current,
+      (result, idx, sentAt) => {
+        if (idx === 0) setIsFirstChunkPending(false);
+        const rtt = Math.max(5, Math.round((Date.now() - sentAt) / 1000));
+        measuredRttRef.current = rtt;
+        if (!result) return; // 4xx non-retriable — silently skipped
 
-      const hasContent = Boolean(result.arabic && result.translation);
-      const segment: TranslationSegment = {
-        id: `${sequenceNumber}-${Date.now()}`,
-        // Arabic is rendered EXACTLY as returned by the API — never modified.
-        arabic: result.arabic,
-        english: hasContent ? result.translation : '…',
-        timestamp: sequenceNumber,
-        isScripture: hasContent ? result.isScripture : false,
-      };
+        const hasContent = Boolean(result.arabic && result.translation);
+        const segment: TranslationSegment = {
+          id: `${idx}-${Date.now()}`,
+          // Arabic is rendered EXACTLY as returned by the API — never modified.
+          arabic: result.arabic,
+          english: hasContent ? result.translation : '…',
+          timestamp: idx,
+          isScripture: hasContent ? result.isScripture : false,
+        };
 
-      setSegments((prev) => {
-        const next = [...prev, segment];
-        // Keep chunk order even if uploads resolve out of order.
-        next.sort((a, b) => a.timestamp - b.timestamp);
-        return next;
-      });
-    });
+        if (isMountedRef.current) {
+          setSegments((prev) => {
+            const next = [...prev, segment];
+            // Guarantee sequence order even if queue delivers out of order.
+            next.sort((a, b) => a.timestamp - b.timestamp);
+            return next;
+          });
+        }
+      },
+    );
   }, [setIsFirstChunkPending]);
 
   // --- recording controls ---
@@ -416,44 +433,71 @@ function TranslationScreenContent() {
     startCountdownTimer(12);
   }, [startElapsedTimer, startCountdownTimer]);
 
-  const handleStop = useCallback(async () => {
+  // Fetch summary then open modal — never opens with incomplete data.
+  const generateSummary = useCallback(async (text: string) => {
+    summaryAbortRef.current?.abort();
+    const controller = new AbortController();
+    summaryAbortRef.current = controller;
+
+    setSummaryGenerating(true);
     try {
-      stopRecordingInternal();
-      if (isPremiumRef.current && segmentsRef.current.length > 0) {
-        const text = segmentsRef.current
-          .filter((s) => s.english && s.english !== '…')
-          .map((s) => s.english)
-          .join('\n\n');
-        if (text.length > 50) {
-          setSummaryText(null);
-          setActionPoints([]);
-          setSummaryLoading(true);
-          const res = await fetch(SUMMARISE_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text }),
-          });
-          if (res.ok) {
-            const data = (await res.json()) as { summary?: string; actionPoints?: string[] };
-            if (!isMountedRef.current) return;
-            setSummaryText(data.summary ?? null);
-            setActionPoints(data.actionPoints ?? []);
-            setShowSummary(true);
-          }
+      const res = await fetch(SUMMARISE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+        signal: controller.signal,
+      });
+      if (!isMountedRef.current) return;
+
+      if (res.ok) {
+        const data = (await res.json()) as { summary?: string; actionPoints?: string[] };
+        if (!isMountedRef.current) return;
+
+        setSummaryText(data.summary ?? null);
+        setActionPoints(Array.isArray(data.actionPoints) ? data.actionPoints : []);
+        setShowSummary(true);
+
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[SUMMARY] generated ok, points:', data.actionPoints?.length ?? 0);
         }
+      } else {
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[SUMMARY] API error:', res.status);
+        }
+        Alert.alert(
+          'Summary unavailable',
+          'Could not generate a summary. Try again later.',
+        );
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (isMountedRef.current) setSummaryError(msg);
+      if (!isMountedRef.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       if (__DEV__) {
         // eslint-disable-next-line no-console
-        console.log('[TranslationScreen] handleStop error stack:', err instanceof Error ? err.stack : err);
-        Alert.alert('handleStop error (__DEV__)', msg);
+        console.log('[SUMMARY] fetch failed:', err instanceof Error ? err.message : String(err));
       }
+      Alert.alert('Summary unavailable', 'Network error. Please try again when reconnected.');
     } finally {
-      if (isMountedRef.current) setSummaryLoading(false);
+      if (isMountedRef.current) setSummaryGenerating(false);
     }
-  }, [stopRecordingInternal]);
+  }, []);
+
+  const handleStop = useCallback(async () => {
+    stopRecordingInternal();
+    if (!isPremiumRef.current || segmentsRef.current.length === 0) return;
+
+    const text = segmentsRef.current
+      .filter((s) => s.english && s.english !== '…')
+      .map((s) => s.english)
+      .join('\n\n');
+    if (text.length <= 50) return;
+
+    setSummaryText(null);
+    setActionPoints([]);
+    await generateSummary(text);
+  }, [stopRecordingInternal, generateSummary]);
 
   // --- mount: pre-warm recorder + check disclaimer ---
   useEffect(() => {
@@ -490,6 +534,9 @@ function TranslationScreenContent() {
           autoStoppedRef.current = true;
         }, BACKGROUND_GRACE_MS);
       } else if (nextState === 'active') {
+        // Retry any pending uploads whenever the app returns to foreground.
+        retryPendingChunks();
+
         if (backgroundTimer.current) {
           clearTimeout(backgroundTimer.current);
           backgroundTimer.current = null;
@@ -795,7 +842,36 @@ function TranslationScreenContent() {
           alignItems: 'center',
         }}
       >
-        {recorderState === 'idle' ? (
+        {/* Pending-upload badge */}
+        {pendingCount > 0 && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: theme.primaryContainer,
+              borderRadius: 20,
+              paddingHorizontal: 14,
+              paddingVertical: 6,
+              marginBottom: 10,
+            }}
+          >
+            <Ionicons name="cloud-offline-outline" size={14} color={theme.primary} />
+            <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.primary }}>
+              {pendingCount} translation{pendingCount !== 1 ? 's' : ''} pending
+            </Text>
+          </View>
+        )}
+
+        {summaryGenerating ? (
+          // Inline loading state while summary is being fetched
+          <View style={{ alignItems: 'center', gap: 10, paddingVertical: 8 }}>
+            <ActivityIndicator size="small" color={theme.primary} />
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textMuted }}>
+              Generating summary…
+            </Text>
+          </View>
+        ) : recorderState === 'idle' ? (
           <>
             <TouchableOpacity
               onPress={() => void handleStart()}
@@ -1172,11 +1248,10 @@ function TranslationScreenContent() {
         </View>
       </Modal>
 
-      {/* ── Khutbah Summary modal (premium, after recording stops) ── */}
+      {/* ── Khutbah Summary modal — only opens after data is fully loaded ── */}
       <SummaryModal
         visible={showSummary}
         onDismiss={() => setShowSummary(false)}
-        isLoading={summaryLoading}
         summary={summaryText}
         actionPoints={actionPoints}
       />

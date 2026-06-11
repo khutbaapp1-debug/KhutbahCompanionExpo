@@ -161,17 +161,61 @@ export class AudioRecorderManager {
   private processChunk(): void {
     if (this.buffer.length === 0 || this.isPaused) return;
 
-    const wav = this.encodeWav(this.buffer);
+    // Find the quietest 200 ms window within the last 1.5 s of the buffer
+    // and cut there to avoid splitting mid-word. Falls back to a hard cut at
+    // the end of the buffer when the buffer is too short to scan.
+    const cutPoint = this.findQuietCutPoint(this.buffer);
+    const chunkSamples = this.buffer.slice(0, cutPoint);
+    const remainder = this.buffer.slice(cutPoint);
+
+    const wav = this.encodeWav(chunkSamples);
 
     // Skip silent / tiny chunks (the API can't do anything useful with them).
     if (wav.length < MIN_CHUNK_BYTES) {
-      this.buffer = [];
+      this.buffer = remainder;
       return;
     }
 
     this.onChunkCallback?.(wav, this.sequenceNumber);
-    this.buffer = [];
+    this.buffer = remainder;
     this.sequenceNumber++;
+  }
+
+  // Scan the last 1.5 s of the buffer with a sliding 200 ms RMS window and
+  // return the start index of the quietest window. Returns buffer.length
+  // (hard cut) when the buffer is too short to scan.
+  private findQuietCutPoint(buffer: number[]): number {
+    const WINDOW = Math.floor(0.2 * SAMPLE_RATE);  // 200 ms = 3 200 samples
+    const SCAN   = Math.floor(1.5 * SAMPLE_RATE);  // 1.5 s  = 24 000 samples
+    const len = buffer.length;
+
+    if (len < WINDOW + SCAN) {
+      return len; // buffer too short — hard cut
+    }
+
+    const scanStart = len - SCAN;
+    const scanEnd   = len - WINDOW;
+
+    // Seed the sliding window sum-of-squares.
+    let sumSq = 0;
+    for (let i = scanStart; i < scanStart + WINDOW; i++) {
+      sumSq += buffer[i] * buffer[i];
+    }
+
+    let bestPos = scanStart;
+    let bestRms = Math.sqrt(sumSq / WINDOW);
+
+    for (let pos = scanStart + 1; pos <= scanEnd; pos++) {
+      sumSq -= buffer[pos - 1] * buffer[pos - 1];
+      sumSq += buffer[pos + WINDOW - 1] * buffer[pos + WINDOW - 1];
+      const rms = Math.sqrt(sumSq / WINDOW);
+      if (rms < bestRms) {
+        bestRms = rms;
+        bestPos = pos;
+      }
+    }
+
+    return bestPos;
   }
 
   // Copied from the Capacitor `wav-encoder.ts` (RIFF / PCM / mono / 16kHz /

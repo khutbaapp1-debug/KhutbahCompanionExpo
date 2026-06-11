@@ -67,8 +67,14 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - First chunk shows isFirstChunkPending rendering "Translating..." text
 - Language picker visible in header
 - Arabic to English is default language pair
-- Summary fetch in handleStop has unmount guard
-- No console.log statements
+- Summary fetch in generateSummary has unmount guard (isMountedRef.current check after every await)
+- No console.log statements outside __DEV__ guards
+- [SUMMARY] diagnostic console.log calls are ALL gated inside if (__DEV__) — must be stripped or remain gated before production build
+
+## src/components/SummaryModal.tsx
+- [SUMMARY] diagnostic console.log calls are ALL gated inside if (__DEV__) — must be stripped or remain gated before production build
+- Share button disabled until onLayout fires (layoutReady = true)
+- No .map or .length access on actionPoints without Array.isArray guard
 
 ## src/lib/audio-recorder.ts
 - No console.log statements
