@@ -143,13 +143,11 @@ export default function DuasScreen() {
               key={cat.id}
               onPress={() => setCategory(cat.id)}
               style={{
-                paddingHorizontal: 12,
-                paddingTop: 8,
-                paddingBottom: 10,
+                paddingHorizontal: 14,
+                paddingVertical: 7,
                 borderRadius: 20,
                 marginRight: 8,
-                alignSelf: 'center',
-                minHeight: 44,
+                alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: category === cat.id ? theme.primary : theme.surface,
               }}
@@ -157,10 +155,8 @@ export default function DuasScreen() {
               <Text
                 style={{
                   fontFamily: 'Inter_500Medium',
-                  fontSize: 12,
-                  lineHeight: 12 * 1.6,
+                  fontSize: 13,
                   includeFontPadding: false,
-                  paddingBottom: 8,
                   color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
                 }}
               >
