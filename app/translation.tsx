@@ -28,7 +28,7 @@ import {
   type TranslationSegment,
 } from '../src/lib/audio-recorder';
 import { SummaryModal } from '../src/components/SummaryModal';
-import type { SummarySchema } from '../src/lib/summary-types';
+import type { SummarySchema, SummariseResponse } from '../src/lib/summary-types';
 import {
   enqueueChunk,
   retryPendingChunks,
@@ -203,6 +203,7 @@ function TranslationScreenContent() {
   const [showSummary, setShowSummary] = useState(false);
   const [summaryGenerating, setSummaryGenerating] = useState(false);
   const [summaryData, setSummaryData] = useState<SummarySchema | null>(null);
+  const khutbahTextRef = useRef('');
   const [pendingCount, setPendingCount] = useState(0);
 
   const recorderRef = useRef<AudioRecorderManager | null>(null);
@@ -450,15 +451,40 @@ function TranslationScreenContent() {
       if (!isMountedRef.current) return;
 
       if (res.ok) {
-        const data = (await res.json()) as SummarySchema;
+        // The backend returns:
+        //   { summary: { mainThemes, keyPoints, shortSummary, detailedSummary },
+        //     actionPoints: [{ content, category }, ...] }
+        // Unwrap here so SummaryModal always receives the flat SummarySchema shape.
+        const raw = (await res.json()) as SummariseResponse;
         if (!isMountedRef.current) return;
+
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('SUMMARY_RAW', JSON.stringify(raw));
+        }
+
+        const nested = raw.summary ?? {};
+        const toStrArr = (v: unknown): string[] =>
+          Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : [];
+
+        const data: SummarySchema = {
+          shortSummary: typeof nested.shortSummary === 'string' ? nested.shortSummary : undefined,
+          detailedSummary: typeof nested.detailedSummary === 'string' ? nested.detailedSummary : undefined,
+          mainThemes: toStrArr(nested.mainThemes),
+          keyPoints: toStrArr(nested.keyPoints),
+          actionPoints: Array.isArray(raw.actionPoints)
+            ? raw.actionPoints
+                .map((p) => (typeof p?.content === 'string' ? p.content : null))
+                .filter((s): s is string => s !== null)
+            : [],
+        };
 
         setSummaryData(data);
         setShowSummary(true);
 
         if (__DEV__) {
           // eslint-disable-next-line no-console
-          console.log('[SUMMARY] generated ok, keys:', Object.keys(data ?? {}).join(', '));
+          console.log('[SUMMARY] normalized:', JSON.stringify(data));
         }
       } else {
         if (__DEV__) {
@@ -493,6 +519,7 @@ function TranslationScreenContent() {
       .join('\n\n');
     if (text.length <= 50) return;
 
+    khutbahTextRef.current = text;
     setSummaryData(null);
     await generateSummary(text);
   }, [stopRecordingInternal, generateSummary]);
@@ -1251,6 +1278,7 @@ function TranslationScreenContent() {
         visible={showSummary}
         onDismiss={() => setShowSummary(false)}
         summaryData={summaryData}
+        onRetry={() => void generateSummary(khutbahTextRef.current)}
       />
     </View>
   );

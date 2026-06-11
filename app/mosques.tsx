@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
 import { Component, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
@@ -246,9 +247,15 @@ export default function MosquesScreen() {
     setRefreshing(false);
   }, [coords, loadMosques, requestLocationAndLoad]);
 
-  // Show split view only when results are ready, the user hasn't toggled to
-  // list-only, and the map hasn't errored. mapError auto-demotes to list-only.
-  const showSplitView = showMap && !mapError && status === 'ready' && coords !== null;
+  // Guard: read the Maps API key baked into the app config at build time.
+  // If missing or empty the MapView will crash at the native level (before any
+  // React error boundary can catch it), so we must never mount it in that case.
+  const mapsApiKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey;
+  const mapsKeyReady = typeof mapsApiKey === 'string' && mapsApiKey.length > 0;
+
+  // Show split view only when the API key is present, results are ready, the
+  // user hasn't toggled list-only, and the map hasn't previously errored.
+  const showSplitView = mapsKeyReady && showMap && !mapError && status === 'ready' && coords !== null;
 
   return (
     <>
@@ -256,7 +263,7 @@ export default function MosquesScreen() {
         options={{
           title: 'Mosque Finder',
           headerRight:
-            status === 'ready'
+            status === 'ready' && mapsKeyReady
               ? () => (
                   <Pressable
                     onPress={() => setShowMap((v) => !v)}
@@ -468,11 +475,28 @@ export default function MosquesScreen() {
             </View>
           </View>
         ) : (
-          // ── List-only view ────────────────────────────────────────────
+          // ── List-only view (also shown when Maps API key is absent) ───
           <FlatList
             data={mosques}
             keyExtractor={(m) => m.id}
             contentContainerStyle={{ padding: 16 }}
+            ListHeaderComponent={
+              !mapsKeyReady && status === 'ready' ? (
+                <Text
+                  style={{
+                    fontFamily: 'Inter_400Regular',
+                    fontSize: 12,
+                    color: theme.textMuted,
+                    textAlign: 'center',
+                    paddingVertical: 6,
+                    paddingHorizontal: 16,
+                    marginBottom: 8,
+                  }}
+                >
+                  Map unavailable
+                </Text>
+              ) : null
+            }
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

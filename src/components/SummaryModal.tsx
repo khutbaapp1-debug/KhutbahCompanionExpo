@@ -19,6 +19,7 @@ type Props = {
   visible: boolean;
   onDismiss: () => void;
   summaryData: SummarySchema | null;
+  onRetry: () => void;
 };
 
 // Returns a flat array of non-empty strings from a string, string[], or unknown.
@@ -30,13 +31,10 @@ function toLines(value: unknown): string[] {
   return [];
 }
 
-// Picks the best single-paragraph lead from the structured data.
+// Picks the lead paragraph from the normalized data.
 function toLead(data: SummarySchema): string {
   if (typeof data.shortSummary === 'string' && data.shortSummary.trim()) {
     return data.shortSummary;
-  }
-  if (typeof data.summary === 'string' && data.summary.trim()) {
-    return data.summary;
   }
   return '';
 }
@@ -92,7 +90,7 @@ class SummaryErrorBoundary extends Component<
 
 // ── Inner modal content ───────────────────────────────────────────────────────
 
-function SummaryContent({ summaryData, onDismiss }: Omit<Props, 'visible'>) {
+function SummaryContent({ summaryData, onDismiss, onRetry }: Omit<Props, 'visible'>) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const cardRef = useRef<View>(null);
@@ -183,7 +181,41 @@ function SummaryContent({ summaryData, onDismiss }: Omit<Props, 'visible'>) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+      {/* ── Explicit error state: data arrived but all fields are empty ── */}
+      {summaryData !== null && !hasSummary ? (
+        <View style={{ padding: 32, alignItems: 'center', gap: 16 }}>
+          <Ionicons name="alert-circle-outline" size={40} color={theme.textMuted} />
+          <Text
+            style={{
+              fontFamily: 'Inter_400Regular',
+              fontSize: 15,
+              color: theme.textMuted,
+              textAlign: 'center',
+              lineHeight: 22,
+            }}
+          >
+            Summary could not be loaded — tap to retry
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              onRetry();
+              onDismiss();
+            }}
+            style={{
+              backgroundColor: theme.primary,
+              borderRadius: 12,
+              paddingHorizontal: 28,
+              paddingVertical: 12,
+            }}
+          >
+            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: '#FFFFFF' }}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {(summaryData === null || hasSummary) && <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
 
         {/* ── Share card (capture target) ─────────────────────────────── */}
         <View
@@ -385,14 +417,14 @@ function SummaryContent({ summaryData, onDismiss }: Omit<Props, 'visible'>) {
           </TouchableOpacity>
         )}
 
-      </ScrollView>
+      </ScrollView>}
     </View>
   );
 }
 
 // ── Public export ─────────────────────────────────────────────────────────────
 
-export function SummaryModal({ visible, onDismiss, summaryData }: Props) {
+export function SummaryModal({ visible, onDismiss, summaryData, onRetry }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -400,6 +432,7 @@ export function SummaryModal({ visible, onDismiss, summaryData }: Props) {
           <SummaryContent
             summaryData={summaryData}
             onDismiss={onDismiss}
+            onRetry={onRetry}
           />
         </SummaryErrorBoundary>
       </View>
