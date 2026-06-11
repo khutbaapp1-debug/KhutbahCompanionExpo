@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ImageSourcePropType, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ImageSourcePropType, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import FeaturedBanner from '../src/components/FeaturedBanner';
@@ -192,7 +192,12 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 16 }}
       >
-        <View className="mt-2 px-6">
+        <Pressable
+          className="mt-2 px-6"
+          disabled={needsLocation}
+          onPress={() => router.push('/prayer-times')}
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+        >
           <NextPrayerCard
             prayerName={nextPrayerName ?? '—'}
             prayerTime={nextPrayerTime ?? '—:—'}
@@ -201,7 +206,7 @@ export default function HomeScreen() {
             requesting={requesting}
             onEnableLocation={handleEnableLocation}
           />
-        </View>
+        </Pressable>
         {/* Daily Worship Checklist removed — needs persistent tracking before re-adding */}
         <View className="mt-3 px-6">
           <FeaturedBanner />

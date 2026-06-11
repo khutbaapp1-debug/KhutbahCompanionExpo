@@ -64,6 +64,11 @@ const soundRef = useRef<SoundInstance | null>(null);
   const currentAyahRef = useRef(1);
   const fontSizeLoadedRef = useRef(false);
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
+  // Bookmark scroll — track target, attempts, and settled state to prevent loop
+  const bookmarkAttemptsRef = useRef(0);
+  const bookmarkTargetRef = useRef<number | null>(null);
+  const bookmarkSettledRef = useRef(false);
+  const detailedCardRefs = useRef<Record<number, View | null>>({});
 
   const fontSize = FONT_SIZES[fontSizeIdx] ?? 24;
   const cardWidth = Dimensions.get('window').width - 32;
@@ -73,6 +78,7 @@ const soundRef = useRef<SoundInstance | null>(null);
       setSurah(getSurah(surahNum));
       void setLastSurah(surahNum);
       verseRefs.current = {};
+      detailedCardRefs.current = {};
     } catch {
       router.back();
     }
@@ -214,6 +220,9 @@ const soundRef = useRef<SoundInstance | null>(null);
 
   const scrollToVerse = useCallback((ayahNumber: number, animated = true) => {
     if (viewMode === 'detailed' && listRef.current) {
+      bookmarkAttemptsRef.current = 0;
+      bookmarkSettledRef.current = false;
+      bookmarkTargetRef.current = ayahNumber;
       listRef.current.scrollToIndex({
         index: ayahNumber - 1,
         animated: false,
@@ -236,6 +245,15 @@ const soundRef = useRef<SoundInstance | null>(null);
       saveTimerRef.current = setTimeout(() => {
         void setLastPosition(surahNum, firstAyah.numberInSurah);
       }, 2000);
+      // Mark settled as soon as the bookmark target appears in the viewport
+      if (!bookmarkSettledRef.current && bookmarkTargetRef.current !== null) {
+        const target = bookmarkTargetRef.current;
+        const visible = viewableItems.some((vt) => (vt.item as Ayah).numberInSurah === target);
+        if (visible) {
+          bookmarkSettledRef.current = true;
+          bookmarkTargetRef.current = null;
+        }
+      }
     },
     [surahNum],
   );
@@ -592,17 +610,41 @@ const soundRef = useRef<SoundInstance | null>(null);
           viewabilityConfig={viewabilityConfig.current}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 24 }}
           onScrollToIndexFailed={(info) => {
+            if (bookmarkAttemptsRef.current >= 3) return; // hard cap — stop all corrections
+            bookmarkAttemptsRef.current += 1;
+            // Animated so onMomentumScrollEnd fires for the measureInWindow check
             listRef.current?.scrollToOffset({
               offset: info.averageItemLength * info.index,
-              animated: false,
+              animated: true,
             });
-            setTimeout(() => {
-              listRef.current?.scrollToIndex({
-                index: info.index,
-                animated: false,
-                viewPosition: 0,
-              });
-            }, 200);
+            // No setTimeout — retry is driven by onMomentumScrollEnd
+          }}
+          onMomentumScrollEnd={() => {
+            const target = bookmarkTargetRef.current;
+            if (target === null || bookmarkSettledRef.current) return;
+            const cardRef = detailedCardRefs.current[target];
+            if (!cardRef) {
+              // Card not yet rendered — try once more if under cap
+              if (bookmarkAttemptsRef.current < 3) {
+                listRef.current?.scrollToIndex({ index: target - 1, animated: false, viewPosition: 0 });
+              } else {
+                bookmarkSettledRef.current = true;
+              }
+              return;
+            }
+            // Fresh measureInWindow after scroll momentum ends — never mid-scroll
+            cardRef.measureInWindow((_x, y, _w, h) => {
+              const screenH = Dimensions.get('window').height;
+              if (y >= 0 && y + h <= screenH) {
+                bookmarkSettledRef.current = true; // confirmed visible — never scroll again
+                bookmarkTargetRef.current = null;
+              } else if (bookmarkAttemptsRef.current < 3) {
+                listRef.current?.scrollToIndex({ index: target - 1, animated: false, viewPosition: 0 });
+              } else {
+                bookmarkSettledRef.current = true; // cap reached — give up
+                bookmarkTargetRef.current = null;
+              }
+            });
           }}
           renderItem={({ item: ayah }) => {
             const t = translations.find((x) => x.numberInSurah === ayah.numberInSurah);
@@ -612,6 +654,7 @@ const soundRef = useRef<SoundInstance | null>(null);
 
             return (
               <View
+                ref={(el) => { detailedCardRefs.current[ayah.numberInSurah] = el; }}
                 onLayout={(e) => {
                   itemHeightsRef.current[ayah.numberInSurah] = e.nativeEvent.layout.height;
                 }}

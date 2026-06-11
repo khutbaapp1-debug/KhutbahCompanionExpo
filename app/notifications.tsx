@@ -174,6 +174,7 @@ function TimePicker({ value, onChange }: { value: string; onChange: (t: string) 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
+  const { theme } = useTheme();
   const [master, setMaster] = useState(true);
   const [prayers, setPrayers] = useState<Record<PrayerKey, boolean>>({
     fajr: false,
@@ -257,47 +258,96 @@ export default function NotificationsScreen() {
   const disabled = !master;
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerStyle={{ paddingBottom: 32 }}>
-      <Text className="text-sm text-gray-500 text-center py-4 font-sans">
+    <ScrollView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      contentContainerStyle={{ paddingBottom: 32 }}
+    >
+      <Text
+        style={{
+          fontFamily: 'Inter_400Regular',
+          fontSize: 14,
+          color: theme.textMuted,
+          textAlign: 'center',
+          paddingVertical: 16,
+        }}
+      >
         Prayer reminders and daily hadith
       </Text>
 
       {/* Master switch */}
-      <View className="bg-white rounded-2xl mx-4 mb-3 p-4 border border-gray-100">
-        <View className="flex-row items-center justify-between">
-          <Text className="font-sans-semibold text-base text-gray-900">
+      <View
+        style={{
+          backgroundColor: theme.surface,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: theme.border,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text
+            style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: theme.text }}
+          >
             Enable Notifications
           </Text>
           <Switch
             value={master}
             onValueChange={toggleMaster}
-            trackColor={{ false: '#E5E7EB', true: '#0F766E' }}
+            trackColor={{ false: theme.border, true: theme.primary }}
             thumbColor="white"
           />
         </View>
       </View>
 
       {/* Prayer reminders */}
-      <Text className="text-xs font-sans-semibold text-gray-500 uppercase tracking-wider px-4 pt-2 pb-2">
+      <Text
+        style={{
+          fontFamily: 'Inter_600SemiBold',
+          fontSize: 12,
+          color: theme.textMuted,
+          textTransform: 'uppercase',
+          letterSpacing: 0.6,
+          paddingHorizontal: 16,
+          paddingTop: 8,
+          paddingBottom: 8,
+        }}
+      >
         Prayer Reminders
       </Text>
       <View
-        className="bg-white rounded-2xl mx-4 mb-3 border border-gray-100"
-        style={{ opacity: disabled ? 0.4 : 1 }}
+        style={{
+          backgroundColor: theme.surface,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: theme.border,
+          opacity: disabled ? 0.4 : 1,
+        }}
         pointerEvents={disabled ? 'none' : 'auto'}
       >
         {PRAYERS.map((p, i) => (
           <View
             key={p.key}
-            className={`flex-row items-center justify-between px-4 py-3.5 ${
-              i < PRAYERS.length - 1 ? 'border-b border-gray-100' : ''
-            }`}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              borderBottomWidth: i < PRAYERS.length - 1 ? 1 : 0,
+              borderBottomColor: theme.border,
+            }}
           >
-            <Text className="font-sans-medium text-base text-gray-900">{p.label}</Text>
+            <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
+              {p.label}
+            </Text>
             <Switch
               value={prayers[p.key]}
               onValueChange={(v) => togglePrayer(p.key, v)}
-              trackColor={{ false: '#E5E7EB', true: '#0F766E' }}
+              trackColor={{ false: theme.border, true: theme.primary }}
               thumbColor="white"
             />
           </View>
@@ -305,28 +355,62 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Daily Hadith */}
-      <Text className="text-xs font-sans-semibold text-gray-500 uppercase tracking-wider px-4 pt-2 pb-2">
+      <Text
+        style={{
+          fontFamily: 'Inter_600SemiBold',
+          fontSize: 12,
+          color: theme.textMuted,
+          textTransform: 'uppercase',
+          letterSpacing: 0.6,
+          paddingHorizontal: 16,
+          paddingTop: 8,
+          paddingBottom: 8,
+        }}
+      >
         Daily Hadith
       </Text>
       <View
-        className="bg-white rounded-2xl mx-4 mb-3 p-4 border border-gray-100"
-        style={{ opacity: disabled ? 0.4 : 1 }}
+        style={{
+          backgroundColor: theme.surface,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: theme.border,
+          opacity: disabled ? 0.4 : 1,
+        }}
         pointerEvents={disabled ? 'none' : 'auto'}
       >
-        <View className="flex-row items-center justify-between">
-          <Text className="font-sans-medium text-base text-gray-900">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
             Daily Hadith Reminder
           </Text>
           <Switch
             value={hadith}
             onValueChange={toggleHadith}
-            trackColor={{ false: '#E5E7EB', true: '#0F766E' }}
+            trackColor={{ false: theme.border, true: theme.primary }}
             thumbColor="white"
           />
         </View>
         {hadith && (
-          <View className="mt-3 pt-3 border-t border-gray-100">
-            <Text className="font-sans-medium text-sm text-gray-700 mb-1 text-center">
+          <View
+            style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTopWidth: 1,
+              borderTopColor: theme.border,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Inter_500Medium',
+                fontSize: 14,
+                color: theme.textSecondary,
+                marginBottom: 4,
+                textAlign: 'center',
+              }}
+            >
               Reminder time
             </Text>
             <TimePicker value={hadithTime} onChange={pickTime} />
@@ -335,28 +419,62 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Dhikr & Tasbih */}
-      <Text className="text-xs font-sans-semibold text-gray-500 uppercase tracking-wider px-4 pt-2 pb-2">
-        Dhikr & Tasbih
+      <Text
+        style={{
+          fontFamily: 'Inter_600SemiBold',
+          fontSize: 12,
+          color: theme.textMuted,
+          textTransform: 'uppercase',
+          letterSpacing: 0.6,
+          paddingHorizontal: 16,
+          paddingTop: 8,
+          paddingBottom: 8,
+        }}
+      >
+        Dhikr &amp; Tasbih
       </Text>
       <View
-        className="bg-white rounded-2xl mx-4 mb-3 p-4 border border-gray-100"
-        style={{ opacity: disabled ? 0.4 : 1 }}
+        style={{
+          backgroundColor: theme.surface,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: theme.border,
+          opacity: disabled ? 0.4 : 1,
+        }}
         pointerEvents={disabled ? 'none' : 'auto'}
       >
-        <View className="flex-row items-center justify-between">
-          <Text className="font-sans-medium text-base text-gray-900">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
             Daily Dhikr Reminder
           </Text>
           <Switch
             value={dhikr}
             onValueChange={toggleDhikr}
-            trackColor={{ false: '#E5E7EB', true: '#0F766E' }}
+            trackColor={{ false: theme.border, true: theme.primary }}
             thumbColor="white"
           />
         </View>
         {dhikr && (
-          <View className="mt-3 pt-3 border-t border-gray-100">
-            <Text className="font-sans-medium text-sm text-gray-700 mb-1 text-center">
+          <View
+            style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTopWidth: 1,
+              borderTopColor: theme.border,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Inter_500Medium',
+                fontSize: 14,
+                color: theme.textSecondary,
+                marginBottom: 4,
+                textAlign: 'center',
+              }}
+            >
               Reminder time
             </Text>
             <TimePicker value={dhikrTime} onChange={pickDhikrTime} />
@@ -365,8 +483,18 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Note */}
-      <View className="bg-amber-50 border border-amber-200 rounded-2xl mx-4 p-4 mt-2">
-        <Text className="text-sm text-amber-800 font-sans">
+      <View
+        style={{
+          backgroundColor: theme.surface,
+          borderWidth: 1,
+          borderColor: theme.border,
+          borderRadius: 16,
+          marginHorizontal: 16,
+          padding: 16,
+          marginTop: 8,
+        }}
+      >
+        <Text style={{ fontSize: 14, color: theme.textMuted, fontFamily: 'Inter_400Regular' }}>
           Prayer reminders use your saved location and calculation method.
           Notifications require a development build — they do not fire in Expo Go.
         </Text>
