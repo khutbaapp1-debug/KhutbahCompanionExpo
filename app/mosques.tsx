@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
 import { Component, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
@@ -247,15 +247,20 @@ export default function MosquesScreen() {
     setRefreshing(false);
   }, [coords, loadMosques, requestLocationAndLoad]);
 
-  // Guard: read the Maps API key baked into the app config at build time.
-  // If missing or empty the MapView will crash at the native level (before any
-  // React error boundary can catch it), so we must never mount it in that case.
-  const mapsApiKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey;
-  const mapsKeyReady = typeof mapsApiKey === 'string' && mapsApiKey.length > 0;
+  // Guard: react-native-maps only works in dev-client and standalone builds,
+  // not in Expo Go (StoreClient). Use ExecutionEnvironment instead of reading
+  // the API key — Constants.expoConfig?.android?.config resolves undefined at
+  // runtime in dev clients even when the manifest contains the key.
+  const mapsSupported = Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 
-  // Show split view only when the API key is present, results are ready, the
-  // user hasn't toggled list-only, and the map hasn't previously errored.
-  const showSplitView = mapsKeyReady && showMap && !mapError && status === 'ready' && coords !== null;
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.log('MAP_GUARD', Constants.executionEnvironment, !!Constants.expoConfig?.android?.config?.googleMaps?.apiKey);
+  }
+
+  // Show split view only when the runtime supports maps, results are ready,
+  // the user hasn't toggled list-only, and the map hasn't previously errored.
+  const showSplitView = mapsSupported && showMap && !mapError && status === 'ready' && coords !== null;
 
   return (
     <>
@@ -263,7 +268,7 @@ export default function MosquesScreen() {
         options={{
           title: 'Mosque Finder',
           headerRight:
-            status === 'ready' && mapsKeyReady
+            status === 'ready' && mapsSupported
               ? () => (
                   <Pressable
                     onPress={() => setShowMap((v) => !v)}
@@ -481,7 +486,7 @@ export default function MosquesScreen() {
             keyExtractor={(m) => m.id}
             contentContainerStyle={{ padding: 16 }}
             ListHeaderComponent={
-              !mapsKeyReady && status === 'ready' ? (
+              !mapsSupported && status === 'ready' ? (
                 <Text
                   style={{
                     fontFamily: 'Inter_400Regular',
