@@ -6,7 +6,7 @@ if (!mapsApiKey) {
   console.warn('[app.config] GOOGLE_MAPS_ANDROID_API_KEY is not set — falling back to hardcoded key. Set this in EAS secrets for production builds.');
 }
 
-const resolvedKey = mapsApiKey ?? 'AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_F';
+const resolvedKey = mapsApiKey ?? 'AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_Fs';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appJson = require('./app.json').expo;
 
