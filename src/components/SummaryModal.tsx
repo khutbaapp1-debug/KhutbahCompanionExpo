@@ -13,13 +13,34 @@ import {
 import { captureRef } from 'react-native-view-shot';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/theme-context';
+import type { SummarySchema } from '../lib/summary-types';
 
 type Props = {
   visible: boolean;
   onDismiss: () => void;
-  summary: string | null;
-  actionPoints: string[];
+  summaryData: SummarySchema | null;
+  khutbahText: string;
 };
+
+// Returns a flat array of non-empty strings from a string, string[], or unknown.
+function toLines(value: unknown): string[] {
+  if (typeof value === 'string' && value.trim()) return [value];
+  if (Array.isArray(value)) {
+    return value.filter((s): s is string => typeof s === 'string' && s.trim().length > 0);
+  }
+  return [];
+}
+
+// Picks the best single-paragraph lead from the structured data.
+function toLead(data: SummarySchema): string {
+  if (typeof data.shortSummary === 'string' && data.shortSummary.trim()) {
+    return data.shortSummary;
+  }
+  if (typeof data.summary === 'string' && data.summary.trim()) {
+    return data.summary;
+  }
+  return '';
+}
 
 // ── Error boundary wrapping modal content ────────────────────────────────────
 
@@ -72,20 +93,32 @@ class SummaryErrorBoundary extends Component<
 
 // ── Inner modal content ───────────────────────────────────────────────────────
 
-function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visible'>) {
+function SummaryContent({ summaryData, khutbahText, onDismiss }: Omit<Props, 'visible'>) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const cardRef = useRef<View>(null);
   const [layoutReady, setLayoutReady] = useState(false);
   const [sharing, setSharing] = useState(false);
 
-  const safePoints = Array.isArray(actionPoints) ? actionPoints : [];
+  const lead = summaryData ? toLead(summaryData) : '';
+  const themes = summaryData ? toLines(summaryData.mainThemes) : [];
+  // key points: prefer structured keyPoints, fall back to legacy actionPoints
+  const points = summaryData
+    ? toLines(summaryData.keyPoints).length > 0
+      ? toLines(summaryData.keyPoints)
+      : toLines(summaryData.actionPoints)
+    : [];
+  const detailed =
+    summaryData && typeof summaryData.detailedSummary === 'string'
+      ? summaryData.detailedSummary.trim()
+      : '';
+
+  const hasSummary = Boolean(lead || themes.length > 0 || points.length > 0);
 
   const handleShare = async () => {
     if (!cardRef.current || !layoutReady) return;
     setSharing(true);
     try {
-      // Let the layout engine finish before capturing.
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       if (__DEV__) {
         // eslint-disable-next-line no-console
@@ -117,7 +150,7 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
         backgroundColor: theme.card,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        maxHeight: '82%',
+        maxHeight: '90%',
         paddingBottom: insets.bottom + 16,
       }}
     >
@@ -152,14 +185,43 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
-        {/* Capture target — ref on the inner content View so view-shot gets the full layout */}
+
+        {/* ── Share card (capture target) ─────────────────────────────── */}
         <View
           ref={cardRef}
           onLayout={() => setLayoutReady(true)}
           style={{ backgroundColor: theme.card }}
           collapsable={false}
         >
-          {summary ? (
+          {lead ? (
+            <>
+              <Text
+                style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 12,
+                  color: theme.primary,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  marginBottom: 8,
+                }}
+              >
+                Summary
+              </Text>
+              <Text
+                style={{
+                  fontFamily: 'Inter_400Regular',
+                  fontSize: 15,
+                  color: theme.text,
+                  lineHeight: 24,
+                  marginBottom: 20,
+                }}
+              >
+                {lead}
+              </Text>
+            </>
+          ) : null}
+
+          {themes.length > 0 ? (
             <>
               <Text
                 style={{
@@ -171,23 +233,42 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
                   marginBottom: 10,
                 }}
               >
-                Summary &amp; Key Themes
+                Main Themes
               </Text>
-              <Text
-                style={{
-                  fontFamily: 'Inter_400Regular',
-                  fontSize: 15,
-                  color: theme.text,
-                  lineHeight: 24,
-                  marginBottom: 22,
-                }}
-              >
-                {summary}
-              </Text>
+              {themes.map((theme_item, i) => (
+                <View
+                  key={i}
+                  style={{ flexDirection: 'row', marginBottom: 8, alignItems: 'flex-start' }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 15,
+                      color: theme.primary,
+                      marginRight: 8,
+                      lineHeight: 24,
+                    }}
+                  >
+                    •
+                  </Text>
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 15,
+                      color: theme.text,
+                      lineHeight: 24,
+                    }}
+                  >
+                    {theme_item}
+                  </Text>
+                </View>
+              ))}
+              <View style={{ marginBottom: 12 }} />
             </>
           ) : null}
 
-          {safePoints.length > 0 ? (
+          {points.length > 0 ? (
             <>
               <Text
                 style={{
@@ -196,12 +277,12 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
                   color: theme.primary,
                   textTransform: 'uppercase',
                   letterSpacing: 0.8,
-                  marginBottom: 12,
+                  marginBottom: 10,
                 }}
               >
-                Action Points
+                Key Points
               </Text>
-              {safePoints.map((point, i) => (
+              {points.map((point, i) => (
                 <View
                   key={i}
                   style={{ flexDirection: 'row', marginBottom: 12, alignItems: 'flex-start' }}
@@ -220,11 +301,7 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
                     }}
                   >
                     <Text
-                      style={{
-                        fontFamily: 'Inter_700Bold',
-                        fontSize: 11,
-                        color: theme.primary,
-                      }}
+                      style={{ fontFamily: 'Inter_700Bold', fontSize: 11, color: theme.primary }}
                     >
                       {i + 1}
                     </Text>
@@ -238,7 +315,7 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
                       lineHeight: 24,
                     }}
                   >
-                    {typeof point === 'string' ? point : ''}
+                    {point}
                   </Text>
                 </View>
               ))}
@@ -246,7 +323,43 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
           ) : null}
         </View>
 
-        {(summary || safePoints.length > 0) && (
+        {/* ── Detailed summary (in-app only, not on share card) ──────── */}
+        {detailed ? (
+          <View
+            style={{
+              marginTop: 4,
+              paddingTop: 16,
+              borderTopWidth: 1,
+              borderTopColor: theme.border,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'Inter_600SemiBold',
+                fontSize: 12,
+                color: theme.primary,
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+                marginBottom: 8,
+              }}
+            >
+              Detailed Summary
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Inter_400Regular',
+                fontSize: 15,
+                color: theme.text,
+                lineHeight: 24,
+              }}
+            >
+              {detailed}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* ── Share button ────────────────────────────────────────────── */}
+        {hasSummary && (
           <TouchableOpacity
             onPress={() => void handleShare()}
             disabled={!layoutReady || sharing}
@@ -255,7 +368,7 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              marginTop: 12,
+              marginTop: 20,
               backgroundColor: theme.primary,
               borderRadius: 14,
               paddingVertical: 14,
@@ -272,6 +385,48 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
             </Text>
           </TouchableOpacity>
         )}
+
+        {/* ── Full khutbah translation ─────────────────────────────────── */}
+        {khutbahText.trim().length > 0 && (
+          <View style={{ marginTop: 28 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 14,
+                gap: 8,
+              }}
+            >
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.border }} />
+              <Text
+                style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 12,
+                  color: theme.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                }}
+              >
+                Full Khutbah Translation
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.border }} />
+            </View>
+            {khutbahText.split('\n\n').map((para, i) => (
+              <Text
+                key={i}
+                style={{
+                  fontFamily: 'Inter_400Regular',
+                  fontSize: 15,
+                  color: theme.text,
+                  lineHeight: 24,
+                  marginBottom: 14,
+                }}
+              >
+                {para}
+              </Text>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -279,14 +434,14 @@ function SummaryContent({ summary, actionPoints, onDismiss }: Omit<Props, 'visib
 
 // ── Public export ─────────────────────────────────────────────────────────────
 
-export function SummaryModal({ visible, onDismiss, summary, actionPoints }: Props) {
+export function SummaryModal({ visible, onDismiss, summaryData, khutbahText }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <SummaryErrorBoundary onDismiss={onDismiss}>
           <SummaryContent
-            summary={summary}
-            actionPoints={actionPoints}
+            summaryData={summaryData}
+            khutbahText={khutbahText}
             onDismiss={onDismiss}
           />
         </SummaryErrorBoundary>

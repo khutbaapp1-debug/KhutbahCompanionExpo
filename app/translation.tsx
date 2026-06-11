@@ -28,6 +28,7 @@ import {
   type TranslationSegment,
 } from '../src/lib/audio-recorder';
 import { SummaryModal } from '../src/components/SummaryModal';
+import type { SummarySchema } from '../src/lib/summary-types';
 import {
   enqueueChunk,
   retryPendingChunks,
@@ -201,8 +202,8 @@ function TranslationScreenContent() {
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryGenerating, setSummaryGenerating] = useState(false);
-  const [summaryText, setSummaryText] = useState<string | null>(null);
-  const [actionPoints, setActionPoints] = useState<string[]>([]);
+  const [summaryData, setSummaryData] = useState<SummarySchema | null>(null);
+  const [khutbahText, setKhutbahText] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
 
   const recorderRef = useRef<AudioRecorderManager | null>(null);
@@ -450,16 +451,15 @@ function TranslationScreenContent() {
       if (!isMountedRef.current) return;
 
       if (res.ok) {
-        const data = (await res.json()) as { summary?: string; actionPoints?: string[] };
+        const data = (await res.json()) as SummarySchema;
         if (!isMountedRef.current) return;
 
-        setSummaryText(data.summary ?? null);
-        setActionPoints(Array.isArray(data.actionPoints) ? data.actionPoints : []);
+        setSummaryData(data);
         setShowSummary(true);
 
         if (__DEV__) {
           // eslint-disable-next-line no-console
-          console.log('[SUMMARY] generated ok, points:', data.actionPoints?.length ?? 0);
+          console.log('[SUMMARY] generated ok, keys:', Object.keys(data ?? {}).join(', '));
         }
       } else {
         if (__DEV__) {
@@ -494,8 +494,8 @@ function TranslationScreenContent() {
       .join('\n\n');
     if (text.length <= 50) return;
 
-    setSummaryText(null);
-    setActionPoints([]);
+    setKhutbahText(text);
+    setSummaryData(null);
     await generateSummary(text);
   }, [stopRecordingInternal, generateSummary]);
 
@@ -1252,8 +1252,8 @@ function TranslationScreenContent() {
       <SummaryModal
         visible={showSummary}
         onDismiss={() => setShowSummary(false)}
-        summary={summaryText}
-        actionPoints={actionPoints}
+        summaryData={summaryData}
+        khutbahText={khutbahText}
       />
     </View>
   );
