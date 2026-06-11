@@ -101,11 +101,11 @@ function SummaryContent({ summaryData, onDismiss }: Omit<Props, 'visible'>) {
 
   const lead = summaryData ? toLead(summaryData) : '';
   const themes = summaryData ? toLines(summaryData.mainThemes) : [];
-  // key points: prefer structured keyPoints, fall back to legacy actionPoints
+  // action points: prefer actionPoints (legacy + explicit), fall back to keyPoints
   const points = summaryData
-    ? toLines(summaryData.keyPoints).length > 0
-      ? toLines(summaryData.keyPoints)
-      : toLines(summaryData.actionPoints)
+    ? toLines(summaryData.actionPoints).length > 0
+      ? toLines(summaryData.actionPoints)
+      : toLines(summaryData.keyPoints)
     : [];
   const detailed =
     summaryData && typeof summaryData.detailedSummary === 'string'
@@ -279,7 +279,7 @@ function SummaryContent({ summaryData, onDismiss }: Omit<Props, 'visible'>) {
                   marginBottom: 10,
                 }}
               >
-                Key Points
+                Action Points
               </Text>
               {points.map((point, i) => (
                 <View
