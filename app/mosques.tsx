@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Component, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,7 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import type { ThemeColors } from '../src/lib/theme';
 import { useTheme } from '../src/lib/theme-context';
@@ -141,15 +141,38 @@ function MosqueCard({
   );
 }
 
+// Catches MapView native errors so a maps failure cannot take down the screen.
+// Calls onError() to flip the parent's mapError flag → auto fallback to list.
+class MapErrorBoundary extends Component<
+  { children: ReactNode; onError: () => void },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(): void {
+    this.props.onError();
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
 export default function MosquesScreen() {
   const { theme } = useTheme();
   const [status, setStatus] = useState<Status>('checking');
   const [coords, setCoords] = useState<Coords | null>(null);
   const [mosques, setMosques] = useState<Mosque[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [showMap, setShowMap] = useState(false);
-  const [selectedMosque, setSelectedMosque] = useState<Mosque | null>(null);
+  const [showMap, setShowMap] = useState(true); // default: split view
+  const [mapError, setMapError] = useState(false);
   const isMountedRef = useRef(true);
+  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -157,6 +180,19 @@ export default function MosquesScreen() {
       isMountedRef.current = false;
     };
   }, []);
+
+  // Animate map to fit all markers once results arrive.
+  useEffect(() => {
+    if (status !== 'ready' || mosques.length === 0 || !coords || mapError) return;
+    const points = [
+      { latitude: coords.latitude, longitude: coords.longitude },
+      ...mosques.map((m) => ({ latitude: m.latitude, longitude: m.longitude })),
+    ];
+    mapRef.current?.fitToCoordinates(points, {
+      edgePadding: { top: 60, right: 40, bottom: 40, left: 40 },
+      animated: true,
+    });
+  }, [status, mosques, coords, mapError]);
 
   const loadMosques = useCallback(async (c: Coords) => {
     const controller = new AbortController();
@@ -210,6 +246,10 @@ export default function MosquesScreen() {
     setRefreshing(false);
   }, [coords, loadMosques, requestLocationAndLoad]);
 
+  // Show split view only when results are ready, the user hasn't toggled to
+  // list-only, and the map hasn't errored. mapError auto-demotes to list-only.
+  const showSplitView = showMap && !mapError && status === 'ready' && coords !== null;
+
   return (
     <>
       <Stack.Screen
@@ -219,15 +259,12 @@ export default function MosquesScreen() {
             status === 'ready'
               ? () => (
                   <Pressable
-                    onPress={() => {
-                      setShowMap((v) => !v);
-                      setSelectedMosque(null);
-                    }}
+                    onPress={() => setShowMap((v) => !v)}
                     style={{ marginRight: 16 }}
                     hitSlop={8}
                   >
                     <Ionicons
-                      name={showMap ? 'list-outline' : 'map-outline'}
+                      name={showSplitView ? 'list-outline' : 'map-outline'}
                       size={22}
                       color={theme.primary}
                     />
@@ -283,13 +320,7 @@ export default function MosquesScreen() {
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <Text
-                style={{
-                  fontFamily: 'Inter_600SemiBold',
-                  fontSize: 14,
-                  color: '#FFFFFF',
-                }}
-              >
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#FFFFFF' }}>
                 Open Settings
               </Text>
             </Pressable>
@@ -322,160 +353,122 @@ export default function MosquesScreen() {
             }
             contentContainerStyle={{ padding: 16 }}
           />
-        ) : showMap && coords ? (
-          <FlatList
-            data={mosques}
-            keyExtractor={(m) => m.id}
-            contentContainerStyle={{ paddingBottom: 16 }}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.primary}
-                colors={[theme.primary]}
-              />
-            }
-            ListHeaderComponent={
-              <View>
-                <MapView
-                  provider={PROVIDER_GOOGLE}
-                  style={{ height: 280 }}
-                  initialRegion={{
-                    latitude: coords.latitude,
-                    longitude: coords.longitude,
-                    latitudeDelta: 0.05,
-                    longitudeDelta: 0.05,
-                  }}
-                >
-                  <Marker coordinate={coords} pinColor="#3B82F6" title="You are here" />
-                  {mosques.map((mosque) => (
-                    <Marker
-                      key={mosque.id}
-                      coordinate={{ latitude: mosque.latitude, longitude: mosque.longitude }}
-                      pinColor={selectedMosque?.id === mosque.id ? theme.primary : '#EF4444'}
-                      onPress={() => setSelectedMosque(mosque)}
-                    />
-                  ))}
-                </MapView>
-                {selectedMosque ? (
-                  <View
-                    style={{
-                      margin: 12,
-                      backgroundColor: theme.card,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: theme.border,
-                      padding: 14,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.12,
-                      shadowRadius: 6,
-                      elevation: 4,
-                    }}
+        ) : showSplitView ? (
+          // ── Split view: top 55% map, bottom 45% list ─────────────────
+          <View style={{ flex: 1 }}>
+            <MapErrorBoundary onError={() => setMapError(true)}>
+              <MapView
+                ref={mapRef}
+                provider={PROVIDER_GOOGLE}
+                style={{ flex: 55 }}
+                initialRegion={{
+                  latitude: coords!.latitude,
+                  longitude: coords!.longitude,
+                  latitudeDelta: 0.05,
+                  longitudeDelta: 0.05,
+                }}
+              >
+                <Marker
+                  coordinate={{ latitude: coords!.latitude, longitude: coords!.longitude }}
+                  pinColor="#3B82F6"
+                  title="You are here"
+                />
+                {mosques.map((mosque) => (
+                  <Marker
+                    key={mosque.id}
+                    coordinate={{ latitude: mosque.latitude, longitude: mosque.longitude }}
+                    pinColor={theme.primary}
                   >
-                    <Pressable
-                      onPress={() => setSelectedMosque(null)}
-                      style={{ position: 'absolute', top: 10, right: 10 }}
-                      hitSlop={8}
+                    <Callout
+                      onPress={() =>
+                        void Linking.openURL(
+                          `geo:${mosque.latitude},${mosque.longitude}?q=${encodeURIComponent(mosque.name)}`,
+                        )
+                      }
                     >
-                      <Ionicons name="close" size={18} color={theme.textMuted} />
-                    </Pressable>
-                    <Text
-                      style={{
-                        fontFamily: 'Inter_600SemiBold',
-                        fontSize: 15,
-                        color: theme.text,
-                        paddingRight: 24,
-                      }}
-                    >
-                      {selectedMosque.name}
-                    </Text>
-                    {formatDistance(selectedMosque.distance) ? (
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_400Regular',
-                          fontSize: 13,
-                          color: theme.textMuted,
-                          marginTop: 2,
-                        }}
-                      >
-                        {formatDistance(selectedMosque.distance)} away
-                      </Text>
-                    ) : null}
-                    {selectedMosque.address ? (
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_400Regular',
-                          fontSize: 13,
-                          color: theme.textMuted,
-                          marginTop: 2,
-                        }}
-                      >
-                        {selectedMosque.address}
-                      </Text>
-                    ) : null}
-                    <Pressable
-                      onPress={() => openDirections(selectedMosque)}
-                      style={({ pressed }) => ({
-                        marginTop: 12,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6,
-                        backgroundColor: theme.primary,
-                        borderRadius: 10,
-                        paddingVertical: 10,
-                        opacity: pressed ? 0.8 : 1,
-                      })}
-                    >
-                      <Ionicons name="navigate-outline" size={16} color="#FFFFFF" />
-                      <Text
-                        style={{
-                          fontFamily: 'Inter_600SemiBold',
-                          fontSize: 14,
-                          color: '#FFFFFF',
-                        }}
-                      >
-                        Get Directions
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-                <Text
-                  style={{
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 12,
-                    color: theme.textMuted,
-                    textAlign: 'center',
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                  }}
-                >
-                  Map loading issues? Mosque locations are shown in the list below.
-                </Text>
-              </View>
-            }
-            ListEmptyComponent={
+                      <View style={{ minWidth: 160, padding: 8 }}>
+                        <Text
+                          style={{
+                            fontFamily: 'Inter_600SemiBold',
+                            fontSize: 14,
+                            color: theme.text,
+                            marginBottom: 8,
+                          }}
+                        >
+                          {mosque.name}
+                        </Text>
+                        <View
+                          style={{
+                            backgroundColor: theme.primary,
+                            borderRadius: 8,
+                            paddingVertical: 7,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: 'Inter_600SemiBold',
+                              fontSize: 13,
+                              color: '#FFFFFF',
+                            }}
+                          >
+                            Get Directions
+                          </Text>
+                        </View>
+                      </View>
+                    </Callout>
+                  </Marker>
+                ))}
+              </MapView>
+            </MapErrorBoundary>
+
+            <View style={{ flex: 45 }}>
               <Text
                 style={{
                   fontFamily: 'Inter_400Regular',
-                  fontSize: 14,
+                  fontSize: 12,
                   color: theme.textMuted,
                   textAlign: 'center',
-                  marginTop: 24,
+                  paddingVertical: 6,
                   paddingHorizontal: 16,
+                  backgroundColor: theme.surface,
                 }}
               >
-                No mosques found within 5 km.
+                Map loading issues? Mosque locations are shown in the list below.
               </Text>
-            }
-            renderItem={({ item }) => (
-              <View style={{ paddingHorizontal: 16 }}>
-                <MosqueCard mosque={item} theme={theme} />
-              </View>
-            )}
-          />
+              <FlatList
+                style={{ flex: 1 }}
+                data={mosques}
+                keyExtractor={(m) => m.id}
+                contentContainerStyle={{ padding: 12, paddingTop: 4 }}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={theme.primary}
+                    colors={[theme.primary]}
+                  />
+                }
+                ListEmptyComponent={
+                  <Text
+                    style={{
+                      fontFamily: 'Inter_400Regular',
+                      fontSize: 14,
+                      color: theme.textMuted,
+                      textAlign: 'center',
+                      marginTop: 16,
+                      paddingHorizontal: 16,
+                    }}
+                  >
+                    No mosques found within 5 km.
+                  </Text>
+                }
+                renderItem={({ item }) => <MosqueCard mosque={item} theme={theme} />}
+              />
+            </View>
+          </View>
         ) : (
+          // ── List-only view ────────────────────────────────────────────
           <FlatList
             data={mosques}
             keyExtractor={(m) => m.id}
