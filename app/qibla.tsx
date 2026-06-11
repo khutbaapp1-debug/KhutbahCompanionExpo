@@ -1,24 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Accelerometer, Magnetometer } from 'expo-sensors';
-import type { Subscription } from 'expo-sensors/build/DeviceSensor';
+import * as Haptics from 'expo-haptics';
+import * as Location from 'expo-location';
 import { Stack } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import Svg, { Circle, Line, Path, Polygon, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getStoredLocation } from '../src/lib/location';
 import { calculateQiblaDirection, getCardinalDirection } from '../src/lib/qibla';
 import { useTheme } from '../src/lib/theme-context';
 
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const FOV = 60;
+const ALIGN_THRESHOLD = 3;
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
 
@@ -26,8 +29,6 @@ type LocState =
   | { status: 'loading' }
   | { status: 'unavailable' }
   | { status: 'ready'; lat: number; lng: number };
-
-// ─── Haversine distance (km) ──────────────────────────────────────────────────
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -40,7 +41,15 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// ─── Compass fallback (no camera) ────────────────────────────────────────────
+// Shortest signed angular difference, keeps result in -180..180
+function angleDiff(target: number, current: number): number {
+  let d = target - current;
+  while (d > 180) d -= 360;
+  while (d < -180) d += 360;
+  return d;
+}
+
+// ─── Compass fallback (shown when camera permission is denied) ────────────────
 
 interface CompassProps {
   qiblaDeg: number;
@@ -48,10 +57,9 @@ interface CompassProps {
   distanceKm: number;
   cardinal: string;
   headingAnim: Animated.Value;
-  handleRecalibrate: () => void;
   theme: ReturnType<typeof useTheme>['theme'];
   insets: { bottom: number };
-  cameraPermDenied?: boolean;
+  cameraPermDenied: boolean;
 }
 
 function CompassFallback({
@@ -60,7 +68,6 @@ function CompassFallback({
   distanceKm,
   cardinal,
   headingAnim,
-  handleRecalibrate,
   theme,
   insets,
   cameraPermDenied,
@@ -83,7 +90,7 @@ function CompassFallback({
         paddingBottom: insets.bottom + 20,
       }}
     >
-      {/* Compass + Qibla needle */}
+      {/* Compass rose + Qibla needle */}
       <View style={{ width: 280, height: 280, alignItems: 'center', justifyContent: 'center' }}>
         <Animated.View style={{ position: 'absolute', transform: [{ rotate: roseRotation }] }}>
           <Svg width={280} height={280} viewBox="0 0 280 280">
@@ -179,22 +186,6 @@ function CompassFallback({
           Move phone in a figure-8 pattern if direction seems inaccurate
         </Text>
 
-        <TouchableOpacity
-          onPress={handleRecalibrate}
-          style={{
-            borderRadius: 10,
-            paddingHorizontal: 20,
-            paddingVertical: 10,
-            borderWidth: 1,
-            borderColor: theme.primary,
-            marginTop: 4,
-          }}
-        >
-          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: theme.primary }}>
-            Recalibrate
-          </Text>
-        </TouchableOpacity>
-
         {cameraPermDenied && (
           <Text
             style={{
@@ -214,204 +205,23 @@ function CompassFallback({
   );
 }
 
-// ─── AR view (Google Qibla Finder-style) ─────────────────────────────────────
-
-interface ARViewProps {
-  arrowRotation: number;
-  distanceKm: number;
-  qiblaReady: boolean;
-  headingAnim: Animated.Value;
-  insets: { bottom: number };
-}
-
-function ARView({ arrowRotation, distanceKm, qiblaReady, headingAnim, insets }: ARViewProps) {
-  const isAligned = arrowRotation < 10 || arrowRotation > 350;
-  const turnRight = !isAligned && arrowRotation <= 180;
-  const degrees = arrowRotation <= 180 ? arrowRotation : 360 - arrowRotation;
-  const directionText = isAligned
-    ? 'Facing Mecca'
-    : `Turn ${Math.round(degrees)}° ${turnRight ? 'right' : 'left'}`;
-
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (isAligned) {
-      const anim = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 0.35, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-        ]),
-      );
-      anim.start();
-      return () => anim.stop();
-    } else {
-      Animated.timing(pulseAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAligned]);
-
-  const compassRotation = headingAnim.interpolate({
-    inputRange: [-360, 0, 360],
-    outputRange: ['360deg', '0deg', '-360deg'],
-  });
-
-  const arrowColor = isAligned ? '#22C55E' : 'white';
-  const circleBorderColor = isAligned ? '#3B82F6' : 'rgba(255,255,255,0.6)';
-
-  return (
-    <View style={{ flex: 1 }}>
-      {/* Camera background */}
-      <CameraView style={StyleSheet.absoluteFill} facing="back" />
-
-      {/* Centered content */}
-      <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-        {/* White circle with rotating arrow inside */}
-        <View
-          style={{
-            width: 110,
-            height: 110,
-            borderRadius: 55,
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            borderWidth: 3,
-            borderColor: circleBorderColor,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Animated.View
-            style={{
-              transform: [{ rotate: `${arrowRotation}deg` }],
-              opacity: isAligned ? pulseAnim : 1,
-            }}
-          >
-            <Svg width={60} height={60} viewBox="0 0 60 60">
-              {/* Arrow head */}
-              <Polygon points="30,4 44,28 16,28" fill={arrowColor} />
-              {/* Arrow body */}
-              <Path d="M 24 26 L 24 56 L 36 56 L 36 26 Z" fill={arrowColor} />
-            </Svg>
-          </Animated.View>
-        </View>
-
-        {/* Direction label */}
-        <View
-          style={{
-            marginTop: 14,
-            backgroundColor: 'rgba(0,0,0,0.55)',
-            borderRadius: 10,
-            paddingHorizontal: 16,
-            paddingVertical: 7,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: 'Inter_600SemiBold',
-              fontSize: 15,
-              color: isAligned ? '#22C55E' : 'white',
-              textAlign: 'center',
-            }}
-          >
-            {directionText}
-          </Text>
-        </View>
-
-        {/* Distance to Makkah */}
-        {qiblaReady && (
-          <Text
-            style={{
-              marginTop: 8,
-              fontFamily: 'Inter_400Regular',
-              fontSize: 14,
-              color: 'rgba(255,255,255,0.9)',
-              textShadowColor: 'rgba(0,0,0,0.8)',
-              textShadowRadius: 4,
-              textShadowOffset: { width: 0, height: 1 },
-            }}
-          >
-            {distanceKm.toLocaleString()} km to Makkah
-          </Text>
-        )}
-      </View>
-
-      {/* Blue Qibla line when aligned */}
-      {isAligned && (
-        <View style={[StyleSheet.absoluteFill, { alignItems: 'center' }]}>
-          <View style={{ flex: 1, width: 3, backgroundColor: '#3B82F6' }} />
-        </View>
-      )}
-
-      {/* Kaaba icon — top centre when aligned */}
-      {isAligned && (
-        <View style={{ position: 'absolute', top: 52, left: 0, right: 0, alignItems: 'center' }}>
-          <Text style={{ fontSize: 36 }}>🕋</Text>
-        </View>
-      )}
-
-      {/* Compass rose — bottom left */}
-      <View style={{ position: 'absolute', bottom: insets.bottom + 72, left: 16 }}>
-        <Animated.View style={{ transform: [{ rotate: compassRotation }] }}>
-          <Svg width={52} height={52} viewBox="0 0 52 52">
-            <Circle cx="26" cy="26" r="24" fill="rgba(0,0,0,0.55)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-            <Polygon points="26,5 30,24 22,24" fill="#EF4444" />
-            <Polygon points="26,47 30,28 22,28" fill="rgba(255,255,255,0.5)" />
-            <Circle cx="26" cy="26" r="3" fill="white" />
-            <SvgText x="26" y="16" textAnchor="middle" fontSize="9" fill="white">N</SvgText>
-          </Svg>
-        </Animated.View>
-      </View>
-
-      {/* Calibration hint — bottom centre */}
-      <View
-        style={{
-          position: 'absolute',
-          bottom: insets.bottom + 16,
-          left: 0,
-          right: 0,
-          alignItems: 'center',
-          paddingHorizontal: 32,
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: 'Inter_400Regular',
-            fontSize: 12,
-            color: 'rgba(255,255,255,0.75)',
-            textAlign: 'center',
-            fontStyle: 'italic',
-          }}
-        >
-          Move phone in a figure-8 pattern if direction seems inaccurate
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function QiblaScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
 
-  // Location (read from AsyncStorage — do not re-request location permission)
   const [locState, setLocState] = useState<LocState>({ status: 'loading' });
-
-  // Camera permission — useCameraPermissions returns [permission, requestFn, getFn]
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [heading, setHeading] = useState<number | null>(null);
+  const [lowAccuracy, setLowAccuracy] = useState(false);
 
-  // AR arrow angle (degrees, updated from magnetometer)
-  const [arrowRotation, setArrowRotation] = useState(0);
-
-  // Compass animated value (for compass rose fallback)
+  const smoothed = useRef<number | null>(null);
+  const headingAccum = useRef(0);
+  const wasAligned = useRef(false);
   const headingAnim = useRef(new Animated.Value(0)).current;
-  const lastRaw = useRef(0);
 
-  // Sensor subscription refs
-  const magSubRef = useRef<Subscription | null>(null);
-  const accelSubRef = useRef<Subscription | null>(null);
-  const accelRef = useRef({ x: 0, y: 0, z: -1 });
-
-  // ── Load cached location (shared cache — no permission request) ──────────
+  // Load cached location — no permission request
   useEffect(() => {
     void (async () => {
       const cached = await getStoredLocation();
@@ -423,13 +233,12 @@ export default function QiblaScreen() {
     })();
   }, []);
 
-  // ── Request camera permission immediately on mount ───────────────────────
+  // Request camera permission lazily on screen open
   useEffect(() => {
     void requestCameraPermission();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Log permission status at every state change ──────────────────────────
   useEffect(() => {
     if (__DEV__) {
       // eslint-disable-next-line no-console
@@ -437,7 +246,44 @@ export default function QiblaScreen() {
     }
   }, [cameraPermission]);
 
-  // ── Derived Qibla values ─────────────────────────────────────────────────
+  // OS sensor-fusion heading — tilt-compensated, declination already applied
+  useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
+    let mounted = true;
+    (async () => {
+      try {
+        sub = await Location.watchHeadingAsync((h) => {
+          if (!mounted) return;
+          const raw = h.trueHeading >= 0 ? h.trueHeading : h.magHeading;
+          setLowAccuracy(h.accuracy < 2);
+          // Circular low-pass filter — alpha 0.15 suppresses jitter without lag
+          if (smoothed.current === null) {
+            smoothed.current = raw;
+          } else {
+            const d = angleDiff(raw, smoothed.current);
+            smoothed.current = (smoothed.current + d * 0.15 + 360) % 360;
+          }
+          // Accumulate for Animated.Value so the 359°→0° boundary never causes a jump
+          const animDelta = angleDiff(smoothed.current, headingAccum.current % 360);
+          headingAccum.current += animDelta;
+          setHeading(smoothed.current);
+          Animated.timing(headingAnim, {
+            toValue: headingAccum.current,
+            duration: 80,
+            useNativeDriver: true,
+          }).start();
+        });
+      } catch {
+        // Location permission not granted; heading stays null
+      }
+    })();
+    return () => {
+      mounted = false;
+      sub?.remove();
+    };
+  }, [headingAnim]);
+
+  // Derived Qibla values
   const qiblaResult =
     locState.status === 'ready'
       ? calculateQiblaDirection(locState.lat, locState.lng)
@@ -449,104 +295,35 @@ export default function QiblaScreen() {
       : 0;
   const cardinal = qiblaResult ? getCardinalDirection(qiblaDeg) : '';
 
-  // ── Sensor subscriptions ─────────────────────────────────────────────────
-  const subscribeAccelerometer = useCallback(() => {
-    Accelerometer.setUpdateInterval(200);
-    const sub = Accelerometer.addListener((data) => {
-      accelRef.current = data;
-    });
-    accelSubRef.current = sub;
-    return sub;
-  }, []);
+  // Signed delta between where the phone faces and the Qibla bearing
+  const delta =
+    heading !== null && qiblaResult !== null ? angleDiff(qiblaDeg, heading) : null;
+  const aligned = delta !== null && Math.abs(delta) < ALIGN_THRESHOLD;
+  const inView = delta !== null && Math.abs(delta) < FOV / 2;
 
-  const subscribeMagnetometer = useCallback(() => {
-    Magnetometer.setUpdateInterval(100);
-    const sub = Magnetometer.addListener((data) => {
-      const { x: ax, y: ay, z: az } = accelRef.current;
-      const { x: mx, y: my, z: mz } = data;
+  // Haptic pulse on entering alignment
+  if (aligned && !wasAligned.current) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    wasAligned.current = true;
+  } else if (!aligned) {
+    wasAligned.current = false;
+  }
 
-      // Normalize gravity vector
-      const gMag = Math.sqrt(ax * ax + ay * ay + az * az) || 1;
-      const nx = ax / gMag;
-      const ny = ay / gMag;
-      const nz = az / gMag;
+  // Horizontal pixel offset for the Kaaba marker (centred on screen when delta = 0)
+  const markerLeft =
+    inView && delta !== null
+      ? SCREEN_W / 2 + (delta / (FOV / 2)) * (SCREEN_W / 2) - 32
+      : 0;
 
-      // East = gravity × magnetic north
-      const ex = ny * mz - nz * my;
-      const ey = nz * mx - nx * mz;
-      const ez = nx * my - ny * mx;
-
-      // Normalize east
-      const eMag = Math.sqrt(ex * ex + ey * ey + ez * ez) || 1;
-      const enx = ex / eMag;
-      const eny = ey / eMag;
-      const enz = ez / eMag;
-
-      // North = east × gravity
-      const northX = eny * nz - enz * ny;
-      const northY = enz * nx - enx * nz;
-      const northZ = enx * ny - eny * nx;
-      void northY;
-      void northZ;
-
-      let raw = (Math.atan2(enx, northX) * 180) / Math.PI;
-      raw = (raw + 360) % 360;
-
-      // Shortest-arc smoothing
-      let delta = raw - lastRaw.current;
-      if (delta > 180) delta -= 360;
-      if (delta < -180) delta += 360;
-      const smoothed = lastRaw.current + delta;
-      lastRaw.current = smoothed;
-
-      // Update animated compass
-      Animated.timing(headingAnim, {
-        toValue: smoothed,
-        duration: 80,
-        useNativeDriver: true,
-      }).start();
-
-      // AR arrow: Qibla bearing minus current device heading
-      const heading = (smoothed % 360 + 360) % 360;
-      setArrowRotation((qiblaDeg - heading + 360) % 360);
-    });
-    magSubRef.current = sub;
-    return sub;
-  }, [headingAnim, qiblaDeg]);
-
-  useEffect(() => {
-    if (locState.status !== 'ready') return;
-    const acc = subscribeAccelerometer();
-    const mag = subscribeMagnetometer();
-    return () => {
-      acc.remove();
-      mag.remove();
-      accelSubRef.current = null;
-      magSubRef.current = null;
-    };
-  }, [locState.status, subscribeAccelerometer, subscribeMagnetometer]);
-
-  const handleRecalibrate = useCallback(() => {
-    magSubRef.current?.remove();
-    accelSubRef.current?.remove();
-    magSubRef.current = null;
-    accelSubRef.current = null;
-    lastRaw.current = 0;
-    subscribeAccelerometer();
-    subscribeMagnetometer();
-  }, [subscribeAccelerometer, subscribeMagnetometer]);
-
-  // ── Choose AR vs compass ─────────────────────────────────────────────────
   const permPending = cameraPermission === null || cameraPermission.status === 'undetermined';
   const useAR = cameraPermission?.granted === true;
   const cameraPermDenied = cameraPermission !== null && !cameraPermission.granted && !permPending;
 
-  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <>
       <Stack.Screen options={{ title: 'Qibla Finder' }} />
-      {/* No alignItems here — AR branch needs the full unconstrained width */}
       <View style={{ flex: 1, backgroundColor: useAR ? 'black' : theme.background }}>
+
         {locState.status === 'loading' ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <ActivityIndicator size="large" color={theme.primary} />
@@ -554,38 +331,18 @@ export default function QiblaScreen() {
               Loading location…
             </Text>
           </View>
+
         ) : locState.status === 'unavailable' ? (
-          <View
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 32,
-              gap: 16,
-            }}
-          >
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 }}>
             <Ionicons name="location-outline" size={56} color={theme.textMuted} />
-            <Text
-              style={{
-                fontFamily: 'Inter_600SemiBold',
-                fontSize: 16,
-                color: theme.textSecondary,
-                textAlign: 'center',
-              }}
-            >
+            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: theme.textSecondary, textAlign: 'center' }}>
               Location unavailable
             </Text>
-            <Text
-              style={{
-                fontFamily: 'Inter_400Regular',
-                fontSize: 14,
-                color: theme.textMuted,
-                textAlign: 'center',
-              }}
-            >
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.textMuted, textAlign: 'center' }}>
               Open the Prayer Times screen first so your location can be saved, then return here.
             </Text>
           </View>
+
         ) : permPending ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <ActivityIndicator size="large" color={theme.primary} />
@@ -593,29 +350,143 @@ export default function QiblaScreen() {
               Requesting camera permission…
             </Text>
           </View>
+
         ) : useAR ? (
-          <ARView
-            arrowRotation={arrowRotation}
-            distanceKm={distanceKm}
-            qiblaReady={qiblaResult !== null}
-            headingAnim={headingAnim}
-            insets={insets}
-          />
+          // ── AR view ───────────────────────────────────────────────────────────
+          <View style={{ flex: 1 }}>
+            <CameraView style={StyleSheet.absoluteFill} facing="back" />
+
+            {/* Vertical centre reticle — fixed to screen centre */}
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: SCREEN_W / 2 - 1,
+                width: 2,
+                backgroundColor: aligned ? '#22C55E' : 'rgba(255,255,255,0.4)',
+              }}
+            />
+
+            {/* Kaaba marker — moves horizontally as user rotates */}
+            {inView && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: SCREEN_H * 0.28,
+                  left: markerLeft,
+                  alignItems: 'center',
+                  width: 64,
+                }}
+              >
+                <Text style={{ fontSize: 48 }}>🕋</Text>
+                <View
+                  style={{
+                    width: 2,
+                    height: 120,
+                    backgroundColor: aligned ? '#22C55E' : theme.primary,
+                  }}
+                />
+              </View>
+            )}
+
+            {/* Edge chevrons when Qibla is outside camera FOV */}
+            {!inView && delta !== null && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: SCREEN_H * 0.35,
+                  left: 0,
+                  right: 0,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 24,
+                }}
+              >
+                {delta < 0 ? (
+                  <Text style={{ color: 'white', fontSize: 44, lineHeight: 52 }}>‹‹</Text>
+                ) : <View />}
+                {delta > 0 ? (
+                  <Text style={{ color: 'white', fontSize: 44, lineHeight: 52 }}>››</Text>
+                ) : <View />}
+              </View>
+            )}
+
+            {/* Status pill + calibration hint */}
+            <View
+              style={{
+                position: 'absolute',
+                bottom: insets.bottom + 20,
+                left: 0,
+                right: 0,
+                alignItems: 'center',
+                paddingHorizontal: 32,
+              }}
+            >
+              <View
+                style={{
+                  borderRadius: 24,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  backgroundColor: aligned ? '#16A34A' : 'rgba(0,0,0,0.6)',
+                }}
+              >
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: 'white' }}>
+                  {delta === null
+                    ? 'Getting location…'
+                    : aligned
+                      ? 'Facing the Qibla'
+                      : `Turn ${delta > 0 ? 'right' : 'left'} ${Math.abs(Math.round(delta))}°`}
+                </Text>
+              </View>
+
+              {lowAccuracy && (
+                <Text
+                  style={{
+                    fontFamily: 'Inter_400Regular',
+                    fontSize: 12,
+                    color: 'rgba(255,255,255,0.85)',
+                    textAlign: 'center',
+                    marginTop: 8,
+                  }}
+                >
+                  Low compass accuracy — move phone in a figure-8 to calibrate
+                </Text>
+              )}
+
+              <Text
+                style={{
+                  fontFamily: 'Inter_400Regular',
+                  fontSize: 11,
+                  color: 'rgba(255,255,255,0.6)',
+                  textAlign: 'center',
+                  marginTop: 8,
+                  fontStyle: 'italic',
+                }}
+              >
+                Move phone in a figure-8 pattern if direction seems inaccurate
+              </Text>
+            </View>
+          </View>
+
         ) : (
+          // ── Compass fallback (camera permission denied) ───────────────────────
           <CompassFallback
             qiblaDeg={qiblaDeg}
             qiblaResult={qiblaResult}
             distanceKm={distanceKm}
             cardinal={cardinal}
             headingAnim={headingAnim}
-            handleRecalibrate={handleRecalibrate}
             theme={theme}
             insets={insets}
             cameraPermDenied={cameraPermDenied}
           />
         )}
+
       </View>
     </>
   );
 }
-
