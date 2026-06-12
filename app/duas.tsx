@@ -156,7 +156,7 @@ export default function DuasScreen() {
                 style={{
                   fontFamily: 'Inter_500Medium',
                   fontSize: 13,
-                  includeFontPadding: false,
+                  lineHeight: 17,
                   color: category === cat.id ? '#FFFFFF' : theme.textSecondary,
                 }}
               >

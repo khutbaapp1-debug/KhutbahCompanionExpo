@@ -72,7 +72,9 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 
 ## src/components/SummaryModal.tsx
 - [SUMMARY] diagnostic console.log calls are ALL gated inside if (__DEV__) — must be stripped or remain gated before production build
-- Share button disabled until onLayout fires (layoutReady = true)
+- Share uses Share.share (react-native) with plain text message — no image capture, no expo-sharing, no view-shot, no layoutReady gating
+- Share message begins with "Khutbah Summary" + formatted date line (e.g. "Friday 12 June 2026") from recordingDate prop
+- Modal header shows "Khutbah Summary" title + same formatted date below it
 - No .map or .length access on actionPoints without Array.isArray guard
 
 ## src/lib/audio-recorder.ts
@@ -118,6 +120,10 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 
 ## app/notifications.tsx
 - Notification time picker is scrollable WheelPicker (WheelColumn FlatList with snapToInterval) not fixed buttons
+- Time pickers open as a popup Modal (not inline) — tapping the displayed time value opens the modal
+- Modal has Cancel and Done buttons; Done persists the selected time to AsyncStorage and reschedules notifications
+- Inline row shows selected time as a tappable value (theme.primary colour)
+- Modal uses theme.surface background and theme.border for card border (correct in dark and high-contrast modes)
 
 ## BRANDING CHECKS (any screen changed)
 - Primary colour is #0F766E

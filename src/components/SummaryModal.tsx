@@ -1,16 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Sharing from 'expo-sharing';
-import { Component, type ReactNode, useRef, useState } from 'react';
+import { Component, type ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
+  Share,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { captureRef } from 'react-native-view-shot';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/theme-context';
 import type { SummarySchema } from '../lib/summary-types';
@@ -20,6 +18,7 @@ type Props = {
   onDismiss: () => void;
   summaryData: SummarySchema | null;
   onRetry: () => void;
+  recordingDate?: Date;
 };
 
 // Returns a flat array of non-empty strings from a string, string[], or unknown.
@@ -37,6 +36,16 @@ function toLead(data: SummarySchema): string {
     return data.shortSummary;
   }
   return '';
+}
+
+// Formats a Date as "Friday 12 June 2026".
+function formatDate(date: Date): string {
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  return `${DAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 // ── Error boundary wrapping modal content ────────────────────────────────────
@@ -90,12 +99,12 @@ class SummaryErrorBoundary extends Component<
 
 // ── Inner modal content ───────────────────────────────────────────────────────
 
-function SummaryContent({ summaryData, onDismiss, onRetry }: Omit<Props, 'visible'>) {
+function SummaryContent({ summaryData, onDismiss, onRetry, recordingDate }: Omit<Props, 'visible'>) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const cardRef = useRef<View>(null);
-  const [layoutReady, setLayoutReady] = useState(false);
   const [sharing, setSharing] = useState(false);
+
+  const dateLabel = formatDate(recordingDate ?? new Date());
 
   const lead = summaryData ? toLead(summaryData) : '';
   const themes = summaryData ? toLines(summaryData.mainThemes) : [];
@@ -113,29 +122,26 @@ function SummaryContent({ summaryData, onDismiss, onRetry }: Omit<Props, 'visibl
   const hasSummary = Boolean(lead || themes.length > 0 || points.length > 0);
 
   const handleShare = async () => {
-    if (!cardRef.current || !layoutReady) return;
     setSharing(true);
     try {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log('[SUMMARY] capturing share card…');
+      const lines: string[] = [`Khutbah Summary\n${dateLabel}`];
+
+      if (lead) {
+        lines.push(`\nSUMMARY\n${lead}`);
       }
-      const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log('[SUMMARY] captured uri:', uri);
+      if (themes.length > 0) {
+        lines.push(`\nMAIN THEMES\n${themes.map((t) => `• ${t}`).join('\n')}`);
       }
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        dialogTitle: 'Share Khutbah Summary',
-      });
+      if (points.length > 0) {
+        lines.push(`\nACTION POINTS\n${points.map((p, i) => `${i + 1}. ${p}`).join('\n')}`);
+      }
+
+      await Share.share({ message: lines.join('\n') });
     } catch (err) {
       if (__DEV__) {
         // eslint-disable-next-line no-console
         console.log('[SUMMARY] share error:', err instanceof Error ? err.message : String(err));
       }
-      Alert.alert('Share failed', 'Could not share the summary. Please try again.');
     } finally {
       setSharing(false);
     }
@@ -173,9 +179,14 @@ function SummaryContent({ summaryData, onDismiss, onRetry }: Omit<Props, 'visibl
           color={theme.primary}
           style={{ marginRight: 10 }}
         />
-        <Text style={{ flex: 1, fontFamily: 'Inter_700Bold', fontSize: 18, color: theme.text }}>
-          Khutbah Summary
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 18, color: theme.text }}>
+            Khutbah Summary
+          </Text>
+          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.textMuted, marginTop: 1 }}>
+            {dateLabel}
+          </Text>
+        </View>
         <TouchableOpacity onPress={onDismiss} hitSlop={12} style={{ padding: 4 }}>
           <Ionicons name="close" size={22} color={theme.textMuted} />
         </TouchableOpacity>
@@ -215,15 +226,9 @@ function SummaryContent({ summaryData, onDismiss, onRetry }: Omit<Props, 'visibl
         </View>
       ) : null}
 
-      {(summaryData === null || hasSummary) && <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+      {(summaryData === null || hasSummary) && (
+        <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
 
-        {/* ── Share card (capture target) ─────────────────────────────── */}
-        <View
-          ref={cardRef}
-          onLayout={() => setLayoutReady(true)}
-          style={{ backgroundColor: theme.card }}
-          collapsable={false}
-        >
           {lead ? (
             <>
               <Text
@@ -352,79 +357,79 @@ function SummaryContent({ summaryData, onDismiss, onRetry }: Omit<Props, 'visibl
               ))}
             </>
           ) : null}
-        </View>
 
-        {/* ── Detailed summary (in-app only, not on share card) ──────── */}
-        {detailed ? (
-          <View
-            style={{
-              marginTop: 4,
-              paddingTop: 16,
-              borderTopWidth: 1,
-              borderTopColor: theme.border,
-            }}
-          >
-            <Text
+          {/* ── Detailed summary (in-app only) ─────────────────────────── */}
+          {detailed ? (
+            <View
               style={{
-                fontFamily: 'Inter_600SemiBold',
-                fontSize: 12,
-                color: theme.primary,
-                textTransform: 'uppercase',
-                letterSpacing: 0.8,
-                marginBottom: 8,
+                marginTop: 4,
+                paddingTop: 16,
+                borderTopWidth: 1,
+                borderTopColor: theme.border,
               }}
             >
-              Detailed Summary
-            </Text>
-            <Text
+              <Text
+                style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 12,
+                  color: theme.primary,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  marginBottom: 8,
+                }}
+              >
+                Detailed Summary
+              </Text>
+              <Text
+                style={{
+                  fontFamily: 'Inter_400Regular',
+                  fontSize: 15,
+                  color: theme.text,
+                  lineHeight: 24,
+                }}
+              >
+                {detailed}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* ── Share button ────────────────────────────────────────────── */}
+          {hasSummary && (
+            <TouchableOpacity
+              onPress={() => void handleShare()}
+              disabled={sharing}
               style={{
-                fontFamily: 'Inter_400Regular',
-                fontSize: 15,
-                color: theme.text,
-                lineHeight: 24,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginTop: 20,
+                backgroundColor: theme.primary,
+                borderRadius: 14,
+                paddingVertical: 14,
+                opacity: sharing ? 0.6 : 1,
               }}
             >
-              {detailed}
-            </Text>
-          </View>
-        ) : null}
+              {sharing ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Ionicons name="share-outline" size={18} color="white" />
+              )}
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: 'white' }}>
+                {sharing ? 'Sharing…' : 'Share Summary'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-        {/* ── Share button ────────────────────────────────────────────── */}
-        {hasSummary && (
-          <TouchableOpacity
-            onPress={() => void handleShare()}
-            disabled={!layoutReady || sharing}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              marginTop: 20,
-              backgroundColor: theme.primary,
-              borderRadius: 14,
-              paddingVertical: 14,
-              opacity: !layoutReady || sharing ? 0.6 : 1,
-            }}
-          >
-            {sharing ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Ionicons name="share-outline" size={18} color="white" />
-            )}
-            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: 'white' }}>
-              {sharing ? 'Sharing…' : 'Share Summary'}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-      </ScrollView>}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 // ── Public export ─────────────────────────────────────────────────────────────
 
-export function SummaryModal({ visible, onDismiss, summaryData, onRetry }: Props) {
+export function SummaryModal({ visible, onDismiss, summaryData, onRetry, recordingDate }: Props) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -433,6 +438,7 @@ export function SummaryModal({ visible, onDismiss, summaryData, onRetry }: Props
             summaryData={summaryData}
             onDismiss={onDismiss}
             onRetry={onRetry}
+            recordingDate={recordingDate}
           />
         </SummaryErrorBoundary>
       </View>

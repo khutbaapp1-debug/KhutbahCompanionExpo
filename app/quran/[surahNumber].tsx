@@ -68,6 +68,7 @@ const soundRef = useRef<SoundInstance | null>(null);
   const bookmarkAttemptsRef = useRef(0);
   const bookmarkTargetRef = useRef<number | null>(null);
   const bookmarkSettledRef = useRef(false);
+  const bookmarkPrevOffsetRef = useRef<number | null>(null);
   const detailedCardRefs = useRef<Record<number, View | null>>({});
 
   const fontSize = FONT_SIZES[fontSizeIdx] ?? 24;
@@ -223,6 +224,7 @@ const soundRef = useRef<SoundInstance | null>(null);
       bookmarkAttemptsRef.current = 0;
       bookmarkSettledRef.current = false;
       bookmarkTargetRef.current = ayahNumber;
+      bookmarkPrevOffsetRef.current = null;
       listRef.current.scrollToIndex({
         index: ayahNumber - 1,
         animated: false,
@@ -609,14 +611,35 @@ const soundRef = useRef<SoundInstance | null>(null);
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig.current}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: insets.bottom + 24 }}
-          onScrollToIndexFailed={(info) => {
-            if (bookmarkAttemptsRef.current >= 3) return; // hard cap — stop all corrections
+          onScrollToIndexFailed={() => {
+            const target = bookmarkTargetRef.current;
+            if (target === null || bookmarkAttemptsRef.current >= 10) return;
+
+            // Cumulative offset: sum measured card heights + 12px marginBottom each,
+            // using average of known heights for any unmeasured verses
+            const knownHeights = Object.values(itemHeightsRef.current);
+            const avgHeight =
+              knownHeights.length > 0
+                ? knownHeights.reduce((a, b) => a + b, 0) / knownHeights.length
+                : 180;
+            let offset = 8; // contentContainerStyle paddingVertical top
+            for (let i = 1; i < target; i++) {
+              offset += (itemHeightsRef.current[i] ?? avgHeight) + 12;
+            }
+
+            // Progress guard: if offset moved less than 40px, we've converged — settle
+            if (
+              bookmarkPrevOffsetRef.current !== null &&
+              Math.abs(offset - bookmarkPrevOffsetRef.current) < 40
+            ) {
+              bookmarkSettledRef.current = true;
+              return;
+            }
+
+            bookmarkPrevOffsetRef.current = offset;
             bookmarkAttemptsRef.current += 1;
             // Animated so onMomentumScrollEnd fires for the measureInWindow check
-            listRef.current?.scrollToOffset({
-              offset: info.averageItemLength * info.index,
-              animated: true,
-            });
+            listRef.current?.scrollToOffset({ offset, animated: true });
             // No setTimeout — retry is driven by onMomentumScrollEnd
           }}
           onMomentumScrollEnd={() => {
@@ -625,7 +648,7 @@ const soundRef = useRef<SoundInstance | null>(null);
             const cardRef = detailedCardRefs.current[target];
             if (!cardRef) {
               // Card not yet rendered — try once more if under cap
-              if (bookmarkAttemptsRef.current < 3) {
+              if (bookmarkAttemptsRef.current < 10) {
                 listRef.current?.scrollToIndex({ index: target - 1, animated: false, viewPosition: 0 });
               } else {
                 bookmarkSettledRef.current = true;
@@ -638,7 +661,7 @@ const soundRef = useRef<SoundInstance | null>(null);
               if (y >= 0 && y + h <= screenH) {
                 bookmarkSettledRef.current = true; // confirmed visible — never scroll again
                 bookmarkTargetRef.current = null;
-              } else if (bookmarkAttemptsRef.current < 3) {
+              } else if (bookmarkAttemptsRef.current < 10) {
                 listRef.current?.scrollToIndex({ index: target - 1, animated: false, viewPosition: 0 });
               } else {
                 bookmarkSettledRef.current = true; // cap reached — give up

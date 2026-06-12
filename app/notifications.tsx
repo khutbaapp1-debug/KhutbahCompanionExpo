@@ -2,9 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Modal,
+  Pressable,
   ScrollView,
   Switch,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -171,6 +174,96 @@ function TimePicker({ value, onChange }: { value: string; onChange: (t: string) 
   );
 }
 
+// ─── Popup time picker modal ──────────────────────────────────────────────────
+
+function TimePickerModal({
+  visible,
+  title,
+  value,
+  onClose,
+  onConfirm,
+}: {
+  visible: boolean;
+  title: string;
+  value: string;
+  onClose: () => void;
+  onConfirm: (t: string) => void;
+}) {
+  const { theme } = useTheme();
+  const [pending, setPending] = useState(value);
+
+  // Reset to the current persisted value each time the modal opens
+  useEffect(() => {
+    if (visible) setPending(value);
+  }, [visible, value]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}
+        onPress={onClose}
+      >
+        {/* Inner card — stop propagation so tapping inside doesn't close */}
+        <Pressable
+          style={{
+            backgroundColor: theme.surface,
+            borderRadius: 20,
+            padding: 24,
+            width: 280,
+            borderWidth: 1,
+            borderColor: theme.border,
+          }}
+          onPress={() => { /* absorb press */ }}
+        >
+          <Text
+            style={{
+              fontFamily: 'Inter_600SemiBold',
+              fontSize: 16,
+              color: theme.text,
+              textAlign: 'center',
+              marginBottom: 20,
+            }}
+          >
+            {title}
+          </Text>
+          <TimePicker value={pending} onChange={setPending} />
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: theme.border,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 15, color: theme.textMuted }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { onConfirm(pending); onClose(); }}
+              style={{
+                flex: 1,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: theme.primary,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: '#FFFFFF' }}>
+                Done
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
@@ -187,6 +280,8 @@ export default function NotificationsScreen() {
   const [hadithTime, setHadithTime] = useState('08:00');
   const [dhikr, setDhikr] = useState(false);
   const [dhikrTime, setDhikrTime] = useState('07:00');
+  const [hadithPickerOpen, setHadithPickerOpen] = useState(false);
+  const [dhikrPickerOpen, setDhikrPickerOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -258,247 +353,261 @@ export default function NotificationsScreen() {
   const disabled = !master;
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.background }}
-      contentContainerStyle={{ paddingBottom: 32 }}
-    >
-      <Text
-        style={{
-          fontFamily: 'Inter_400Regular',
-          fontSize: 14,
-          color: theme.textMuted,
-          textAlign: 'center',
-          paddingVertical: 16,
-        }}
+    <>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.background }}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
-        Prayer reminders and daily hadith
-      </Text>
+        <Text
+          style={{
+            fontFamily: 'Inter_400Regular',
+            fontSize: 14,
+            color: theme.textMuted,
+            textAlign: 'center',
+            paddingVertical: 16,
+          }}
+        >
+          Prayer reminders and daily hadith
+        </Text>
 
-      {/* Master switch */}
-      <View
-        style={{
-          backgroundColor: theme.surface,
-          borderRadius: 16,
-          marginHorizontal: 16,
-          marginBottom: 12,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: theme.border,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text
-            style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: theme.text }}
-          >
-            Enable Notifications
-          </Text>
-          <Switch
-            value={master}
-            onValueChange={toggleMaster}
-            trackColor={{ false: theme.border, true: theme.primary }}
-            thumbColor="white"
-          />
-        </View>
-      </View>
-
-      {/* Prayer reminders */}
-      <Text
-        style={{
-          fontFamily: 'Inter_600SemiBold',
-          fontSize: 12,
-          color: theme.textMuted,
-          textTransform: 'uppercase',
-          letterSpacing: 0.6,
-          paddingHorizontal: 16,
-          paddingTop: 8,
-          paddingBottom: 8,
-        }}
-      >
-        Prayer Reminders
-      </Text>
-      <View
-        style={{
-          backgroundColor: theme.surface,
-          borderRadius: 16,
-          marginHorizontal: 16,
-          marginBottom: 12,
-          borderWidth: 1,
-          borderColor: theme.border,
-          opacity: disabled ? 0.4 : 1,
-        }}
-        pointerEvents={disabled ? 'none' : 'auto'}
-      >
-        {PRAYERS.map((p, i) => (
-          <View
-            key={p.key}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              borderBottomWidth: i < PRAYERS.length - 1 ? 1 : 0,
-              borderBottomColor: theme.border,
-            }}
-          >
-            <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
-              {p.label}
+        {/* Master switch */}
+        <View
+          style={{
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: theme.border,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text
+              style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: theme.text }}
+            >
+              Enable Notifications
             </Text>
             <Switch
-              value={prayers[p.key]}
-              onValueChange={(v) => togglePrayer(p.key, v)}
+              value={master}
+              onValueChange={toggleMaster}
               trackColor={{ false: theme.border, true: theme.primary }}
               thumbColor="white"
             />
           </View>
-        ))}
-      </View>
-
-      {/* Daily Hadith */}
-      <Text
-        style={{
-          fontFamily: 'Inter_600SemiBold',
-          fontSize: 12,
-          color: theme.textMuted,
-          textTransform: 'uppercase',
-          letterSpacing: 0.6,
-          paddingHorizontal: 16,
-          paddingTop: 8,
-          paddingBottom: 8,
-        }}
-      >
-        Daily Hadith
-      </Text>
-      <View
-        style={{
-          backgroundColor: theme.surface,
-          borderRadius: 16,
-          marginHorizontal: 16,
-          marginBottom: 12,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: theme.border,
-          opacity: disabled ? 0.4 : 1,
-        }}
-        pointerEvents={disabled ? 'none' : 'auto'}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
-            Daily Hadith Reminder
-          </Text>
-          <Switch
-            value={hadith}
-            onValueChange={toggleHadith}
-            trackColor={{ false: theme.border, true: theme.primary }}
-            thumbColor="white"
-          />
         </View>
-        {hadith && (
-          <View
-            style={{
-              marginTop: 12,
-              paddingTop: 12,
-              borderTopWidth: 1,
-              borderTopColor: theme.border,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: 'Inter_500Medium',
-                fontSize: 14,
-                color: theme.textSecondary,
-                marginBottom: 4,
-                textAlign: 'center',
-              }}
-            >
-              Reminder time
-            </Text>
-            <TimePicker value={hadithTime} onChange={pickTime} />
-          </View>
-        )}
-      </View>
 
-      {/* Dhikr & Tasbih */}
-      <Text
-        style={{
-          fontFamily: 'Inter_600SemiBold',
-          fontSize: 12,
-          color: theme.textMuted,
-          textTransform: 'uppercase',
-          letterSpacing: 0.6,
-          paddingHorizontal: 16,
-          paddingTop: 8,
-          paddingBottom: 8,
-        }}
-      >
-        Dhikr &amp; Tasbih
-      </Text>
-      <View
-        style={{
-          backgroundColor: theme.surface,
-          borderRadius: 16,
-          marginHorizontal: 16,
-          marginBottom: 12,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: theme.border,
-          opacity: disabled ? 0.4 : 1,
-        }}
-        pointerEvents={disabled ? 'none' : 'auto'}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
-            Daily Dhikr Reminder
-          </Text>
-          <Switch
-            value={dhikr}
-            onValueChange={toggleDhikr}
-            trackColor={{ false: theme.border, true: theme.primary }}
-            thumbColor="white"
-          />
-        </View>
-        {dhikr && (
-          <View
-            style={{
-              marginTop: 12,
-              paddingTop: 12,
-              borderTopWidth: 1,
-              borderTopColor: theme.border,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: 'Inter_500Medium',
-                fontSize: 14,
-                color: theme.textSecondary,
-                marginBottom: 4,
-                textAlign: 'center',
-              }}
-            >
-              Reminder time
-            </Text>
-            <TimePicker value={dhikrTime} onChange={pickDhikrTime} />
-          </View>
-        )}
-      </View>
-
-      {/* Note */}
-      <View
-        style={{
-          backgroundColor: theme.surface,
-          borderWidth: 1,
-          borderColor: theme.border,
-          borderRadius: 16,
-          marginHorizontal: 16,
-          padding: 16,
-          marginTop: 8,
-        }}
-      >
-        <Text style={{ fontSize: 14, color: theme.textMuted, fontFamily: 'Inter_400Regular' }}>
-          Prayer reminders use your saved location and calculation method.
-          Notifications require a development build — they do not fire in Expo Go.
+        {/* Prayer reminders */}
+        <Text
+          style={{
+            fontFamily: 'Inter_600SemiBold',
+            fontSize: 12,
+            color: theme.textMuted,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: 8,
+          }}
+        >
+          Prayer Reminders
         </Text>
-      </View>
-    </ScrollView>
+        <View
+          style={{
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            borderWidth: 1,
+            borderColor: theme.border,
+            opacity: disabled ? 0.4 : 1,
+          }}
+          pointerEvents={disabled ? 'none' : 'auto'}
+        >
+          {PRAYERS.map((p, i) => (
+            <View
+              key={p.key}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                borderBottomWidth: i < PRAYERS.length - 1 ? 1 : 0,
+                borderBottomColor: theme.border,
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
+                {p.label}
+              </Text>
+              <Switch
+                value={prayers[p.key]}
+                onValueChange={(v) => togglePrayer(p.key, v)}
+                trackColor={{ false: theme.border, true: theme.primary }}
+                thumbColor="white"
+              />
+            </View>
+          ))}
+        </View>
+
+        {/* Daily Hadith */}
+        <Text
+          style={{
+            fontFamily: 'Inter_600SemiBold',
+            fontSize: 12,
+            color: theme.textMuted,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: 8,
+          }}
+        >
+          Daily Hadith
+        </Text>
+        <View
+          style={{
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: theme.border,
+            opacity: disabled ? 0.4 : 1,
+          }}
+          pointerEvents={disabled ? 'none' : 'auto'}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
+              Daily Hadith Reminder
+            </Text>
+            <Switch
+              value={hadith}
+              onValueChange={toggleHadith}
+              trackColor={{ false: theme.border, true: theme.primary }}
+              thumbColor="white"
+            />
+          </View>
+          {hadith && (
+            <TouchableOpacity
+              onPress={() => setHadithPickerOpen(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 12,
+                paddingTop: 12,
+                borderTopWidth: 1,
+                borderTopColor: theme.border,
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 14, color: theme.textSecondary }}>
+                Reminder time
+              </Text>
+              <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 15, color: theme.primary }}>
+                {hadithTime}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Dhikr & Tasbih */}
+        <Text
+          style={{
+            fontFamily: 'Inter_600SemiBold',
+            fontSize: 12,
+            color: theme.textMuted,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: 8,
+          }}
+        >
+          Dhikr &amp; Tasbih
+        </Text>
+        <View
+          style={{
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: theme.border,
+            opacity: disabled ? 0.4 : 1,
+          }}
+          pointerEvents={disabled ? 'none' : 'auto'}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 16, color: theme.text }}>
+              Daily Dhikr Reminder
+            </Text>
+            <Switch
+              value={dhikr}
+              onValueChange={toggleDhikr}
+              trackColor={{ false: theme.border, true: theme.primary }}
+              thumbColor="white"
+            />
+          </View>
+          {dhikr && (
+            <TouchableOpacity
+              onPress={() => setDhikrPickerOpen(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 12,
+                paddingTop: 12,
+                borderTopWidth: 1,
+                borderTopColor: theme.border,
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 14, color: theme.textSecondary }}>
+                Reminder time
+              </Text>
+              <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 15, color: theme.primary }}>
+                {dhikrTime}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Note */}
+        <View
+          style={{
+            backgroundColor: theme.surface,
+            borderWidth: 1,
+            borderColor: theme.border,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            padding: 16,
+            marginTop: 8,
+          }}
+        >
+          <Text style={{ fontSize: 14, color: theme.textMuted, fontFamily: 'Inter_400Regular' }}>
+            Prayer reminders use your saved location and calculation method.
+            Notifications require a development build — they do not fire in Expo Go.
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Time picker popups — rendered outside ScrollView to avoid gesture conflicts */}
+      <TimePickerModal
+        visible={hadithPickerOpen}
+        title="Hadith Reminder Time"
+        value={hadithTime}
+        onClose={() => setHadithPickerOpen(false)}
+        onConfirm={(t) => void pickTime(t)}
+      />
+      <TimePickerModal
+        visible={dhikrPickerOpen}
+        title="Dhikr Reminder Time"
+        value={dhikrTime}
+        onClose={() => setDhikrPickerOpen(false)}
+        onConfirm={(t) => void pickDhikrTime(t)}
+      />
+    </>
   );
 }

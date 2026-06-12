@@ -203,6 +203,7 @@ function TranslationScreenContent() {
   const [showSummary, setShowSummary] = useState(false);
   const [summaryGenerating, setSummaryGenerating] = useState(false);
   const [summaryData, setSummaryData] = useState<SummarySchema | null>(null);
+  const [summaryDate, setSummaryDate] = useState<Date>(new Date());
   const khutbahTextRef = useRef('');
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -520,6 +521,7 @@ function TranslationScreenContent() {
     if (text.length <= 50) return;
 
     khutbahTextRef.current = text;
+    setSummaryDate(new Date());
     setSummaryData(null);
     await generateSummary(text);
   }, [stopRecordingInternal, generateSummary]);
@@ -1279,6 +1281,7 @@ function TranslationScreenContent() {
         onDismiss={() => setShowSummary(false)}
         summaryData={summaryData}
         onRetry={() => void generateSummary(khutbahTextRef.current)}
+        recordingDate={summaryDate}
       />
     </View>
   );
