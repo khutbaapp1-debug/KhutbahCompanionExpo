@@ -5,7 +5,7 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 
 ## UNCONDITIONAL CHECKS — ALWAYS RUN THESE REGARDLESS OF WHICH FILES WERE CHANGED
 - app/quran/[surahNumber].tsx: page view parent Text has textAlign 'justify', writingDirection 'rtl', width '100%'
-- src/lib/premium.ts: isPremium status matches current development phase (true for testing, RevenueCat for production)
+- src/lib/premium.ts: isPremium uses real RevenueCat entitlement check (Purchases.getCustomerInfo), NOT a hardcoded stub
 - No console.log statements exist anywhere in app/ or src/ directories EXCEPT dev-only diagnostic logs inside if (__DEV__) guards that are explicitly temporary
 
 ---
@@ -46,9 +46,8 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - Zero gap between banner and navigation bar in light, dark, and high contrast modes
 
 ## src/lib/premium.ts
-- isPremium is currently hardcoded to return true for testing — MUST be reverted to RevenueCat before production build
-- Comment exists in file: TESTING — revert to RevenueCat before production build
-- Returns false in catch block
+- isPremium calls Purchases.getCustomerInfo() and checks entitlements.active['premium'] !== undefined
+- Returns false in catch block (Expo Go / no native module safe)
 
 ## src/lib/notifications.ts
 - DAYS_AHEAD equals 7 not 5
