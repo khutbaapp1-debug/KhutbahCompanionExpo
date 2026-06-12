@@ -129,7 +129,13 @@ export default function DuasScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ borderBottomWidth: 1, borderBottomColor: theme.border, flexGrow: 0 }}
+          style={{
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
+            flexGrow: 0,
+            flexShrink: 0,
+            height: 50,
+          }}
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingRight: 24,

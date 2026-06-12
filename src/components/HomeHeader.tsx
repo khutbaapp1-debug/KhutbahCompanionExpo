@@ -28,11 +28,8 @@ export default function HomeHeader({
         paddingBottom: 12,
       }}
     >
-      <View className="flex-row items-center justify-between">
-        <Pressable onPress={onSettingsPress} className="p-1">
-          <Ionicons name="settings-outline" size={22} color={theme.primary} />
-        </Pressable>
-        <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 20, color: theme.primary }}>
+      <View className="flex-row items-center">
+        <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 20, color: theme.primary, flex: 1 }}>
           Khutbah Companion
         </Text>
         <View className="flex-row items-center gap-3">
@@ -41,6 +38,9 @@ export default function HomeHeader({
           </Pressable>
           <Pressable onPress={onNotificationsPress} className="p-1">
             <Ionicons name="notifications-outline" size={22} color={theme.primary} />
+          </Pressable>
+          <Pressable onPress={onSettingsPress} className="p-1">
+            <Ionicons name="settings-outline" size={22} color={theme.primary} />
           </Pressable>
         </View>
       </View>

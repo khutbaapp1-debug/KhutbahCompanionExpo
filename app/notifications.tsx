@@ -199,12 +199,18 @@ function TimePickerModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      {/* Backdrop sits behind the card as an absolute sibling so it doesn't
+          intercept scroll gestures on the WheelColumn FlatLists */}
       <Pressable
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}
         onPress={onClose}
+      />
+      {/* Centering wrapper — box-none passes through touches to the backdrop */}
+      <View
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+        pointerEvents="box-none"
       >
-        {/* Inner card — stop propagation so tapping inside doesn't close */}
-        <Pressable
+        <View
           style={{
             backgroundColor: theme.surface,
             borderRadius: 20,
@@ -213,7 +219,6 @@ function TimePickerModal({
             borderWidth: 1,
             borderColor: theme.border,
           }}
-          onPress={() => { /* absorb press */ }}
         >
           <Text
             style={{
@@ -258,8 +263,8 @@ function TimePickerModal({
               </Text>
             </TouchableOpacity>
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }

@@ -647,9 +647,10 @@ const soundRef = useRef<SoundInstance | null>(null);
             if (target === null || bookmarkSettledRef.current) return;
             const cardRef = detailedCardRefs.current[target];
             if (!cardRef) {
-              // Card not yet rendered — try once more if under cap
+              // Card not yet rendered — try once more if under cap.
+              // animated: true so onMomentumScrollEnd fires and continues the chain.
               if (bookmarkAttemptsRef.current < 10) {
-                listRef.current?.scrollToIndex({ index: target - 1, animated: false, viewPosition: 0 });
+                listRef.current?.scrollToIndex({ index: target - 1, animated: true, viewPosition: 0 });
               } else {
                 bookmarkSettledRef.current = true;
               }
@@ -662,7 +663,8 @@ const soundRef = useRef<SoundInstance | null>(null);
                 bookmarkSettledRef.current = true; // confirmed visible — never scroll again
                 bookmarkTargetRef.current = null;
               } else if (bookmarkAttemptsRef.current < 10) {
-                listRef.current?.scrollToIndex({ index: target - 1, animated: false, viewPosition: 0 });
+                // animated: true so onMomentumScrollEnd fires and continues the chain
+                listRef.current?.scrollToIndex({ index: target - 1, animated: true, viewPosition: 0 });
               } else {
                 bookmarkSettledRef.current = true; // cap reached — give up
                 bookmarkTargetRef.current = null;
