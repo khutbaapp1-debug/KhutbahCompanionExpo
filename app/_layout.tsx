@@ -35,13 +35,22 @@ try {
   // Native module unavailable (Expo Go) — premium features default to locked.
 }
 
-// Keep the native splash screen visible while we load fonts and other critical
-// startup state. Called at module scope (before the component renders) so the
-// splash is never auto-hidden on the first frame. Errors are ignored: if the
-// splash is already hidden this throws, which is harmless.
-SplashScreen.preventAutoHideAsync().catch(() => {
-  /* ignore — splash may already be hidden */
-});
+// Keep the native splash screen visible while fonts load.
+// Two separate guards are required:
+//
+// 1. Public guard — prevents the system from auto-dismissing the splash.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+//
+// 2. Internal guard — expo-router wraps the app in its own NavigationContainer
+//    (ExpoRoot) which fires onReady() as soon as the navigation tree mounts,
+//    independently of the public counter above. onReady calls
+//    _internal_maybeHideAsync(), which uses a separate ref-counted mechanism.
+//    renderRootComponent.js increments that counter to 1; onReady decrements
+//    it back to 0 and hides the splash — long before fonts finish loading.
+//    Incrementing the counter here means onReady's decrement only reaches 1,
+//    and the splash stays up until our hideAsync() call below.
+void (SplashScreen as unknown as { _internal_preventAutoHideAsync?: () => Promise<unknown> })
+  ._internal_preventAutoHideAsync?.();
 
 // Make the loading screen the initial route so the onboarding flow always
 // runs first on a cold start. Falls through to "/" via router.replace once
