@@ -1,14 +1,20 @@
 // ─── Reciters ─────────────────────────────────────────────────────────────────
+// All identifiers verified against cdn.islamic.network at the listed bitrate.
+// 128 kbps: ar.alafasy, ar.husary, ar.mahermuaiqly, ar.minshawi,
+//           ar.muhammadayyoub, ar.shaatree, ar.ahmedajamy
+// 64 kbps:  ar.abdulbasitmurattal, ar.abdurrahmaansudais, ar.hanirifai
 
 export const RECITERS = [
-  { id: 'ar.alafasy', name: 'Mishary Rashid Al-Afasy' },
-  { id: 'ar.abubakralshatri', name: 'Abu Bakr Al Shatri' },
-  { id: 'ar.abdulbasitmurattal', name: 'Abdul Basit (Murattal)' },
-  { id: 'ar.abdurrahmaansudais', name: 'Abdurrahmaan As-Sudais' },
-  { id: 'ar.yasseraldosari', name: 'Yasser Al Dosari' },
-  { id: 'ar.mahermuaiqly', name: 'Maher Al-Muaiqly' },
-  { id: 'ar.husary', name: 'Mahmoud Khalil Al-Husary' },
-  { id: 'ar.faresabbad', name: 'Faris Abad (Yemeni)' },
+  { id: 'ar.alafasy',            name: 'Mishary Rashid Al-Afasy',    bitrate: 128 },
+  { id: 'ar.husary',             name: 'Mahmoud Khalil Al-Husary',   bitrate: 128 },
+  { id: 'ar.mahermuaiqly',       name: 'Maher Al-Muaiqly',           bitrate: 128 },
+  { id: 'ar.minshawi',           name: 'Mohamed Al-Minshawi',        bitrate: 128 },
+  { id: 'ar.muhammadayyoub',     name: 'Muhammad Ayyoub',            bitrate: 128 },
+  { id: 'ar.shaatree',           name: 'Abu Bakr Al-Shaatree',       bitrate: 128 },
+  { id: 'ar.ahmedajamy',         name: 'Ahmed Al-Ajamy',             bitrate: 128 },
+  { id: 'ar.abdulbasitmurattal', name: 'Abdul Basit (Murattal)',      bitrate: 64  },
+  { id: 'ar.abdurrahmaansudais', name: 'Abdurrahmaan As-Sudais',     bitrate: 64  },
+  { id: 'ar.hanirifai',          name: 'Hani Al-Rifai',              bitrate: 64  },
 ] as const;
 
 export type ReciterId = (typeof RECITERS)[number]['id'];
@@ -49,7 +55,8 @@ export function getGlobalAyahNumber(
 }
 
 /**
- * Returns the 128 kbps MP3 stream URL for a single ayah.
+ * Returns the MP3 stream URL for a single ayah.
+ * Bitrate is per-reciter (128 or 64 kbps) — whichever the CDN serves for that edition.
  * The audio streams from Islamic Network CDN — nothing is downloaded locally.
  */
 export function getAyahAudioUrl(
@@ -58,5 +65,7 @@ export function getAyahAudioUrl(
   reciterId: ReciterId,
 ): string {
   const global = getGlobalAyahNumber(surahNumber, ayahNumber);
-  return `https://cdn.islamic.network/quran/audio/128/${reciterId}/${global}.mp3`;
+  const reciter = RECITERS.find((r) => r.id === reciterId);
+  const bitrate = reciter?.bitrate ?? 128;
+  return `https://cdn.islamic.network/quran/audio/${bitrate}/${reciterId}/${global}.mp3`;
 }
