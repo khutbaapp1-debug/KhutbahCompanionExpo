@@ -5,6 +5,7 @@ import '../src/lib/text-defaults';
 
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -64,38 +65,41 @@ function ThemedBanner() {
 // Inner navigator: consumes the theme so the native header bars and default
 // screen background follow the selected light/dark/high-contrast theme.
 function ThemedStack() {
-  const { theme } = useTheme();
+  const { theme, mode } = useTheme();
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.background },
-        headerTintColor: theme.text,
-        headerTitleStyle: { color: theme.text },
-        contentStyle: { backgroundColor: theme.background },
-      }}
-    >
-      <Stack.Screen
-        name="loading"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="translation" options={{ headerShown: false }} />
-      <Stack.Screen name="prayer-times" options={{ title: 'Prayer Times' }} />
-      <Stack.Screen name="qibla" options={{ title: 'Qibla Compass' }} />
-      <Stack.Screen name="quran/index" options={{ title: 'Quran' }} />
-      <Stack.Screen name="quran/[surahNumber]" options={{ headerShown: false }} />
-      <Stack.Screen name="duas" options={{ title: 'Daily Duas' }} />
-      <Stack.Screen name="my-duas" options={{ title: 'My Duas' }} />
-      <Stack.Screen name="hadith" options={{ title: 'Daily Hadith' }} />
-      <Stack.Screen name="zakat" options={{ title: 'Zakat Calculator' }} />
-      <Stack.Screen name="tasbih" options={{ title: 'Tasbih Counter' }} />
-      <Stack.Screen name="names" options={{ title: '99 Names of Allah' }} />
-      <Stack.Screen name="mosques" options={{ title: 'Mosque Finder' }} />
-      <Stack.Screen name="salah-guide" options={{ title: 'Salah & Wudu Guide' }} />
-      <Stack.Screen name="ramadan" options={{ title: 'Ramadan' }} />
-      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-      <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
-    </Stack>
+    <>
+      <StatusBar style={mode === 'light' ? 'dark' : 'light'} />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.background },
+          headerTintColor: theme.text,
+          headerTitleStyle: { color: theme.text },
+          contentStyle: { backgroundColor: theme.background },
+        }}
+      >
+        <Stack.Screen
+          name="loading"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="translation" options={{ headerShown: false }} />
+        <Stack.Screen name="prayer-times" options={{ title: 'Prayer Times' }} />
+        <Stack.Screen name="qibla" options={{ title: 'Qibla Compass' }} />
+        <Stack.Screen name="quran/index" options={{ title: 'Quran' }} />
+        <Stack.Screen name="quran/[surahNumber]" options={{ headerShown: false }} />
+        <Stack.Screen name="duas" options={{ title: 'Daily Duas' }} />
+        <Stack.Screen name="my-duas" options={{ title: 'My Duas' }} />
+        <Stack.Screen name="hadith" options={{ title: 'Daily Hadith' }} />
+        <Stack.Screen name="zakat" options={{ title: 'Zakat Calculator' }} />
+        <Stack.Screen name="tasbih" options={{ title: 'Tasbih Counter' }} />
+        <Stack.Screen name="names" options={{ title: '99 Names of Allah' }} />
+        <Stack.Screen name="mosques" options={{ title: 'Mosque Finder' }} />
+        <Stack.Screen name="salah-guide" options={{ title: 'Salah & Wudu Guide' }} />
+        <Stack.Screen name="ramadan" options={{ title: 'Ramadan' }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+      </Stack>
+    </>
   );
 }
 

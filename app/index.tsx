@@ -101,16 +101,6 @@ export default function HomeScreen() {
         if (!isMounted) return;
         setCoords(cached);
         setLocationChecked(true);
-        if (cached) {
-          // Permission already granted — refresh silently without prompting.
-          requestAndCacheLocation()
-            .then((fresh) => {
-              if (isMounted) setCoords(fresh);
-            })
-            .catch(() => {
-              /* keep the cached coordinates on failure */
-            });
-        }
       });
       setPrayerRefreshKey((k) => k + 1);
       return () => {

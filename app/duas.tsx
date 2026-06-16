@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   FlatList,
   ScrollView,
+  Share,
   Text,
   TouchableOpacity,
   View,
@@ -117,6 +118,21 @@ export default function DuasScreen() {
     await Clipboard.setStringAsync(text);
     setCopiedId(dua.id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const shareDua = async (dua: Dua) => {
+    const title = dua.occasion ?? dua.category;
+    const lines = [
+      title,
+      '',
+      dua.arabicText,
+      '',
+      dua.transliteration,
+      '',
+      dua.translation,
+    ];
+    if (dua.reference) lines.push('', `— ${dua.reference}`);
+    await Share.share({ message: lines.join('\n') });
   };
 
   const overlayBg = mode === 'dark' ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)';
@@ -262,13 +278,18 @@ export default function DuasScreen() {
                         </View>
                       )}
                     </View>
-                    <TouchableOpacity onPress={() => void copyDua(dua)} style={{ padding: 4 }}>
-                      <Ionicons
-                        name={copiedId === dua.id ? 'checkmark-circle' : 'copy-outline'}
-                        size={20}
-                        color={copiedId === dua.id ? theme.primary : theme.textMuted}
-                      />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
+                      <TouchableOpacity onPress={() => void shareDua(dua)} style={{ padding: 4 }}>
+                        <Ionicons name="share-outline" size={20} color={theme.textMuted} />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => void copyDua(dua)} style={{ padding: 4 }}>
+                        <Ionicons
+                          name={copiedId === dua.id ? 'checkmark-circle' : 'copy-outline'}
+                          size={20}
+                          color={copiedId === dua.id ? theme.primary : theme.textMuted}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Arabic */}

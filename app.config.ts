@@ -29,19 +29,18 @@ let config: ExpoConfig = {
 
 // expo-sensors injects ACTIVITY_RECOGNITION via its AndroidManifest; strip it via manifest merger.
 config = withAndroidManifest(config, (c) => {
-  const permissions: { $: Record<string, string> }[] =
-    c.modResults.manifest['uses-permission'] ?? [];
+  const permissions = c.modResults.manifest['uses-permission'] ?? [];
   const alreadyStripped = permissions.some(
     (p) =>
       p.$['android:name'] === 'android.permission.ACTIVITY_RECOGNITION' &&
-      p.$['tools:node'] === 'remove',
+      (p.$ as Record<string, string>)['tools:node'] === 'remove',
   );
   if (!alreadyStripped) {
     permissions.push({
       $: {
         'android:name': 'android.permission.ACTIVITY_RECOGNITION',
         'tools:node': 'remove',
-      },
+      } as never,
     });
     c.modResults.manifest['uses-permission'] = permissions;
   }
