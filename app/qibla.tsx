@@ -218,6 +218,7 @@ export default function QiblaScreen() {
 
   const smoothed = useRef<number | null>(null);
   const headingAccum = useRef(0);
+  const lastUpdateTime = useRef(0);
   const wasAligned = useRef(false);
   const headingAnim = useRef(new Animated.Value(0)).current;
 
@@ -256,14 +257,29 @@ export default function QiblaScreen() {
           if (!mounted) return;
           const raw = h.trueHeading >= 0 ? h.trueHeading : h.magHeading;
           setLowAccuracy(h.accuracy < 2);
-          // Circular low-pass filter — alpha 0.15 suppresses jitter without lag
+
+          // Run the low-pass filter on EVERY sensor reading so all data points
+          // contribute to noise suppression, even those we won't render.
+          // angleDiff() returns the shortest-arc delta (-180..180), so the
+          // smoothed value always moves via the short path and never sweeps
+          // through the 359°→0° discontinuity (e.g. smoothing 355°→5° takes
+          // the 10° arc, not the 350° arc in the wrong direction).
           if (smoothed.current === null) {
             smoothed.current = raw;
           } else {
             const d = angleDiff(raw, smoothed.current);
             smoothed.current = (smoothed.current + d * 0.15 + 360) % 360;
           }
-          // Accumulate for Animated.Value so the 359°→0° boundary never causes a jump
+
+          // Throttle UI updates to ~16 Hz (60 ms). watchHeadingAsync fires at
+          // 30–100 Hz on Android; without throttling, dozens of Animated.timing
+          // calls stack up in flight and fight each other, causing the shudder.
+          const now = Date.now();
+          if (now - lastUpdateTime.current < 60) return;
+          lastUpdateTime.current = now;
+
+          // Accumulate unbounded so the Animated.Value never jumps at the
+          // 359°→0° crossing — CompassFallback's interpolate handles ± values.
           const animDelta = angleDiff(smoothed.current, headingAccum.current % 360);
           headingAccum.current += animDelta;
           setHeading(smoothed.current);
