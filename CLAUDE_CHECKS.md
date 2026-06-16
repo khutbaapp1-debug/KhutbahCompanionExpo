@@ -7,6 +7,7 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - app/quran/[surahNumber].tsx: page view parent Text has textAlign 'justify', writingDirection 'rtl', width '100%'
 - src/lib/premium.ts: isPremium uses real RevenueCat entitlement check (Purchases.getCustomerInfo), NOT a hardcoded stub
 - No console.log statements exist anywhere in app/ or src/ directories EXCEPT dev-only diagnostic logs inside if (__DEV__) guards that are explicitly temporary
+- Maps key integrity — app.config.ts must throw at build time if the resolved Google Maps key is non-empty and does not exactly equal AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_Fs (39 chars, ends Fs). Fail if truncated or mismatched.
 
 ---
 

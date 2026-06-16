@@ -8,6 +8,14 @@ if (!mapsApiKey) {
 }
 
 const resolvedKey = mapsApiKey ?? 'AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_Fs';
+
+const EXPECTED_MAPS_KEY = 'AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_Fs';
+if (resolvedKey && resolvedKey !== EXPECTED_MAPS_KEY) {
+  throw new Error(
+    `FATAL: Google Maps API key is truncated or incorrect — expected the 39-char key ending in 'Fs', got: ${resolvedKey}`,
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appJson = require('./app.json').expo;
 
