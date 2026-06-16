@@ -1,4 +1,5 @@
 import { ExpoConfig } from 'expo/config';
+import { withAndroidManifest } from 'expo/config-plugins';
 
 const mapsApiKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
 if (!mapsApiKey) {
@@ -10,7 +11,7 @@ const resolvedKey = mapsApiKey ?? 'AIzaSyB1S7ViAmw2BwniR7L4hbvO6b2LmIoM_Fs';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appJson = require('./app.json').expo;
 
-const config: ExpoConfig = {
+let config: ExpoConfig = {
   ...appJson,
   android: {
     ...appJson.android,
@@ -25,5 +26,26 @@ const config: ExpoConfig = {
       : p
   ) as ExpoConfig['plugins'],
 };
+
+// expo-sensors injects ACTIVITY_RECOGNITION via its AndroidManifest; strip it via manifest merger.
+config = withAndroidManifest(config, (c) => {
+  const permissions: { $: Record<string, string> }[] =
+    c.modResults.manifest['uses-permission'] ?? [];
+  const alreadyStripped = permissions.some(
+    (p) =>
+      p.$['android:name'] === 'android.permission.ACTIVITY_RECOGNITION' &&
+      p.$['tools:node'] === 'remove',
+  );
+  if (!alreadyStripped) {
+    permissions.push({
+      $: {
+        'android:name': 'android.permission.ACTIVITY_RECOGNITION',
+        'tools:node': 'remove',
+      },
+    });
+    c.modResults.manifest['uses-permission'] = permissions;
+  }
+  return c;
+});
 
 export default config;
