@@ -3,10 +3,10 @@ import '../global.css';
 // descenders aren't clipped. Side-effect import — must run before any Text renders.
 import '../src/lib/text-defaults';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { requireOptionalNativeModule } from 'expo';
 import * as SplashScreen from 'expo-splash-screen';
@@ -22,6 +22,7 @@ import {
   NotoNaskhArabic_700Bold,
 } from '@expo-google-fonts/noto-naskh-arabic';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import mobileAds from 'react-native-google-mobile-ads';
 import Purchases from 'react-native-purchases';
 import { ThemeProvider, useTheme } from '../src/lib/theme-context';
@@ -58,12 +59,7 @@ const _SplashNative = requireOptionalNativeModule<{
 }>('ExpoSplashScreen');
 void _SplashNative?.internalPreventAutoHideAsync?.();
 
-// Make the loading screen the initial route so the onboarding flow always
-// runs first on a cold start. Falls through to "/" via router.replace once
-// the sequence completes.
-export const unstable_settings = {
-  initialRouteName: 'loading',
-};
+const ONBOARDING_KEY = 'onboarding-complete';
 
 // Banner ad rendered on every screen, flush against the navigation bar.
 // SafeAreaView with edges={['bottom']} absorbs the bottom inset so there is
@@ -136,26 +132,47 @@ export default function RootLayout() {
     KFGQPCHafs: require('../assets/fonts/KFGQPCHafs.otf'),
   });
 
+  // Tracks whether the onboarding AsyncStorage check has resolved.
+  const [startupReady, setStartupReady] = useState(false);
+  // '/loading' on first launch, '/' on all subsequent launches.
+  const startupTargetRef = useRef('/');
+
+  // Check onboarding status in parallel with font loading so both complete
+  // before the native splash is dismissed. AsyncStorage is typically <10ms,
+  // so this rarely adds perceptible delay.
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY)
+      .then((val) => {
+        startupTargetRef.current = val === 'true' ? '/' : '/loading';
+        setStartupReady(true);
+      })
+      .catch(() => {
+        // Default to home on error — onboarding will re-run next cold start.
+        setStartupReady(true);
+      });
+  }, []);
+
   // Initialise the Google Mobile Ads SDK once on mount so ad requests can be
   // served as soon as the first screen renders.
   useEffect(() => {
     mobileAds().initialize();
   }, []);
 
-  // Hide the native splash screen only once the fonts have finished loading, so
-  // the splash stays up for the whole startup instead of flashing and then
-  // showing a blank screen while fonts resolve.
+  // Hide the native splash only once BOTH fonts AND the onboarding check are
+  // complete, so the splash covers any intermediate state. On first launch we
+  // also navigate to /loading here — this fires before the splash finishes its
+  // exit animation, so the user sees loading.tsx (not index.tsx) when it clears.
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync().catch(() => {
-        /* ignore — splash may already be hidden */
-      });
+    if (!fontsLoaded || !startupReady) return;
+    SplashScreen.hideAsync().catch(() => {});
+    if (startupTargetRef.current === '/loading') {
+      router.replace('/loading');
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, startupReady]);
 
-  // Keep rendering nothing (the native splash remains visible) until fonts are
-  // ready, so text never flashes in a fallback face.
-  if (!fontsLoaded) {
+  // Keep rendering nothing (native splash stays visible) until fonts AND the
+  // startup check are both ready.
+  if (!fontsLoaded || !startupReady) {
     return null;
   }
 
