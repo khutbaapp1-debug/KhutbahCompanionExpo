@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
+import { requireOptionalNativeModule } from 'expo';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -41,16 +42,21 @@ try {
 // 1. Public guard — prevents the system from auto-dismissing the splash.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 //
-// 2. Internal guard — expo-router wraps the app in its own NavigationContainer
-//    (ExpoRoot) which fires onReady() as soon as the navigation tree mounts,
-//    independently of the public counter above. onReady calls
-//    _internal_maybeHideAsync(), which uses a separate ref-counted mechanism.
-//    renderRootComponent.js increments that counter to 1; onReady decrements
-//    it back to 0 and hides the splash — long before fonts finish loading.
-//    Incrementing the counter here means onReady's decrement only reaches 1,
-//    and the splash stays up until our hideAsync() call below.
-void (SplashScreen as unknown as { _internal_preventAutoHideAsync?: () => Promise<unknown> })
-  ._internal_preventAutoHideAsync?.();
+// 2. Internal guard — expo-router's renderRootComponent calls
+//    SplashModule.internalPreventAutoHideAsync() in a deferred setTimeout
+//    (counter → 1), then onReady() calls internalMaybeHideAsync() via
+//    requestAnimationFrame (counter → 0 → splash hides). This fires before
+//    fonts finish loading on fast devices, so we add a second increment here
+//    so onReady only brings the counter to 1, not 0.
+//    IMPORTANT: these methods live on the native ExpoSplashScreen module, NOT
+//    on expo-splash-screen's JS exports — calling them on the wrong object is
+//    a silent no-op due to optional chaining. We access the native module
+//    directly using the same requireOptionalNativeModule('ExpoSplashScreen')
+//    call that expo-router's own utils/splash.ts uses.
+const _SplashNative = requireOptionalNativeModule<{
+  internalPreventAutoHideAsync?: () => Promise<boolean>;
+}>('ExpoSplashScreen');
+void _SplashNative?.internalPreventAutoHideAsync?.();
 
 // Make the loading screen the initial route so the onboarding flow always
 // runs first on a cold start. Falls through to "/" via router.replace once
