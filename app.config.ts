@@ -1,5 +1,5 @@
 import { ExpoConfig } from 'expo/config';
-import { withAndroidManifest } from 'expo/config-plugins';
+import { withAndroidManifest, withMainActivity } from 'expo/config-plugins';
 
 const mapsApiKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
 if (!mapsApiKey) {
@@ -34,6 +34,25 @@ let config: ExpoConfig = {
       : p
   ) as ExpoConfig['plugins'],
 };
+
+// Fix the CONTENT_APPEARED race on production Hermes + New Architecture builds.
+// SplashScreenManager.contentAppearedListener auto-hides the splash if
+// preventAutoHideCalled is false when CONTENT_APPEARED fires. On fast devices
+// the async JS bridge call from _layout.tsx's preventAutoHideAsync() hasn't been
+// processed yet when CONTENT_APPEARED fires, so the splash is immediately hidden.
+// Setting preventAutoHideCalled = true in the main thread before React starts
+// eliminates this race entirely.
+config = withMainActivity(config, (mod) => {
+  const { contents } = mod.modResults;
+  if (contents.includes('preventAutoHideCalled = true')) {
+    return mod; // idempotent
+  }
+  mod.modResults.contents = contents.replace(
+    /(\n[ \t]+\/\/ @generated begin expo-splashscreen)/,
+    '\n    SplashScreenManager.preventAutoHideCalled = true$1',
+  );
+  return mod;
+});
 
 // expo-sensors injects ACTIVITY_RECOGNITION via its AndroidManifest; strip it via manifest merger.
 config = withAndroidManifest(config, (c) => {
