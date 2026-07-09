@@ -102,9 +102,11 @@ Run only checks relevant to files you modified. Report PASS or FAIL with line nu
 - Uses getStoredLocation() shared helper — same function used by prayer times and home screen
 - Does not parse location cache differently from other screens
 - Does not request location permission if valid cache exists
-- Camera permission requested lazily on screen open
-- Compass fallback shown if camera permission denied
+- No expo-camera import, no CameraView, no camera permission request (AR deferred to v1.1)
+- Heading comes from Location.watchHeadingAsync trueHeading (declination-corrected), NOT a raw
+  expo-sensors Magnetometer reading — Qibla bearing is measured from true north
 - Calibration instruction visible
+- Recalibrate button resets the smoothing state and resubscribes the heading watcher
 
 ## src/components/BannerAd.tsx
 - Uses TestIds.BANNER when __DEV__ is true
