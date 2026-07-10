@@ -135,7 +135,7 @@ export default function DuasScreen() {
     await Share.share({ message: lines.join('\n') });
   };
 
-  const overlayBg = mode === 'dark' ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)';
+  const overlayBg = mode === 'dark' ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.92)';
 
   return (
     <>

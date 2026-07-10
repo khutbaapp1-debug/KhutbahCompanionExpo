@@ -43,7 +43,7 @@ const ARABIC_FONT = 'NotoNaskhArabic_400Regular';
 
 export default function TasbihScreen() {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, mode } = useTheme();
   const { isPremium } = usePremium();
   const [selectedId, setSelectedId] = useState<DhikrId>('subhanallah');
   const [count, setCount] = useState(0);
@@ -106,6 +106,9 @@ export default function TasbihScreen() {
       }, 800);
     }
   };
+
+  // Opaque enough that the Arabic and translation behind it are unreadable.
+  const overlayBg = mode === 'dark' ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.92)';
 
   const resetAll = () => {
     setCount(0);
@@ -265,7 +268,8 @@ export default function TasbihScreen() {
                         ? theme.primaryContainer
                         : theme.border,
                     backgroundColor: isSelected ? theme.primaryContainer : theme.card,
-                    opacity: isCompleted ? 0.35 : isLocked ? 0.6 : 1,
+                    opacity: isCompleted ? 0.35 : 1,
+                    overflow: 'hidden',
                   }}
                 >
                   <Text
@@ -299,8 +303,35 @@ export default function TasbihScreen() {
                       marginTop: 2,
                     }}
                   >
-                    {isLocked ? '🔒 Premium' : isCompleted ? '✓ Done' : `Target: ${p.target}`}
+                    {isCompleted ? '✓ Done' : `Target: ${p.target}`}
                   </Text>
+
+                  {isLocked && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: overlayBg,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Ionicons name="lock-closed" size={20} color={theme.primary} />
+                      <Text
+                        style={{
+                          fontFamily: 'Inter_600SemiBold',
+                          fontSize: 13,
+                          color: theme.primary,
+                          marginTop: 4,
+                        }}
+                      >
+                        Premium
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
