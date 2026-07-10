@@ -54,7 +54,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-camera",
       "expo-notifications",
       [
         "expo-splash-screen",

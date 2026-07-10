@@ -170,10 +170,15 @@ export default function QiblaScreen() {
     inputRange: [0, 360],
     outputRange: ['0deg', '360deg'],
   });
-  const qiblaRotation = roseAnim.interpolate({
-    inputRange: [0, 360],
-    outputRange: [`${qiblaDeg}deg`, `${qiblaDeg + 360}deg`],
-  });
+
+  // Kaaba marker rides on the rose at the Qibla bearing, so it lands under the
+  // fixed needle exactly when the phone points at Makkah.
+  const qiblaRad = (qiblaDeg * Math.PI) / 180;
+  const kaabaX = 140 + Math.sin(qiblaRad) * 100;
+  const kaabaY = 140 - Math.cos(qiblaRad) * 100;
+
+  const headingLabel = heading === null ? '—' : String(Math.round(heading) % 360).padStart(3, '0');
+  const headingCardinal = heading === null ? '' : getCardinalDirection(heading);
 
   return (
     <>
@@ -294,40 +299,72 @@ export default function QiblaScreen() {
                   >
                     W
                   </SvgText>
-                  <Polygon points="140,45 146,140 134,140" fill={NORTH_RED} />
-                  <Polygon points="140,235 146,140 134,140" fill={theme.border} />
-                  <Circle
-                    cx="140"
-                    cy="140"
-                    r="6"
-                    fill={theme.card}
-                    stroke={theme.border}
-                    strokeWidth="2"
-                  />
+                  {/* Kaaba marker at the Qibla bearing, rotating with the rose */}
+                  {qiblaResult && (
+                    <>
+                      <Circle
+                        cx={kaabaX}
+                        cy={kaabaY}
+                        r="15"
+                        fill={theme.primaryContainer}
+                        stroke={theme.primary}
+                        strokeWidth={isAligned ? 3 : 1.5}
+                      />
+                      <SvgText
+                        x={kaabaX}
+                        y={kaabaY + 6}
+                        textAnchor="middle"
+                        fontSize="16"
+                      >
+                        🕋
+                      </SvgText>
+                    </>
+                  )}
                 </Svg>
               </Animated.View>
 
-              {/* Qibla needle (on top of the rose) */}
-              {qiblaResult && (
-                <Animated.View
-                  style={{ position: 'absolute', transform: [{ rotate: qiblaRotation }] }}
-                >
-                  <Svg width={280} height={280} viewBox="0 0 280 280">
-                    <Polygon
-                      points="140,38 147,140 133,140"
-                      fill={theme.primary}
-                      opacity={isAligned ? 1 : 0.9}
-                    />
-                    <SvgText x="140" y="32" textAnchor="middle" fontSize="12" fill={theme.primary}>
-                      🕋
-                    </SvgText>
-                  </Svg>
-                </Animated.View>
-              )}
+              {/* Fixed needle — stays put while the rose turns beneath it. */}
+              <Svg
+                width={280}
+                height={280}
+                viewBox="0 0 280 280"
+                style={{ position: 'absolute' }}
+                pointerEvents="none"
+              >
+                <Polygon points="140,42 148,140 132,140" fill={NORTH_RED} />
+                <Polygon points="140,238 148,140 132,140" fill={theme.border} />
+                <Circle
+                  cx="140"
+                  cy="140"
+                  r="6"
+                  fill={theme.surface}
+                  stroke={theme.border}
+                  strokeWidth="2"
+                />
+              </Svg>
             </View>
 
             {/* Info panel */}
             <View style={{ marginTop: 28, alignItems: 'center', gap: 10 }}>
+              {/* Current device heading */}
+              <View style={{ alignItems: 'center' }}>
+                <Text
+                  style={{
+                    fontFamily: 'Inter_700Bold',
+                    fontSize: 40,
+                    color: theme.text,
+                    lineHeight: 46,
+                  }}
+                >
+                  {headingLabel}°{headingCardinal ? ` ${headingCardinal}` : ''}
+                </Text>
+                <Text
+                  style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: theme.textMuted }}
+                >
+                  Current heading
+                </Text>
+              </View>
+
               {qiblaResult ? (
                 <>
                   <View
@@ -349,7 +386,7 @@ export default function QiblaScreen() {
                         color: theme.primary,
                       }}
                     >
-                      {Math.round(qiblaDeg)}° {cardinal} — Qibla direction
+                      Qibla: {Math.round(qiblaDeg)}° {cardinal}
                     </Text>
                   </View>
                   <Text
@@ -371,7 +408,7 @@ export default function QiblaScreen() {
                   maxWidth: 260,
                 }}
               >
-                Hold phone flat and face the green arrow toward Makkah
+                Hold phone flat and turn until the Kaaba marker sits under the needle
               </Text>
 
               {/* Calibration notice */}
