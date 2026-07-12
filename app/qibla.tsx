@@ -14,7 +14,7 @@ import {
 import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getStoredLocation } from '../src/lib/location';
+import { getStoredLocation, requestAndCacheLocation } from '../src/lib/location';
 import { calculateQiblaDirection, getCardinalDirection } from '../src/lib/qibla';
 import { useTheme } from '../src/lib/theme-context';
 
@@ -45,6 +45,7 @@ export default function QiblaScreen() {
   const [locState, setLocState] = useState<LocState>({ status: 'loading' });
   const [heading, setHeading] = useState<number | null>(null);
   const [lowAccuracy, setLowAccuracy] = useState(false);
+  const [requesting, setRequesting] = useState(false);
 
   // Sin/cos EMA state — heading smoothing with no unbounded accumulator.
   // svxRef = sin component EMA, cvyRef = cos component EMA. Recombined via
@@ -63,19 +64,37 @@ export default function QiblaScreen() {
   const headingSubRef = useRef<Location.LocationSubscription | null>(null);
   const mountedRef = useRef(true);
 
-  // Load cached location — no permission request. Same helper the prayer times
-  // and home screens use, so we never prompt twice for the same coordinates.
-  useEffect(() => {
-    void (async () => {
-      const cached = await getStoredLocation();
+  // Use the cached location if we have one; otherwise request permission and
+  // fetch it right here, so the compass works on first open without needing
+  // Prayer Times to have been visited first. Same requestAndCacheLocation()
+  // helper the loading/onboarding screen uses, so a grant here is reused there.
+  const loadLocation = useCallback(async (allowRequest: boolean) => {
+    const cached = await getStoredLocation();
+    if (!mountedRef.current) return;
+    if (cached) {
+      setLocState({ status: 'ready', lat: cached.latitude, lng: cached.longitude });
+      return;
+    }
+    if (!allowRequest) {
+      setLocState({ status: 'unavailable' });
+      return;
+    }
+    setRequesting(true);
+    try {
+      const fresh = await requestAndCacheLocation();
       if (!mountedRef.current) return;
-      if (cached) {
-        setLocState({ status: 'ready', lat: cached.latitude, lng: cached.longitude });
-      } else {
-        setLocState({ status: 'unavailable' });
-      }
-    })();
+      setLocState({ status: 'ready', lat: fresh.latitude, lng: fresh.longitude });
+    } catch {
+      // Permission denied or no position available — offer a retry button.
+      if (mountedRef.current) setLocState({ status: 'unavailable' });
+    } finally {
+      if (mountedRef.current) setRequesting(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadLocation(true);
+  }, [loadLocation]);
 
   const applyHeading = useCallback(
     (raw: number) => {
@@ -214,8 +233,32 @@ export default function QiblaScreen() {
                 textAlign: 'center',
               }}
             >
-              Open the Prayer Times screen first so your location can be saved, then return here.
+              Allow location access so the compass can point to Makkah from where you are.
             </Text>
+            <TouchableOpacity
+              onPress={() => void loadLocation(true)}
+              disabled={requesting}
+              accessibilityRole="button"
+              accessibilityLabel="Enable location"
+              style={{
+                borderRadius: 10,
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+                borderWidth: 1,
+                borderColor: theme.primary,
+                opacity: requesting ? 0.7 : 1,
+              }}
+            >
+              {requesting ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <Text
+                  style={{ fontFamily: 'Inter_600SemiBold', fontSize: 15, color: theme.primary }}
+                >
+                  Enable Location
+                </Text>
+              )}
+            </TouchableOpacity>
           </View>
         ) : (
           <View
