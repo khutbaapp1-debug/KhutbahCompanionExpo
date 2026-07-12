@@ -437,12 +437,6 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Tagline */}
-          <View className="py-3 px-4">
-            <Text className="text-xs text-gray-400 text-center font-sans">
-              Made by Akber Khan in Dubai 🇦🇪
-            </Text>
-          </View>
         </View>
       </ScrollView>
 
